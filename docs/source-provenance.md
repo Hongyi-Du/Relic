@@ -5,7 +5,7 @@ This release is distilled from the private development repository
 following frozen revision:
 
 ```text
-32aca051d223616cc79547d6f9997ac932b9b02b
+hci-human-seat@dda36fb563375060ae8d8850300db01eb4695d29
 ```
 
 The development repository is a source pool, not an authority for reported
@@ -21,4 +21,3 @@ NatureEnv, and obsolete SocioGenesis components are outside the release scope.
 
 Third-party benchmark snapshots retain their upstream provenance and license
 files. Their frozen bytes are not normalized by the outer repository.
-

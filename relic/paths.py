@@ -8,7 +8,7 @@ from pathlib import Path
 
 def project_root() -> Path:
     """Return the checkout root unless explicitly overridden for packaging."""
-    configured = os.environ.get("RELIC_PROJECT_ROOT")
+    configured = os.environ.get("RELIC_HOME")
     if configured:
         return Path(configured).expanduser().resolve()
     return Path(__file__).resolve().parents[1]
@@ -26,4 +26,3 @@ def benchmark_root() -> Path:
 def default_output_root() -> Path:
     configured = os.environ.get("RELIC_OUTPUT_ROOT")
     return Path(configured).expanduser().resolve() if configured else project_root() / "outputs"
-
