@@ -302,6 +302,28 @@ Inspector views are descriptive: observed lineage, temporal order, and state
 differences do not by themselves establish that one protocol, member, or
 mechanism caused an outcome.
 
+## Full regression test suite / 完整回归测试
+
+`main` contains the release-focused tests used by the default local and CI
+checks. They are safe by default: `uv run pytest` does not make paid model
+calls. No current default-suite test is marked `live`, `llm`, `slow`, or
+`docker`; future tests using those markers must remain opt-in because they may
+require credentials, substantial runtime, or a Docker daemon.
+
+The handoff reserves a future `full-tests` branch for sanitized historical
+core regression tests. That branch is not present in this release snapshot, so
+this README does not provide a `git switch full-tests` command that would fail.
+When published, it must be based on the corresponding release commit, add test
+depth without becoming a second implementation, and exclude obsolete systems,
+private fixtures, credentials, and development-machine paths.
+
+`main` 包含默认本地检查与 CI 使用的 release-focused tests；默认执行
+`uv run pytest` 不会调用付费模型。当前默认测试集没有标记为 `live`、`llm`、
+`slow` 或 `docker` 的测试；未来使用这些 marker 的测试必须保持显式启用，因为
+它们可能需要凭据、较长运行时间或 Docker。交接文档规划的
+`full-tests` 分支用于保存清理后的历史核心回归测试，但当前 release 快照尚未发布
+该分支，因此这里不会给出当前必然失败的切换命令。
+
 ## Current provider boundary
 
 The frozen implementation has a real OpenAI runtime but no Anthropic adapter.
