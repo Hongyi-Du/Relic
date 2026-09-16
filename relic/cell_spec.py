@@ -75,6 +75,8 @@ _MODEL_KEYS = frozenset(
         "provider",
         "runtime_model_default",
         "runtime_model_env",
+        "wire_api",
+        "json_transport",
         "reasoning_effort",
         "request_timeout_seconds",
         "max_retries",
@@ -437,6 +439,20 @@ def compile_cell_spec(
         raise ValueError(f"model_{model_id}_schema_version_mismatch")
     if str(model_config.get("model") or "").lower() != model_id:
         raise ValueError(f"model_{model_id}_identity_mismatch")
+    provider = str(model_config.get("provider") or "").strip().lower()
+    if provider not in {"openai", "http", "mock"}:
+        raise ValueError(f"model_{model_id}_provider_unsupported")
+    wire_api = str(model_config.get("wire_api") or "").strip().lower().replace("-", "_")
+    if wire_api not in {"chat_completions", "responses"}:
+        raise ValueError(f"model_{model_id}_wire_api_invalid")
+    json_transport = (
+        str(model_config.get("json_transport") or "")
+        .strip()
+        .lower()
+        .replace("-", "_")
+    )
+    if json_transport not in {"native", "prompt_only"}:
+        raise ValueError(f"model_{model_id}_json_transport_invalid")
     runtime_fields = [
         field
         for field in ("runtime_model_default", "runtime_model_env")

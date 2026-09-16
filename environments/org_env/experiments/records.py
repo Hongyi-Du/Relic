@@ -426,6 +426,9 @@ def _llm_runtime_payload(
         "wire_api": str(
             getattr(client, "wire_api", None) or "not_applicable"
         ),
+        "json_transport": str(
+            getattr(client, "json_transport", None) or "not_applicable"
+        ),
         "endpoint_kind": endpoint_kind,
         "endpoint_hash": stable_fingerprint(
             str(endpoint) or endpoint_kind

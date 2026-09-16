@@ -10,6 +10,8 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import threading
+from contextlib import nullcontext
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Any, Callable, ClassVar, Dict, Mapping, Optional
@@ -410,7 +412,13 @@ def experiment_resource_snapshot(
 
 
 class MeteredOrgLLMClient(OrgLLMClient):
-    """Transparent LLM wrapper enforcing the company-wide frozen call budget."""
+    """Transparent LLM wrapper enforcing the company-wide frozen call budget.
+
+    Requested-token usage is the effective output ceiling admitted for each
+    provider attempt that actually starts.  It is intentionally neither actual
+    completion usage (which cannot fail closed before a request) nor a prepaid
+    envelope for retries that may never happen.
+    """
 
     def __init__(
         self,
@@ -428,12 +436,35 @@ class MeteredOrgLLMClient(OrgLLMClient):
         self.provider = inner.provider
         self.resource_denials = 0
         self.prompt_visibility_denials = 0
+        self._denial_lock = threading.Lock()
+
+    def _record_resource_denial(self) -> None:
+        with self._denial_lock:
+            self.resource_denials += 1
+
+    def _record_prompt_visibility_denial(self) -> None:
+        with self._denial_lock:
+            self.prompt_visibility_denials += 1
 
     @property
     def calls(self) -> int:
+        # Attempt-aware clients enter ``generate_*`` before admission, so their
+        # own logical-call counter already includes a resource denial.  Legacy
+        # clients are admitted before entry and still need the wrapper count.
+        outside_inner_denials = (
+            0
+            if bool(
+                getattr(
+                    getattr(self, "inner", None),
+                    "meters_actual_provider_attempts",
+                    False,
+                )
+            )
+            else self.resource_denials
+        )
         return (
             int(getattr(self.inner, "calls", 0))
-            + self.resource_denials
+            + outside_inner_denials
             + self.prompt_visibility_denials
         )
 
@@ -444,9 +475,20 @@ class MeteredOrgLLMClient(OrgLLMClient):
 
     @property
     def failures(self) -> int:
+        outside_inner_denials = (
+            0
+            if bool(
+                getattr(
+                    getattr(self, "inner", None),
+                    "meters_actual_provider_attempts",
+                    False,
+                )
+            )
+            else self.resource_denials
+        )
         return (
             int(getattr(self.inner, "failures", 0))
-            + self.resource_denials
+            + outside_inner_denials
             + self.prompt_visibility_denials
         )
 
@@ -494,14 +536,14 @@ class MeteredOrgLLMClient(OrgLLMClient):
     def response_id_digest(self, value: str) -> None:
         self.__dict__["_initial_response_id_digest"] = str(value or "")
 
-    def _reserve(
+    def _reservation(
         self,
         system_prompt: str,
         user_prompt: str,
         max_tokens: int,
         *,
         surface: str,
-    ) -> None:
+    ) -> Any:
         if self.prompt_auditor is not None:
             try:
                 self.prompt_auditor.audit(
@@ -510,7 +552,7 @@ class MeteredOrgLLMClient(OrgLLMClient):
                     surface=surface,
                 )
             except LLMError:
-                self.prompt_visibility_denials += 1
+                self._record_prompt_visibility_denial()
                 raise
         context = dict(self.context_provider() if self.context_provider else {})
         envelope = self.inner.request_resource_envelope(max_tokens)
@@ -519,24 +561,57 @@ class MeteredOrgLLMClient(OrgLLMClient):
             0,
             int(envelope["output_tokens_per_attempt"]),
         )
+        prompt_characters = len(system_prompt) + len(user_prompt)
+
+        if bool(getattr(self.inner, "meters_actual_provider_attempts", False)):
+            from environments.org_env.llm.client import (
+                provider_attempt_reservation,
+            )
+
+            def reserve_attempt(attempt_number: int) -> None:
+                requests = {
+                    LLM_CALLS: 1,
+                    LLM_REQUESTED_TOKENS: per_attempt_tokens,
+                }
+                if int(attempt_number) == 1:
+                    requests[LLM_PROMPT_CHARACTERS] = prompt_characters
+                accepted = self.ledger.reserve(
+                    requests,
+                    tick=context.get("tick"),
+                    agent_id=context.get("agent_id"),
+                    detail=(
+                        f"{surface}:actual_provider_attempt="
+                        f"{int(attempt_number)}:"
+                        f"output_tokens_per_attempt={per_attempt_tokens}"
+                    ),
+                )
+                if not accepted:
+                    self._record_resource_denial()
+                    raise LLMError("experiment_resource_exhausted:llm")
+
+            return provider_attempt_reservation(reserve_attempt)
+
+        # Mock, generic HTTP, and legacy/custom clients have no internal retry
+        # loop exposed to the meter.  Preserve their prior fail-closed envelope
+        # admission; the built-in mock and generic clients both declare one
+        # provider attempt.
         accepted = self.ledger.reserve(
             {
-                # These are provider-attempt ceilings, not logical-call counts.
-                # Reserving the retry envelope up front bounds real API cost.
                 LLM_CALLS: attempts,
                 LLM_REQUESTED_TOKENS: attempts * per_attempt_tokens,
-                LLM_PROMPT_CHARACTERS: len(system_prompt) + len(user_prompt),
+                LLM_PROMPT_CHARACTERS: prompt_characters,
             },
             tick=context.get("tick"),
             agent_id=context.get("agent_id"),
             detail=(
-                f"{surface}:attempts={attempts}:"
+                f"{surface}:reserved_attempt_envelope={attempts}:"
                 f"output_tokens_per_attempt={per_attempt_tokens}"
             ),
         )
         if not accepted:
-            self.resource_denials += 1
+            self._record_resource_denial()
             raise LLMError("experiment_resource_exhausted:llm")
+        return nullcontext()
 
     def generate_text(
         self,
@@ -546,13 +621,18 @@ class MeteredOrgLLMClient(OrgLLMClient):
         temperature: float = 0.3,
         max_tokens: int = 800,
     ) -> str:
-        self._reserve(system_prompt, user_prompt, max_tokens, surface="generate_text")
-        return self.inner.generate_text(
+        with self._reservation(
             system_prompt,
             user_prompt,
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
+            max_tokens,
+            surface="generate_text",
+        ):
+            return self.inner.generate_text(
+                system_prompt,
+                user_prompt,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
 
     def generate_json(
         self,
@@ -563,14 +643,19 @@ class MeteredOrgLLMClient(OrgLLMClient):
         temperature: float = 0.2,
         max_tokens: int = 1200,
     ) -> Dict[str, Any]:
-        self._reserve(system_prompt, user_prompt, max_tokens, surface="generate_json")
-        return self.inner.generate_json(
+        with self._reservation(
             system_prompt,
             user_prompt,
-            schema,
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
+            max_tokens,
+            surface="generate_json",
+        ):
+            return self.inner.generate_json(
+                system_prompt,
+                user_prompt,
+                schema,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
 
     def stats(self) -> Dict[str, Any]:
         result = {

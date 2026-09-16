@@ -171,10 +171,23 @@ def test_noncanonical_seed_is_rejected(tmp_path: Path) -> None:
         )
 
 
-def test_claude_fails_before_world_execution_until_adapter_exists(tmp_path: Path) -> None:
+def test_claude_uses_the_openai_compatible_gateway_binding(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     spec = _spec(tmp_path, model="claude-opus-4.6")
-    with pytest.raises(CellWorkerError, match="unsupported_model_provider:anthropic"):
-        _build_openai_client(spec)
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setenv("RELIC_CLAUDE_OPUS_4_6_MODEL", "claude-opus-4-6")
+
+    client, binding = _build_openai_client(spec)
+
+    assert client.provider == "openai"
+    assert client.model == "claude-opus-4-6"
+    assert client.wire_api == "chat_completions"
+    assert client.json_transport == "prompt_only"
+    assert client.effective_reasoning_effort == "low"
+    assert binding["provider"] == "openai"
+    assert binding["wire_api"] == "chat_completions"
+    assert binding["json_transport"] == "prompt_only"
 
 
 def test_evaluator_preflight_happens_before_client_construction(

@@ -39,8 +39,9 @@ Formal execution additionally requires provider credentials and a qualified,
 network-disabled evaluator container pinned by immutable digest. The evaluator
 image has not yet been supplied, so `check-env --scope formal`, formal smoke,
 and real cells must fail closed until that image is available. The current
-runtime supports OpenAI only; `claude-opus-4.6` remains in the paper design but
-cannot run until a reviewed Anthropic adapter is added.
+formal provider route is OpenAI-compatible. The paper's Claude arm uses the
+HCI source gateway contract (`provider: openai`, `chat_completions`, and
+`prompt_only` JSON transport), not a native Anthropic SDK adapter.
 
 The Apptainer backend additionally requires an active Slurm allocation
 (`SLURM_JOB_ID` plus `srun`) and the configured registry digest to already be
@@ -56,9 +57,9 @@ The release image uses:
 - no Node runtime, because the Inspector ships prebuilt static assets;
 - no GPU requirement.
 
-The only currently supported model provider is OpenAI. The paper's Claude arm
-remains configured for design fidelity but is not executable without a reviewed
-Anthropic adapter.
+The formal runner accepts the OpenAI-compatible provider route. The paper's
+Claude arm is configured through that same route; supply the gateway's deployed
+model alias and base URL rather than an Anthropic SDK credential.
 
 The image uses a non-root account. Compose further selects the host UID/GID,
 makes the root filesystem read-only, drops Linux capabilities, enables
@@ -140,7 +141,7 @@ static assets, and hostile Host-header rejection. The same fresh clone passed
 the complete 164-test suite and built its wheel and source distribution.
 
 This is evidence only for the stated core Docker path. It is not a successful
-formal cell, evaluator run, selected-paper-trace replay, Anthropic run, or
+formal cell, evaluator run, selected-paper-trace replay, Claude gateway run, or
 complete paper reproduction. Re-run the documented commands on every release
 candidate; the ordinary unit suite intentionally does not assume a Docker
 daemon is available.
@@ -154,8 +155,8 @@ overridden from `.env`.
 
 | Variable | Required | Default | Purpose / example format |
 |---|---|---|---|
-| `OPENAI_API_KEY` | Formal OpenAI runs | none | Provider credential; secret, never persisted by Relic |
-| `OPENAI_BASE_URL` | No | official OpenAI endpoint | Optional OpenAI-compatible HTTPS base URL |
+| `OPENAI_API_KEY` | Formal OpenAI-compatible runs | none | Provider or gateway credential; secret, never persisted by Relic |
+| `OPENAI_BASE_URL` | No | official OpenAI endpoint | Optional OpenAI-compatible HTTPS base URL, including the Claude gateway route |
 | `RELIC_OPENAI_DEFAULT_HEADERS_JSON` | No | `{}` | Non-authorization compatibility headers as a JSON object |
 | `RELIC_OPENAI_DISABLE_RESPONSE_STORAGE` | No | `true` | Keep Responses API storage disabled |
 | `RELIC_EVALUATOR_BACKEND` | Formal evaluation | none | `docker`, or `apptainer` with Slurm and a preloaded digest cache entry |
@@ -169,15 +170,15 @@ overridden from `.env`.
 | `RELIC_UID` | No | `1000` | Compose host user ID for bind-mounted output ownership |
 | `RELIC_GID` | No | `1000` | Compose host group ID for bind-mounted output ownership |
 | `RELIC_TRACE_FILE` | No | `selected-trace.json` | Inspector trace filename under the read-only Compose `traces/` mount |
-| `RELIC_CLAUDE_OPUS_4_6_MODEL` | Not yet usable | none | Reserved model binding for a future Anthropic adapter |
+| `RELIC_CLAUDE_OPUS_4_6_MODEL` | Formal Claude gateway runs | none | Deployed Claude model alias for the OpenAI-compatible gateway |
 | `APPTAINER_CACHEDIR` | Apptainer only | runtime default | Optional Apptainer cache path |
 | `APPTAINER_TMPDIR` | Apptainer only | runtime default | Optional Apptainer temporary path |
 
 Internal `ORG_*` identity variables are set per cell by the canonical worker.
-Users must not set them to redefine an experiment. `ORG_LLM_API_KEY`,
-`ORG_LLM_BASE_URL`, and `ORG_LLM_WIRE_API` exist only as advanced compatibility
-overrides; prefer the documented OpenAI variables unless integrating a reviewed
-endpoint.
+Users must not set them to redefine an experiment. `ORG_LLM_API_KEY` and
+`ORG_LLM_BASE_URL` are advanced aliases for the documented OpenAI-compatible
+credential and endpoint variables. The frozen model YAML, rather than an
+environment override, fixes the formal worker's wire API and JSON transport.
 
 `check-env` validates the packaged Inspector assets. Inspector reads only a
 strict `relic-trace-v1` file supplied with `--trace`; it never reads private
