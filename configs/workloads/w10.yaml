@@ -1,0 +1,7 @@
+schema_version: relic-workload-v1
+workload: w10
+paper_label: Tenacity 8.2.3 to 9.1.4
+category: upstream_version_transition
+frozen_pack_id: tenacity_v823_to_v914
+benchmark_path: benchmarks/relic-main-v1/packs/tenacity_v823_to_v914
+

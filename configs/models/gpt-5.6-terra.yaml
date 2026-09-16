@@ -1,0 +1,10 @@
+schema_version: relic-model-v1
+model: gpt-5.6-terra
+paper_label: GPT-5.6 Terra
+provider: openai
+runtime_model_default: gpt-5.6-terra
+reasoning_effort: low
+request_timeout_seconds: 180
+max_retries: 6
+retry_backoff_seconds: 3
+

@@ -1,0 +1,12 @@
+schema_version: relic-arm-v1
+arm: b0
+paper_label: Reflective individual
+roster_size: 1
+action_selection: llm_direct
+profile_conditioning: false
+capability_learning: false
+institutionalization: false
+runtime_protocol_binding: false
+temporary_team: false
+profile_assignment: aligned
+

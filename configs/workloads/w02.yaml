@@ -1,0 +1,7 @@
+schema_version: relic-workload-v1
+workload: w02
+paper_label: Traffic Watch
+category: zero_to_one_construction
+frozen_pack_id: traffic_watch_v1
+benchmark_path: benchmarks/relic-main-v1/packs/traffic_watch_v1
+

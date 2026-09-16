@@ -1,0 +1,28 @@
+schema_version: relic-main-study-v1
+study: relic-main-v1
+
+# The paper reports 120 cells per model and 240 main-study runs in total.
+models:
+  - gpt-5.6-terra
+  - claude-opus-4.6
+workloads: [w01, w02, w03, w04, w05, w06, w07, w08, w09, w10]
+seeds: [1401, 2711, 4013]
+arms: [b0, b1, b2, b3]
+
+ticks: 336
+checkpoint_every: 24
+sprint_ticks: 168
+work_rhythm_enabled: false
+approval_mode: semi_auto
+
+resource_policy:
+  matched_budget: false
+  measure_realized_provider_tokens: true
+
+aggregation:
+  block: model_x_workload
+  average_seeds_within_block: true
+  equal_weight_blocks: true
+  paired_bootstrap_replicates: 10000
+  bootstrap_seed: 1729
+

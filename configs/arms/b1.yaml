@@ -1,0 +1,12 @@
+schema_version: relic-arm-v1
+arm: b1
+paper_label: Long-horizon role team
+roster_size: 8
+action_selection: llm_direct
+profile_conditioning: false
+capability_learning: false
+institutionalization: false
+runtime_protocol_binding: false
+temporary_team: false
+profile_assignment: aligned
+

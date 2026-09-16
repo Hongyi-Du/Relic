@@ -1,0 +1,7 @@
+schema_version: relic-workload-v1
+workload: w06
+paper_label: Boltons 24.0.0 to 26.1.0
+category: upstream_version_transition
+frozen_pack_id: boltons_v2400_to_v2610
+benchmark_path: benchmarks/relic-main-v1/packs/boltons_v2400_to_v2610
+

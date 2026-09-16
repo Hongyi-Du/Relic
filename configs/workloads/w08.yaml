@@ -1,0 +1,7 @@
+schema_version: relic-workload-v1
+workload: w08
+paper_label: Soup Sieve 2.6 to 2.9.1
+category: upstream_version_transition
+frozen_pack_id: soupsieve_v26_to_v291
+benchmark_path: benchmarks/relic-main-v1/packs/soupsieve_v26_to_v291
+

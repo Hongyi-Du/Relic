@@ -1,0 +1,13 @@
+schema_version: relic-arm-v1
+arm: b3
+paper_label: Relic organization
+roster_size: 8
+action_selection: profile_policy
+profile_conditioning: true
+capability_learning: true
+institutionalization: true
+runtime_protocol_binding: true
+protocol_masked_preselection: false
+temporary_team: false
+profile_assignment: aligned
+

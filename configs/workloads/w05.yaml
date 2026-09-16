@@ -1,0 +1,7 @@
+schema_version: relic-workload-v1
+workload: w05
+paper_label: FastAPI Dashboard
+category: zero_to_one_construction
+frozen_pack_id: fastapi_dashboard_v1
+benchmark_path: benchmarks/relic-main-v1/packs/fastapi_dashboard_v1
+

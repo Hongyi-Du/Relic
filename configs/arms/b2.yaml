@@ -1,0 +1,12 @@
+schema_version: relic-arm-v1
+arm: b2
+paper_label: SDL-based multi-agent system
+roster_size: 8
+action_selection: profile_policy
+profile_conditioning: true
+capability_learning: true
+institutionalization: false
+runtime_protocol_binding: false
+temporary_team: false
+profile_assignment: aligned
+

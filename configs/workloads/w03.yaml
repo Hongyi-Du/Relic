@@ -1,0 +1,7 @@
+schema_version: relic-workload-v1
+workload: w03
+paper_label: TG Automation
+category: zero_to_one_construction
+frozen_pack_id: tg_automation_v1
+benchmark_path: benchmarks/relic-main-v1/packs/tg_automation_v1
+

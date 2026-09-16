@@ -1,0 +1,7 @@
+schema_version: relic-workload-v1
+workload: w09
+paper_label: cattrs 25.1.0 to 26.1.0
+category: upstream_version_transition
+frozen_pack_id: cattrs_v2510_to_v2610
+benchmark_path: benchmarks/relic-main-v1/packs/cattrs_v2510_to_v2610
+
