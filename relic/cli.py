@@ -134,10 +134,42 @@ def _run_main(args: argparse.Namespace) -> int:
 
 def _evaluate_cell(args: argparse.Namespace) -> int:
     from relic.cell_worker import CellWorkerError, evaluate_cell
+    from relic.evaluation.user_run_batch import UserRunBatchError, evaluate_user_run_batch
 
     try:
-        result = evaluate_cell(cell_dir=args.cell_dir)
-    except (CellWorkerError, ValueError) as exc:
+        if args.cell_dir is not None:
+            if args.selection != "completed" or args.dry_run or args.receipt_directory:
+                raise ValueError("batch_options_require_manifest_or_output_root")
+            result = evaluate_cell(cell_dir=args.cell_dir)
+        else:
+            result = evaluate_user_run_batch(
+                manifest_path=args.manifest,
+                output_root=args.output_root,
+                receipt_directory=args.receipt_directory,
+                selection=args.selection,
+                dry_run=args.dry_run,
+            )
+    except (CellWorkerError, UserRunBatchError, ValueError) as exc:
+        print(json.dumps({"status": "failed", "error": str(exc)}), file=sys.stderr)
+        return 2
+    print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
+    failed = getattr(result, "failed_cells", getattr(result, "failed", 0))
+    return 0 if failed == 0 else 2
+
+
+def _aggregate_user_runs(args: argparse.Namespace) -> int:
+    from relic.evaluation.user_run_aggregate import (
+        UserRunAggregateError,
+        build_user_run_aggregate,
+    )
+
+    try:
+        result = build_user_run_aggregate(
+            args.evaluation_manifest,
+            output_directory=args.output_directory,
+            allow_partial=args.allow_partial,
+        )
+    except (UserRunAggregateError, ValueError) as exc:
         print(json.dumps({"status": "failed", "error": str(exc)}), file=sys.stderr)
         return 2
     print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
@@ -249,10 +281,41 @@ def build_parser() -> argparse.ArgumentParser:
     status.set_defaults(func=_status)
 
     evaluate = subparsers.add_parser(
-        "evaluate", help="evaluate a completed cell from its final checkpoint"
+        "evaluate",
+        aliases=["evaluate-manifest"],
+        help="evaluate one local cell or a user-created v2 run manifest",
     )
-    evaluate.add_argument("--cell-dir", type=Path, required=True)
+    evaluation_source = evaluate.add_mutually_exclusive_group(required=True)
+    evaluation_source.add_argument("--cell-dir", type=Path)
+    evaluation_source.add_argument("--manifest", type=Path)
+    evaluation_source.add_argument(
+        "--output-root",
+        type=Path,
+        help="user run directory containing exactly run_manifest.json",
+    )
+    evaluate.add_argument("--receipt-directory", type=Path, default=None)
+    evaluate.add_argument(
+        "--selection",
+        choices=("completed", "failed-evaluation", "all-eligible"),
+        default="completed",
+    )
+    evaluate.add_argument("--dry-run", action="store_true")
     evaluate.set_defaults(func=_evaluate_cell)
+
+    aggregate = subparsers.add_parser(
+        "aggregate-user-runs",
+        help="summarize only user-created evaluation receipts; never paper raw runs",
+    )
+    aggregate.add_argument(
+        "--evaluation-manifest",
+        type=Path,
+        action="append",
+        required=True,
+        help="repeat once per single-model evaluation batch",
+    )
+    aggregate.add_argument("--output-directory", type=Path, required=True)
+    aggregate.add_argument("--allow-partial", action="store_true")
+    aggregate.set_defaults(func=_aggregate_user_runs)
     return parser
 
 

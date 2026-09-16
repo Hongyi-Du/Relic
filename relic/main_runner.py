@@ -17,6 +17,7 @@ import subprocess
 import sys
 import threading
 import time
+import uuid
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -193,6 +194,11 @@ def build_run_manifest(
         "runtime": {
             "revision": 0,
             "status": "planned",
+            "run_origin": {
+                "kind": "user_new_run",
+                "instance_id": uuid.uuid4().hex,
+                "created_at": _utc_now(),
+            },
             "sessions": [],
             "cells": runtime_cells,
         },
@@ -241,6 +247,15 @@ def _validate_manifest(payload: Mapping[str, Any]) -> None:
         raise MainRunnerError("run_manifest_revision_invalid") from exc
     if revision < 0 or not isinstance(runtime.get("sessions"), list):
         raise MainRunnerError("run_manifest_runtime_invalid")
+    run_origin = runtime.get("run_origin")
+    if not isinstance(run_origin, Mapping):
+        raise MainRunnerError("run_manifest_origin_missing")
+    if run_origin.get("kind") != "user_new_run":
+        raise MainRunnerError("run_manifest_origin_invalid")
+    instance_id = str(run_origin.get("instance_id") or "")
+    created_at = str(run_origin.get("created_at") or "")
+    if not re.fullmatch(r"[0-9a-f]{32}", instance_id) or not created_at:
+        raise MainRunnerError("run_manifest_origin_invalid")
     if plan.get("plan_sha256") != _plan_digest(plan):
         raise MainRunnerError("run_manifest_plan_hash_mismatch")
     if plan.get("study") != "relic-main-v1":

@@ -136,6 +136,63 @@ Checkpoint pickle files are private trusted local continuation artifacts. Do not
 run `--resume` or `evaluate` on downloaded or otherwise untrusted cell
 directories; `status` reads only verified sidecars and public JSON.
 
+Evaluate all eligible cells from a user-created v2 run manifest, or from the
+run directory that contains exactly that manifest:
+
+```bash
+uv run relic evaluate \
+  --manifest outputs/main-study/run_manifest.json \
+  --receipt-directory outputs/main-study/evaluation
+
+# Equivalent directory form; this does not recursively discover arbitrary runs.
+uv run relic evaluate \
+  --output-root outputs/main-study \
+  --receipt-directory outputs/main-study/evaluation
+```
+
+The batch is serial and writes `evaluation_manifest.json` even when an eligible
+cell fails. `--selection failed-evaluation` limits a repair pass to scheduler
+cells classified as evaluator failures; `all-eligible` includes those and
+completed cells. Add `--dry-run` to inspect selection without loading a
+checkpoint. Batch evaluation only accepts manifests marked as user-created by
+this release and never changes scheduler attempt history.
+
+Batch evaluation has the same checkpoint trust boundary as one-cell evaluation:
+it deserializes local Python checkpoints before the candidate repository enters
+the restricted evaluator container. Only use checkpoints produced in this
+controlled local run directory. Hash sidecars detect accidental changes; they
+do not make a downloaded pickle safe.
+
+Summarize one or two single-model evaluation receipts without reading author
+raw runs or the canonical paper snapshot:
+
+```bash
+uv run relic aggregate-user-runs \
+  --evaluation-manifest outputs/main-study/evaluation/evaluation_manifest.json \
+  --output-directory outputs/main-study/aggregate \
+  --allow-partial
+```
+
+Aggregation accepts only completed, non-dry-run local batches whose scheduler
+runtime was unchanged. It validates the frozen repository/branch/commit/tree,
+both receipt run-origin declarations, each single-model 120-cell plan, and
+every included cell before using a value. The output is deliberately named
+`user_run_aggregate.json/md`, begins with a “not paper results” notice, averages
+seeds inside each model-by-workload block, then weights applicable blocks
+equally. B3−B2 uses paired seeds and 10,000 fixed-block bootstrap draws with
+seed 1729. A single 120-cell model run is a partial design, so it requires
+`--allow-partial`; only both complete model receipts constitute the 240-cell
+design. Evaluator infrastructure or unavailable results are excluded as
+unavailable, never treated as low scores.
+
+The current frozen evaluator does not emit a versioned, hash-bound scoring
+ledger mapping leaf cases and contracts to exposed versus held-out paper units.
+Consequently user aggregates report provider-token and generic evaluator
+diagnostics, while paper-named contract/case/confirmed-issue metrics remain
+explicitly `NA` instead of being guessed. Completing those metrics requires the
+first-author scoring ledger. The values under `artifacts/paper_results/` remain
+the PDF-transcribed historical snapshot and are never aggregate input.
+
 ## Current provider boundary
 
 The frozen implementation has a real OpenAI runtime but no Anthropic adapter.

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
@@ -89,14 +90,15 @@ def test_powershell_scripts_parse_when_available() -> None:
     parser = (
         "$tokens = $null; $errors = $null; "
         "[System.Management.Automation.Language.Parser]::ParseFile("
-        "$args[0], [ref]$tokens, [ref]$errors) | Out-Null; "
+        "$env:RELIC_POWERSHELL_PARSE_PATH, [ref]$tokens, [ref]$errors) | Out-Null; "
         "if ($errors.Count) { $errors | ForEach-Object { Write-Error $_ }; exit 1 }"
     )
     for script in [HELPER, POWERSHELL_ROOT / "check_wsl.ps1", *(POWERSHELL_ROOT / f"{name}.ps1" for name in LAUNCHERS)]:
         completed = subprocess.run(
-            [executable, "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", parser, str(script)],
+            [executable, "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", parser],
             check=False,
             capture_output=True,
             text=True,
+            env={**os.environ, "RELIC_POWERSHELL_PARSE_PATH": str(script)},
         )
         assert completed.returncode == 0, completed.stderr

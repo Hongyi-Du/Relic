@@ -111,6 +111,9 @@ def test_run_manifest_freezes_all_120_canonical_cellspecs(
     assert payload["schema_version"] == "relic-run-manifest-v2"
     assert plan["source"]["branch"] == SOURCE_BRANCH
     assert plan["source"]["commit"] == SOURCE_COMMIT
+    assert payload["runtime"]["run_origin"]["kind"] == "user_new_run"
+    assert len(payload["runtime"]["run_origin"]["instance_id"]) == 32
+    assert payload["runtime"]["run_origin"]["created_at"]
     assert len(plan["cells"]) == len(payload["runtime"]["cells"]) == 120
     assert plan["plan_sha256"] == stable_sha256(
         {key: value for key, value in plan.items() if key != "plan_sha256"}
@@ -135,6 +138,23 @@ def test_run_manifest_freezes_all_120_canonical_cellspecs(
         assert Path(cell["output_path"]) == spec.cell_dir
 
     assert len(fingerprints) == len(output_paths) == 120
+
+
+@pytest.mark.unit
+def test_run_manifest_requires_user_new_run_origin(
+    tmp_path: Path, unverified_cell_specs: None
+) -> None:
+    manifest_path, payload = _freeze_run_manifest(tmp_path)
+    del payload["runtime"]["run_origin"]
+    _write_payload(manifest_path, payload)
+
+    with pytest.raises(MainRunnerError, match="run_manifest_origin_missing"):
+        run_main(
+            manifest_path=manifest_path,
+            output_root=tmp_path / "run-output",
+            resume=True,
+            dry_run=True,
+        )
 
 
 @pytest.mark.unit
