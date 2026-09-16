@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 from relic.benchmark import load_benchmark_manifest, verify_benchmark
 from relic.manifest import build_main_manifest, write_manifest
 from relic.paper_results import write_results
+from relic.paths import default_output_root
 
 
 def _plan_main(args: argparse.Namespace) -> int:
@@ -59,6 +61,65 @@ def _build_paper_results(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_cell(args: argparse.Namespace) -> int:
+    from relic.cell_spec import compile_cell_spec
+    from relic.cell_worker import CellWorkerError, run_cell
+
+    try:
+        spec = compile_cell_spec(
+            model=args.model,
+            workload=args.workload,
+            arm=args.arm,
+            seed=args.seed,
+            output_root=args.output_root,
+        )
+        result = run_cell(spec, cell_dir=args.output_dir, resume=args.resume)
+    except (CellWorkerError, ValueError) as exc:
+        print(json.dumps({"status": "failed", "error": str(exc)}), file=sys.stderr)
+        return 2
+    print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
+    return 0
+
+
+def _evaluate_cell(args: argparse.Namespace) -> int:
+    from relic.cell_worker import CellWorkerError, evaluate_cell
+
+    try:
+        result = evaluate_cell(cell_dir=args.cell_dir)
+    except (CellWorkerError, ValueError) as exc:
+        print(json.dumps({"status": "failed", "error": str(exc)}), file=sys.stderr)
+        return 2
+    print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
+    return 0
+
+
+def _status(args: argparse.Namespace) -> int:
+    from relic.cell_worker import CellWorkerError, inspect_cell
+
+    if args.cell_dir is not None:
+        cell_directories = [args.cell_dir.expanduser().resolve()]
+    else:
+        root = (args.output_root or default_output_root()).expanduser().resolve()
+        cell_directories = sorted(
+            path.parent.parent
+            for path in root.rglob("public/status.json")
+            if path.is_file()
+        )
+    rows: list[dict] = []
+    try:
+        for cell_dir in cell_directories:
+            row = inspect_cell(cell_dir)
+            if args.cell_id and row.get("cell_id") != args.cell_id:
+                continue
+            rows.append(row)
+    except (CellWorkerError, ValueError, OSError) as exc:
+        print(json.dumps({"status": "failed", "error": str(exc)}), file=sys.stderr)
+        return 2
+    payload: object = rows[0] if args.cell_dir is not None and len(rows) == 1 else rows
+    print(json.dumps(payload, indent=2, ensure_ascii=False))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="relic")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -81,6 +142,34 @@ def build_parser() -> argparse.ArgumentParser:
     results.add_argument("--source", type=Path, default=None)
     results.add_argument("--output-directory", type=Path, default=None)
     results.set_defaults(func=_build_paper_results)
+
+    cell = subparsers.add_parser(
+        "run-cell", help="run one canonical main-study cell with checkpointing"
+    )
+    cell.add_argument("--model", required=True)
+    cell.add_argument("--workload", required=True, help="W01 through W10")
+    cell.add_argument("--arm", required=True, help="B0 through B3")
+    cell.add_argument("--seed", required=True, type=int)
+    destination = cell.add_mutually_exclusive_group()
+    destination.add_argument("--output-root", type=Path, default=None)
+    destination.add_argument("--output-dir", type=Path, default=None)
+    cell.add_argument("--resume", action="store_true")
+    cell.set_defaults(func=_run_cell)
+
+    status = subparsers.add_parser(
+        "status", help="read public status and verified checkpoint sidecars"
+    )
+    status_location = status.add_mutually_exclusive_group(required=True)
+    status_location.add_argument("--cell-dir", type=Path)
+    status_location.add_argument("--output-root", type=Path)
+    status.add_argument("--cell-id", default=None)
+    status.set_defaults(func=_status)
+
+    evaluate = subparsers.add_parser(
+        "evaluate", help="evaluate a completed cell from its final checkpoint"
+    )
+    evaluate.add_argument("--cell-dir", type=Path, required=True)
+    evaluate.set_defaults(func=_evaluate_cell)
     return parser
 
 
