@@ -166,6 +166,9 @@ overridden from `.env`.
 | `RELIC_BENCHMARK_ROOT` | No | `<repo>/benchmarks` | Advanced frozen benchmark root override |
 | `RELIC_CACHE_ROOT` | No | `<output-root>/.relic-cache` | Writable cache location checked by `check-env` |
 | `RELIC_INSPECTOR_PORT` | No | `8765` | Loopback port used by the Inspector CLI and WSL wrapper |
+| `RELIC_UID` | No | `1000` | Compose host user ID for bind-mounted output ownership |
+| `RELIC_GID` | No | `1000` | Compose host group ID for bind-mounted output ownership |
+| `RELIC_TRACE_FILE` | No | `selected-trace.json` | Inspector trace filename under the read-only Compose `traces/` mount |
 | `RELIC_CLAUDE_OPUS_4_6_MODEL` | Not yet usable | none | Reserved model binding for a future Anthropic adapter |
 | `APPTAINER_CACHEDIR` | Apptainer only | runtime default | Optional Apptainer cache path |
 | `APPTAINER_TMPDIR` | Apptainer only | runtime default | Optional Apptainer temporary path |

@@ -65,6 +65,35 @@ def test_bash_wrappers_are_syntactically_valid_lf_and_executable() -> None:
         assert result.returncode == 0, result.stderr
 
 
+def test_bash_wrapper_accepts_every_assignment_in_official_env_template(tmp_path: Path) -> None:
+    root = _copy_wrapper_tree(tmp_path)
+    shutil.copy(PROJECT_ROOT / ".env.example", root / ".env")
+    fake_bin = _install_uv_stub(tmp_path)
+    capture_directory = tmp_path / "uv capture"
+    capture_directory.mkdir()
+    environment = os.environ.copy()
+    environment.pop("BASH_ENV", None)
+    environment["PATH"] = f"{fake_bin}{os.pathsep}{environment.get('PATH', '')}"
+    environment["UV_CAPTURE"] = str(capture_directory)
+
+    completed = subprocess.run(
+        [str(root / "scripts" / "bash" / "smoke.sh"), "--mode", "mock"],
+        env=environment,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert (capture_directory / "argv").read_bytes().split(b"\0")[:-1] == [
+        b"run",
+        b"relic",
+        b"smoke",
+        b"--mode",
+        b"mock",
+    ]
+
+
 @pytest.mark.parametrize(("wrapper", "command"), WRAPPERS.items())
 def test_wrappers_proxy_exact_arguments_from_an_arbitrary_directory(
     tmp_path: Path,
