@@ -28,7 +28,7 @@ from relic.research.hashing import canonicalize, stable_hash
 from relic.research.redaction import redact_sensitive_payload
 from relic.research.safe_files import read_regular_file_text
 
-FINAL_EVIDENCE_SCHEMA_VERSION = "relic-oss-final-evaluation-v1"
+FINAL_EVIDENCE_SCHEMA_VERSION = "orgenv_oss_final_evaluation_v1"
 _MANUAL_STATUSES = frozenset({"passed", "failed", "infra_error"})
 _PLAN_HASH_FIELDS = (
     "dataset_id",
