@@ -28,8 +28,10 @@ uv run relic check-env --scope formal --model gpt-5.6-terra
 uv run relic smoke --mode formal
 ```
 
-The formal smoke performs a network-disabled container workspace roundtrip but
-does not call a model or claim that a paper experiment succeeded.
+Formal smoke first runs the formal environment gate. Only after that gate
+passes does it perform a network-disabled container workspace roundtrip; it
+does not call a model or claim that a paper experiment succeeded. With the
+current missing evaluator image, it exits at the gate before the roundtrip.
 
 The current Windows runtime path is WSL2. Native Windows experiment execution is
 not maintained. Docker / Compose supports the release core, mock smoke,
@@ -121,8 +123,29 @@ resume command. `--cell-id` can safely narrow a run or retry to one frozen
 cell. Interrupting the scheduler stops its child process groups and records an
 interrupted state for a later `--resume`.
 
-Concurrency defaults to one; budget about 16 GiB for each active cell. Formal
-execution can be costly, so always inspect the dry-run manifest first.
+Concurrency defaults to one; budget about 16 GiB for each active cell:
+
+| Host memory | Conservative maximum parallel cells |
+|---:|---:|
+| 16 GiB | 1 |
+| 32 GiB | 2 |
+| 64 GiB | 4 |
+| 100+ GiB | up to 8 |
+| 128 GiB | recommended for 8 |
+
+For Windows/WSL2 reproduction, budget approximately 16 GB of RAM per active
+parallel cell/container. Use 1 parallel worker on 16 GB, 2 on 32 GB, 4 on 64
+GB, and 8 only on machines with more than 100 GB of RAM; 128 GB is recommended
+for 8-way parallel execution. Check both `.wslconfig` and Docker Desktop memory
+limits, and reduce parallelism when the host is also running memory-heavy tools.
+The current controller runs several cell subprocesses inside one container;
+scaling the Compose service is not a substitute for the canonical scheduler.
+
+Windows / WSL2 复现时建议按照每个活跃并发 cell / container 约 16 GB
+内存预算。16 GB 建议 1 并发，32 GB 建议 2 并发，64 GB 建议 4 并发；
+8 并发及以上要求机器拥有 100 GB 以上内存，推荐 128 GB。
+
+Formal execution can be costly, so always inspect the dry-run manifest first.
 
 ## Run one cell
 

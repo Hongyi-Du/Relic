@@ -14,11 +14,13 @@ def test_docker_release_files_define_a_non_root_canonical_cli_image() -> None:
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
     ignored = (ROOT / ".dockerignore").read_text(encoding="utf-8").splitlines()
 
-    assert "FROM python:3.12-slim-bookworm" in dockerfile
+    assert "FROM python:3.12-slim-bookworm@sha256:" in dockerfile
+    assert "FROM ghcr.io/astral-sh/uv:0.12.15@sha256:" in dockerfile
     assert "uv sync --frozen --no-dev --no-editable" in dockerfile
     assert "USER relic" in dockerfile
     assert 'ENTRYPOINT ["relic"]' in dockerfile
     assert "COPY . " not in dockerfile
+    assert "VOLUME" not in dockerfile
     assert "chown -R relic:relic /app" not in dockerfile
     assert "/.env" in ignored
     assert "/.env.*" in ignored
@@ -54,7 +56,19 @@ def test_compose_services_keep_runtime_data_outside_the_read_only_image() -> Non
     assert inspector["command"][0] == "inspect"
     assert inspector["command"][-1] == "--allow-remote"
     assert inspector["volumes"] == ["./traces:/data/traces:ro"]
-    assert "OPENAI_API_KEY" not in inspector["environment"]
+    research_only_environment = {
+        "OPENAI_API_KEY",
+        "OPENAI_BASE_URL",
+        "RELIC_OPENAI_DEFAULT_HEADERS_JSON",
+        "RELIC_OPENAI_DISABLE_RESPONSE_STORAGE",
+        "RELIC_EVALUATOR_BACKEND",
+        "RELIC_EVALUATOR_CONTAINER_IMAGE",
+        "RELIC_EVALUATOR_CONTAINER_PLATFORM",
+        "ORG_OSS_QUALIFICATION_TIMEOUT",
+        "RELIC_CLAUDE_OPUS_4_6_MODEL",
+    }
+    assert research_only_environment.isdisjoint(inspector["environment"])
+    assert research_only_environment <= runtime["environment"].keys()
     assert runtime["environment"]["OPENAI_API_KEY"] == "${OPENAI_API_KEY:-}"
 
 

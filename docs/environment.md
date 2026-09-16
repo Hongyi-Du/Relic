@@ -50,7 +50,7 @@ present in `apptainer cache list -v`. Environment checks never pull images.
 
 The release image uses:
 
-- Python 3.12 on Debian 12 (Bookworm) slim;
+- Python 3.12 on a digest-pinned Debian 12 (Bookworm) slim base;
 - `uv` 0.12.15 and the frozen `uv.lock` runtime dependency set;
 - Debian's `git` and CA certificate packages;
 - no Node runtime, because the Inspector ships prebuilt static assets;
@@ -92,6 +92,24 @@ Set `RELIC_UID` and `RELIC_GID` in `.env` if the host values printed by
 environment. They are not needed for any command above and are never copied
 into the image.
 
+`.env` is the host-side user configuration boundary for Compose. Compose
+interpolates only the explicitly listed provider/evaluator settings and does
+not mount the credential file into either container. Canonical study YAML stays
+inside the image by design: an arbitrary user-config overlay could silently
+change B0--B3 identity while retaining canonical command names, so no such
+mount is offered. Outputs, caches, exports, and traces remain explicit bind
+mounts as shown above.
+
+The controller image includes the complete frozen, public `relic-main-v1`
+research packs. Their `private_evaluator_only` label means those bytes must not
+enter model prompts, product workspaces, search, or normal snapshots; it does
+not mean they are absent from the public research release. The controller needs
+them to verify pack digests and stage a read-only evaluator bundle. This image
+is not itself the evaluator sandbox, and the missing reviewed nested-container
+integration is why formal Docker execution remains unsupported. The upstream
+Celery pack also contains its public example TLS fixtures; they are frozen pack
+bytes, not release credentials, and are covered by the benchmark digest.
+
 Formal execution is a separate, unresolved release boundary. The author has
 not supplied the immutable evaluator image, and the default controller image
 does not contain a nested container runtime or mount the privileged host Docker
@@ -111,6 +129,21 @@ docker compose --profile inspector up relic-inspector
 The published host port is loopback-only. The trace directory is read-only,
 arbitrary DNS Host headers remain rejected, and no selected paper trace is
 bundled in the current author assets.
+
+## Docker acceptance record
+
+On 2026-09-17 the core Docker path was exercised from a fresh clone on WSL2,
+Linux x86_64, Docker Engine 29.8.0. Acceptance included image build, non-root
+and read-only boundary probes, `check-env --scope core`, mock smoke, a 120-cell
+single-model dry-run, bind-mount ownership/modes, and Inspector HTTP health,
+static assets, and hostile Host-header rejection. The same fresh clone passed
+the complete 164-test suite and built its wheel and source distribution.
+
+This is evidence only for the stated core Docker path. It is not a successful
+formal cell, evaluator run, selected-paper-trace replay, Anthropic run, or
+complete paper reproduction. Re-run the documented commands on every release
+candidate; the ordinary unit suite intentionally does not assume a Docker
+daemon is available.
 
 ## Environment variables
 
