@@ -2,6 +2,9 @@ schema_version: relic-workload-v1
 workload: w01
 paper_label: Mini Blobstore
 category: zero_to_one_construction
+paper_family: construction
+paper_status: main_study_and_case
 frozen_pack_id: mini_blobstore_v1
 benchmark_path: benchmarks/relic-main-v1/packs/mini_blobstore_v1
-
+manifest_path: benchmarks/relic-main-v1/packs/mini_blobstore_v1/manifest.yaml
+scoring_units: {seeded: 5, exposed: 35, held_out: 0, contracts: 5, cases: 35}

@@ -19,10 +19,47 @@ resource_policy:
   matched_budget: false
   measure_realized_provider_tokens: true
 
+condition_invariants:
+  candidate_feature_execution_implementations: shared
+  action_registry_and_tool_surface: same
+  model_decoding_and_retries: same
+  task_visible_information: same
+  private_memory_and_appraisal: enabled
+  shared_workspace_channels_meetings:
+    b0: not_applicable
+    b1: enabled
+    b2: enabled
+    b3: enabled
+  persistent_roster_for_whole_run:
+    b0: not_applicable
+    b1: enabled
+    b2: enabled
+    b3: enabled
+
+formal_evaluator_policy:
+  allowed_backends: [docker, apptainer]
+  trust_level: untrusted
+  network_enabled: false
+  platform: linux/amd64
+  digest_pinned_image_required: true
+  image_environment_variable: RELIC_EVALUATOR_CONTAINER_IMAGE
+  paper_runtime_environment_variable: ORG_EVALUATOR_CONTAINER_IMAGE
+  per_run_receipts:
+    - execution_policy
+    - dataset_manifest_hash
+    - starter_repo_digest
+    - reference_repo_digest
+    - hidden_suite_hash
+    - evaluator_environment_hash
+    - qualification_plan_hash
+    - qualification_result_hash
+  note: >-
+    The paper retains backend and evaluator-policy provenance per run and does
+    not claim one fixed backend or evaluator-environment hash for all 240 runs.
+
 aggregation:
   block: model_x_workload
   average_seeds_within_block: true
   equal_weight_blocks: true
   paired_bootstrap_replicates: 10000
   bootstrap_seed: 1729
-

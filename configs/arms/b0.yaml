@@ -9,4 +9,6 @@ institutionalization: false
 runtime_protocol_binding: false
 temporary_team: false
 profile_assignment: aligned
-
+private_memory_and_appraisal: true
+shared_workspace_channels_meetings: false
+organization_reflection_to_institution_path: false

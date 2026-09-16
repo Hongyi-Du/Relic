@@ -34,6 +34,8 @@ def test_programbench_is_reporting_only() -> None:
         "official_mini_swe_agent": 2,
         "with_executable_protocols": 2,
     }
+    assert programbench["relative_gain_percent"] == 10.5
+    assert programbench["sdl_enabled"] is False
 
 
 @pytest.mark.unit
@@ -42,4 +44,15 @@ def test_main_study_counts_match_paper() -> None:
 
     assert payload["main_study"]["runs"] == 240
     assert [model["runs"] for model in payload["main_study"]["models"]] == [120, 120]
-
+    assert payload["main_study"]["checkpoint_every"] == 24
+    assert payload["main_study"]["sprint_ticks"] == 168
+    assert payload["main_study"]["resource_policy"]["matched_hard_budget"] is False
+    assert payload["main_study"]["workload_inventory"][0]["scoring_units"] == {
+        "seeded": 5,
+        "exposed": 35,
+        "held_out": 0,
+        "contracts": 5,
+        "cases": 35,
+    }
+    assert payload["protocol_census"]["weak_or_strong_formed_lineages"] == 280
+    assert payload["binding_ablation"]["executable_minus_text"]["bootstrap_replicates"] == 200000

@@ -10,4 +10,6 @@ runtime_protocol_binding: true
 protocol_masked_preselection: false
 temporary_team: false
 profile_assignment: aligned
-
+private_memory_and_appraisal: true
+shared_workspace_channels_meetings: true
+organization_reflection_to_institution_path: true

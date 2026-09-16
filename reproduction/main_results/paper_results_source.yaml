@@ -15,10 +15,103 @@ main_study:
       runs: 120
       reasoning_effort: low
   workloads: 10
+  workload_inventory:
+    - id: W01
+      paper_label: Mini Blobstore
+      frozen_pack_id: mini_blobstore_v1
+      family: construction
+      scoring_units: {seeded: 5, exposed: 35, held_out: 0, contracts: 5, cases: 35}
+      status: main study + case
+      manifest_ref: benchmarks/relic-main-v1/packs/mini_blobstore_v1/manifest.yaml
+    - id: W02
+      paper_label: Traffic Watch
+      frozen_pack_id: traffic_watch_v1
+      family: construction
+      scoring_units: {seeded: 7, exposed: 7, held_out: 2, contracts: 9, cases: 40}
+      status: main study
+      manifest_ref: benchmarks/relic-main-v1/packs/traffic_watch_v1/manifest.yaml
+    - id: W03
+      paper_label: TG Automation
+      frozen_pack_id: tg_automation_v1
+      family: construction
+      scoring_units: {seeded: 7, exposed: 7, held_out: 2, contracts: 9, cases: 9}
+      status: main study
+      manifest_ref: benchmarks/relic-main-v1/packs/tg_automation_v1/manifest.yaml
+    - id: W04
+      paper_label: PDF Reformatter
+      frozen_pack_id: pdf_reformatter_v1
+      family: construction
+      scoring_units: {seeded: 3, exposed: 3, held_out: 1, contracts: 4, cases: 4}
+      status: main study
+      manifest_ref: benchmarks/relic-main-v1/packs/pdf_reformatter_v1/manifest.yaml
+    - id: W05
+      paper_label: FastAPI Dashboard
+      frozen_pack_id: fastapi_dashboard_v1
+      family: construction
+      scoring_units: {seeded: 3, exposed: 3, held_out: 1, contracts: 4, cases: 4}
+      status: main study
+      manifest_ref: benchmarks/relic-main-v1/packs/fastapi_dashboard_v1/manifest.yaml
+    - id: W06
+      paper_label: Boltons 24.0.0 to 26.1.0
+      frozen_pack_id: boltons_v2400_to_v2610
+      family: repair
+      scoring_units: {seeded: 12, exposed: 12, held_out: 4, contracts: 16, cases: 16}
+      status: main study
+      manifest_ref: benchmarks/relic-main-v1/packs/boltons_v2400_to_v2610/manifest.yaml
+    - id: W07
+      paper_label: Celery 5.6.0 to 5.6.3
+      frozen_pack_id: celery_v560_to_v563
+      family: repair
+      scoring_units: {seeded: 12, exposed: 12, held_out: 4, contracts: 16, cases: 16}
+      status: main study
+      manifest_ref: benchmarks/relic-main-v1/packs/celery_v560_to_v563/manifest.yaml
+    - id: W08
+      paper_label: Soup Sieve 2.6 to 2.9.1
+      frozen_pack_id: soupsieve_v26_to_v291
+      family: repair
+      scoring_units: {seeded: 9, exposed: 9, held_out: 4, contracts: 13, cases: 13}
+      status: main study
+      manifest_ref: benchmarks/relic-main-v1/packs/soupsieve_v26_to_v291/manifest.yaml
+    - id: W09
+      paper_label: cattrs 25.1.0 to 26.1.0
+      frozen_pack_id: cattrs_v2510_to_v2610
+      family: repair
+      scoring_units: {seeded: 12, exposed: 12, held_out: 4, contracts: 16, cases: 16}
+      status: main study
+      manifest_ref: benchmarks/relic-main-v1/packs/cattrs_v2510_to_v2610/manifest.yaml
+    - id: W10
+      paper_label: Tenacity 8.2.3 to 9.1.4
+      frozen_pack_id: tenacity_v823_to_v914
+      family: repair
+      scoring_units: {seeded: 12, exposed: 12, held_out: 4, contracts: 16, cases: 16}
+      status: main study
+      manifest_ref: benchmarks/relic-main-v1/packs/tenacity_v823_to_v914/manifest.yaml
   seeds: [1401, 2711, 4013]
   arms: [B0, B1, B2, B3]
   ticks: 336
   checkpoint_every: 24
+  sprint_ticks: 168
+  work_rhythm_enabled: false
+  approval_mode: semi_auto
+  resource_policy:
+    matched_hard_budget: false
+    realized_provider_tokens_measured: true
+  evaluator_policy:
+    allowed_backends: [docker, apptainer]
+    trust_level: untrusted
+    network_enabled: false
+    platform: linux/amd64
+    digest_pinned_image_required: true
+    paper_runtime_image_environment_variable: ORG_EVALUATOR_CONTAINER_IMAGE
+    provenance_scope: per_run_receipt
+    receipt_fields:
+      - execution_policy
+      - evaluator_environment_hash
+      - qualification_plan_hash
+      - qualification_result_hash
+    note: >-
+      The paper does not claim one fixed backend or evaluator-environment hash
+      for the complete 240-run matrix.
   aggregation: >-
     Average seeds within each model-by-workload block, then equally weight
     applicable blocks. B3-B2 intervals use 10,000 paired block-bootstrap
@@ -93,10 +186,22 @@ main_study:
 
 protocol_census:
   b3_runs: 60
+  excludes_environment_seeded_protocol_ids: true
+  counting_unit: protocol_lineage_within_run
   autonomous_proposal_lineages: 497
-  adopted_at_endpoint: 393
-  sustained_use: 280
-  stronger_execution_or_outcome_evidence: 32
+  currently_adopted_lineages: 393
+  unadopted_proposal_lineages: 92
+  subsequently_obsolete_lineages: 12
+  ever_adopted_lineages: 405
+  weak_or_strong_formed_lineages: 280
+  weak_only_formed_lineages: 248
+  strong_subset: 32
+  top_three_families:
+    review_and_merge: 108
+    release_engineering: 80
+    evidence_governance: 56
+  top_three_share_of_formed: 0.871
+  causal_claim: false
 
 internal_transfer:
   model: GPT-5.6 Terra
@@ -112,6 +217,40 @@ internal_transfer:
   contrasts:
     exec_minus_text: {value: 6.5, unit: percentage_points, ci95: [0.7, 15.6]}
     exec_minus_fresh: {value: 15.8, unit: percentage_points, ci95: [9.2, 31.8]}
+  cost_metrics:
+    - id: average_tokens_per_run
+      label: Average tokens per run
+      unit: million_tokens
+      scope: >-
+        Separate nine-workload comparison: Fresh seed 2711 and Text/Exec seed
+        1401, paired by workload; this is not a same-seed cost estimate.
+      arms:
+        Fresh: {value: 2.381, ci95: [1.747, 3.189]}
+        Text: {value: 2.615, ci95: [2.213, 3.033]}
+        Exec: {value: 2.448, ci95: [2.199, 2.720]}
+      contrasts:
+        exec_minus_fresh: {value: 0.067, ci95: [-0.569, 0.532]}
+        exec_minus_text: {value: -0.167, ci95: [-0.467, 0.073]}
+    - id: tokens_per_evaluated_case
+      label: Tokens per evaluated case
+      unit: thousand_tokens
+      arms:
+        Fresh: {value: 176, ci95: [106, 271]}
+        Text: {value: 154, ci95: [96, 265]}
+        Exec: {value: 144, ci95: [94, 243]}
+      contrasts:
+        exec_minus_fresh: {value: -32, ci95: [-112, 31]}
+        exec_minus_text: {value: -10, ci95: [-33, 4]}
+    - id: tokens_per_verified_pass
+      label: Tokens per verified pass
+      unit: thousand_tokens
+      arms:
+        Fresh: {value: 691, ci95: [488, 1419]}
+        Text: {value: 444, ci95: [271, 935]}
+        Exec: {value: 350, ci95: [196, 958]}
+      contrasts:
+        exec_minus_fresh: {value: -342, ci95: [-818, -14]}
+        exec_minus_text: {value: -94, ci95: [-152, 54]}
   note: >-
     Text and Exec receive identical frozen rule content; Exec adds runtime
     bindings. Fresh reuses the 30 GPT-5.6 Terra B2 main-study runs.
@@ -128,6 +267,20 @@ binding_ablation:
     value: 7.18
     unit: percentage_points
     ci95: [3.54, 10.91]
+    bootstrap_replicates: 200000
+  descriptive_endpoints:
+    held_out_cases:
+      b3_text_percent: 8.07
+      executable_b3_percent: 36.98
+      executable_minus_text_percentage_points: 28.91
+    exposed_cases:
+      b3_text_percent: 18.47
+      executable_b3_percent: 32.52
+      executable_minus_text_percentage_points: 14.04
+    evaluator_confirmed_seeded_issues:
+      b3_text_percent: 17.72
+      executable_b3_percent: 29.44
+      executable_minus_text_percentage_points: 11.71
   note: >-
     B3-text retains proposal, governance, adoption, revision, and readable
     rules while removing learned-protocol binding, automatic use credit, and
@@ -144,6 +297,13 @@ external_extensions:
       - {system: Official Peer, model: Claude Opus 4.6, successes: 13, total: 48}
       - {system: Team with protocol verbs, model: GPT-5.5-hao, successes: 26, total: 48}
       - {system: Team without protocol verbs, model: GPT-5.5-hao, successes: 24, total: 48}
+      - system: OpenHands Cooperative, No Git
+        model: GPT-5
+        successes: 13
+        total: 48
+        supported_range: 13–15/48
+        public_outcomes_missing: 2
+        note: Current official cooperative leaderboard reference; not a same-model control.
     claim_boundary: >-
       The 48 pairs are not 48 independent samples, the selected subset was used
       during adapter development, and no statistical-superiority claim is made.
@@ -154,6 +314,10 @@ external_extensions:
     official_mini_swe_agent_percent: 64.164
     with_executable_protocols_percent: 70.916
     absolute_gain_percentage_points: 6.752
+    relative_gain_percent: 10.5
+    sdl_enabled: false
+    extension_scope: protocol_plugin_in_mini_swe_agent
+    evidence_line: separate_from_main_study_and_internal_transfer
     tasks_at_or_above_95_percent:
       official_mini_swe_agent: 2
       with_executable_protocols: 2

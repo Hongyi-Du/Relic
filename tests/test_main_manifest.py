@@ -20,6 +20,23 @@ def test_single_model_manifest_is_the_canonical_120_cells(tmp_path: Path) -> Non
     }
     assert {cell["seed"] for cell in manifest["cells"]} == {1401, 2711, 4013}
     assert len({cell["cell_id"] for cell in manifest["cells"]}) == 120
+    assert manifest["workloads"]["W01"]["scoring_units"] == {
+        "seeded": 5,
+        "exposed": 35,
+        "held_out": 0,
+        "contracts": 5,
+        "cases": 35,
+    }
+    assert manifest["workloads"]["W10"]["scoring_units"] == {
+        "seeded": 12,
+        "exposed": 12,
+        "held_out": 4,
+        "contracts": 16,
+        "cases": 16,
+    }
+    assert manifest["arms"]["B0"]["private_memory_and_appraisal"] is True
+    assert manifest["arms"]["B0"]["shared_workspace_channels_meetings"] is False
+    assert manifest["arms"]["B3"]["organization_reflection_to_institution_path"] is True
 
 
 @pytest.mark.unit
@@ -35,4 +52,3 @@ def test_memory_policy(memory_gib: float, expected: int) -> None:
 def test_unknown_model_is_rejected(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="unknown main-study model"):
         build_main_manifest(model="old-placeholder", output_root=tmp_path)
-
