@@ -23,7 +23,7 @@ may still be used to import or export data.
 Relic requires Python 3.12 or newer and `uv`:
 
 ```bash
-uv sync --dev
+uv sync --extra dev --frozen
 cp .env.example .env
 uv run relic check-env --scope core
 uv run relic smoke --mode mock

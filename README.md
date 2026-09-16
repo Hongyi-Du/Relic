@@ -13,7 +13,7 @@ Python 3.12+, `uv`, and Docker Desktop with its WSL2 backend are recommended.
 Run from a Linux/WSL filesystem, not `/mnt/c`:
 
 ```bash
-uv sync --dev
+uv sync --extra dev --frozen
 uv run relic verify-benchmark
 uv run relic check-env --scope core
 uv run relic smoke --mode mock
