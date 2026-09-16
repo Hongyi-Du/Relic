@@ -91,6 +91,10 @@ class PullRequest:
     patch_ids: List[str] = field(default_factory=list)
     ci_run_ids: List[str] = field(default_factory=list)
     ci_passed: bool = False
+    # ``None`` means no attested mainline base.  ``()`` is a real, valid marker
+    # for the repository's initial empty mainline and must not be conflated with
+    # missing checkpoint/replay evidence.
+    ci_base_main_commit_ids: Optional[tuple[str, ...]] = None
 
 
 @dataclass

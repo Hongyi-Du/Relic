@@ -71,6 +71,19 @@ class RepoLiteSystem:
         # which would spawn a duplicate PR carrying the same commits.
         if b.status != BranchStatus.UNDER_REVIEW:
             b.status = BranchStatus.READY_FOR_PR
+        # A CI verdict describes one branch head. A follow-up commit on an open
+        # request invalidates that verdict immediately; otherwise merge_pr can
+        # land the branch's new commit while the PR/apply layer still carries
+        # only the old commit list and old green result.
+        for pr in self.repo.pull_requests.values():
+            if pr.source_branch != branch_id:
+                continue
+            if pr.status in {PRStatus.MERGED, PRStatus.CLOSED}:
+                continue
+            pr.ci_passed = False
+            pr.test_status = "unknown"
+            pr.__dict__.pop("ci_tree_hash", None)
+            pr.ci_base_main_commit_ids = None
         return c
 
     def open_pr(self, *, agent_id: str, source_branch: str, target_branch: str = "main",
@@ -96,7 +109,8 @@ class RepoLiteSystem:
         """Bring commits pushed to the source branch after ``open_pr`` into the PR —
         CI evaluates the branch's CURRENT state (like real CI running on the branch
         head), a follow-up commit can repair a gate failure, and the PR's carried
-        patches match what ``merge_pr`` actually lands on the mainline."""
+        patches and work-item links match what ``merge_pr`` actually lands on the
+        mainline."""
         b = self.repo.branches.get(pr.source_branch)
         if not b:
             return
@@ -107,7 +121,33 @@ class RepoLiteSystem:
             c = self.repo.commits.get(cid)
             if c:
                 pr.patch_ids.extend(c.patch_ids)
+                for task_id in (
+                    c.linked_task_ids
+                    or ([c.linked_task_id] if c.linked_task_id else [])
+                ):
+                    if task_id and task_id not in pr.linked_task_ids:
+                        pr.linked_task_ids.append(task_id)
+                for issue_id in c.linked_issue_ids:
+                    if issue_id and issue_id not in pr.linked_issue_ids:
+                        pr.linked_issue_ids.append(issue_id)
+                if not pr.linked_task and pr.linked_task_ids:
+                    pr.linked_task = pr.linked_task_ids[0]
+                if not pr.linked_issue and pr.linked_issue_ids:
+                    pr.linked_issue = pr.linked_issue_ids[0]
                 c.status = "included_in_pr"
+
+    def sync_pr_commits(self, pr_id: str) -> bool:
+        """Synchronize one live request; explicit public seam for attestations."""
+
+        pr = self.repo.pull_requests.get(pr_id)
+        if pr is None or pr.status in {
+            PRStatus.MERGED,
+            PRStatus.CLOSED,
+            PRStatus.STALE,
+        }:
+            return False
+        self._sync_pr_commits(pr)
+        return True
 
     def run_ci(self, *, pr_id: str, tick: int = 0) -> Optional[CIResult]:
         """Lightweight CI: build + tests pass unless the PR's HEAD commit is a
@@ -117,6 +157,8 @@ class RepoLiteSystem:
         Lenient by design so a normal reviewed PR can merge; high-risk gets blocked."""
         pr = self.repo.pull_requests.get(pr_id)
         if not pr:
+            return None
+        if pr.status in {PRStatus.MERGED, PRStatus.CLOSED, PRStatus.STALE}:
             return None
         self._sync_pr_commits(pr)
         ci_id = self._id("ci")
@@ -135,6 +177,11 @@ class RepoLiteSystem:
         pr.ci_run_ids.append(ci_id)
         pr.ci_passed = status == "passed"
         pr.test_status = "passed" if pr.ci_passed else "failed"
+        # The merge candidate was judged against this exact mainline. Another
+        # PR landing invalidates the verdict even when this branch head did not
+        # move; create/create conflicts are one concrete reason, and ordinary
+        # integration drift is another.
+        pr.ci_base_main_commit_ids = tuple(self.repo.main_commit_ids)
         return ci
 
     def review_pr(self, *, reviewer_id: str, pr_id: str, approve: bool, comment: str = "",
@@ -143,7 +190,13 @@ class RepoLiteSystem:
         if not pr:
             return False
         pr.reviewed = True
-        pr.review_comments.append({"reviewer": reviewer_id, "approve": approve, "comment": comment})
+        pr.review_comments.append({
+            "review_id": f"review_{len(pr.review_comments) + 1}",
+            "reviewer": reviewer_id,
+            "approve": approve,
+            "comment": comment,
+            "tick": tick,
+        })
         if approve:
             if reviewer_id not in pr.approved_by:
                 pr.approved_by.append(reviewer_id)
@@ -157,8 +210,10 @@ class RepoLiteSystem:
     def request_changes(self, *, reviewer_id: str, pr_id: str, comment: str = "", tick: int = 0) -> bool:
         return self.review_pr(reviewer_id=reviewer_id, pr_id=pr_id, approve=False, comment=comment, tick=tick)
 
-    def approve_pr(self, *, reviewer_id: str, pr_id: str, tick: int = 0) -> bool:
-        return self.review_pr(reviewer_id=reviewer_id, pr_id=pr_id, approve=True, tick=tick)
+    def approve_pr(self, *, reviewer_id: str, pr_id: str, tick: int = 0,
+                   comment: str = "") -> bool:
+        return self.review_pr(reviewer_id=reviewer_id, pr_id=pr_id, approve=True,
+                              comment=comment, tick=tick)
 
     def merge_pr(self, *, pr_id: str, tick: int = 0, force: bool = False) -> bool:
         """Merge a PR into its target. Requires an APPROVED review AND a passing CI run
@@ -167,15 +222,65 @@ class RepoLiteSystem:
         pr = self.repo.pull_requests.get(pr_id)
         if not pr:
             return False
-        if not force and not (pr.status == PRStatus.APPROVED and pr.ci_passed):
+        if pr.status in {PRStatus.MERGED, PRStatus.CLOSED, PRStatus.STALE}:
             return False
         src = self.repo.branches.get(pr.source_branch)
-        if src:
+        metadata_only = not pr.commit_ids and not pr.patch_ids
+        commits = []
+        if src is None or not src.commit_ids:
+            # Preserve the long-standing metadata-only PR used by governance
+            # experiments. A request that claims any delivery payload, however,
+            # must have a real source branch and can never promote without it.
+            if not metadata_only:
+                return False
+        else:
+            # Synchronize before checking the gate so a late branch commit cannot
+            # be marked merged yet disappear from pr.commit_ids/apply_merged_pr.
+            self._sync_pr_commits(pr)
+            commits = [self.repo.commits.get(cid) for cid in src.commit_ids]
+            if any(
+                commit is None or commit.branch_id != src.branch_id
+                for commit in commits
+            ):
+                return False
+            expected_patch_ids = [
+                patch_id
+                for commit in commits
+                for patch_id in commit.patch_ids
+            ]
+            if pr.commit_ids != list(src.commit_ids) or pr.patch_ids != expected_patch_ids:
+                return False
+        if not force:
+            if not (pr.status == PRStatus.APPROVED and pr.ci_passed):
+                return False
+            head = src.commit_ids[-1] if src and src.commit_ids else None
+            if head is not None:
+                latest_ci = next(
+                    (
+                        self.repo.ci_runs.get(ci_id)
+                        for ci_id in reversed(pr.ci_run_ids)
+                        if self.repo.ci_runs.get(ci_id) is not None
+                    ),
+                    None,
+                )
+                if (
+                    latest_ci is None
+                    or latest_ci.commit_id != head
+                    or latest_ci.status != "passed"
+                ):
+                    return False
+                if (
+                    getattr(pr, "ci_base_main_commit_ids", None) is None
+                    or tuple(pr.ci_base_main_commit_ids)
+                    != tuple(self.repo.main_commit_ids)
+                ):
+                    pr.ci_passed = False
+                    pr.test_status = "unknown"
+                    return False
+        if src and src.commit_ids:
             self.repo.main_commit_ids.extend(src.commit_ids)
-            for cid in src.commit_ids:
-                c = self.repo.commits.get(cid)
-                if c:
-                    c.status = "merged"
+            for commit in commits:
+                commit.status = "merged"
             src.status = BranchStatus.MERGED
         pr.status = PRStatus.MERGED
         pr.merged_tick = tick

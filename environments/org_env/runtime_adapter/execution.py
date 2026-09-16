@@ -169,19 +169,35 @@ def _pr_needing_ci(w):
     A tree that has not changed since its last CI run has nothing new to learn;
     the code has to move first.
     """
-    from environments.org_env.product.materialize import _repo_hash
-
-    tree = None
     # include changes_requested so a bounced PR can get CI re-run (PR-revival: not a dead end).
     for pid, pr in w.repo_system.repo.pull_requests.items():
         if getattr(pr.status, "value", str(pr.status)) not in (
                 "open", "review_requested", "approved", "changes_requested"):
             continue
+        if bool(getattr(pr, "merge_conflict", False)):
+            continue
         if pr.ci_passed:
             continue
-        if tree is None:
-            tree = _repo_hash(w, prefer_mainline=False)   # CI checks the working tree
-        if getattr(pr, "ci_tree_hash", None) == tree:
+        repo = w.repo_system.repo
+        branch = repo.branches.get(str(getattr(pr, "source_branch", "") or ""))
+        head = branch.commit_ids[-1] if branch and branch.commit_ids else None
+        latest_ci = next(
+            (
+                repo.ci_runs.get(ci_id)
+                for ci_id in reversed(getattr(pr, "ci_run_ids", []) or [])
+                if repo.ci_runs.get(ci_id) is not None
+            ),
+            None,
+        )
+        # A verdict is reusable only for this request's exact branch head and
+        # the mainline base it was evaluated against. A global working-tree hash
+        # conflates unrelated branches and can hide a stale-base re-CI.
+        if (
+            latest_ci is not None
+            and latest_ci.commit_id == head
+            and getattr(pr, "ci_base_main_commit_ids", None) is not None
+            and tuple(pr.ci_base_main_commit_ids) == tuple(repo.main_commit_ids)
+        ):
             continue
         return pid
     return None
