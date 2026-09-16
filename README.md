@@ -21,7 +21,8 @@ uv run pytest -q
 ```
 
 `check-env` and mock smoke never contact a model provider. Formal checks are
-model-specific and fail closed while the evaluator image is unavailable:
+model-specific and fail closed while the author-published evaluator binding is
+unavailable:
 
 ```bash
 uv run relic check-env --scope formal --model gpt-5.6-terra
@@ -31,7 +32,20 @@ uv run relic smoke --mode formal
 Formal smoke first runs the formal environment gate. Only after that gate
 passes does it perform a network-disabled container workspace roundtrip; it
 does not call a model or claim that a paper experiment succeeded. With the
-current missing evaluator image, it exits at the gate before the roundtrip.
+current missing author-published evaluator binding, it exits at the gate before
+the roundtrip.
+
+The public source-derived evaluator build path is available separately for a
+local source-closure check:
+
+```bash
+uv run relic evaluator-build --smoke
+```
+
+It builds and smoke-tests a local, network-isolated evaluator image but does
+not create a paper binding. See [docs/evaluator.md](docs/evaluator.md) for the
+qualification commands, the intentionally excluded ProgramBench path, and the
+remaining author-supplied digest/hash gap.
 
 The current Windows runtime path is WSL2. Native Windows experiment execution is
 not maintained. Docker / Compose supports the release core, mock smoke,
@@ -75,8 +89,9 @@ docker compose run --rm relic run-main \
 
 `run-main` is the canonical entrypoint. It delegates every pack/seed group to
 the hci source baseline runner, which isolates its four B0--B3 conditions in
-fresh processes. The required evaluator image and qualification hashes have not
-been supplied, so a real source batch fails closed before any provider request.
+fresh processes. The required author-published evaluator image binding and
+qualification hashes have not been supplied, so a real source batch fails
+closed before any provider request.
 
 To use the Inspector, place an author-supplied, sanitized `relic-trace-v1` file
 under `traces/`, set `RELIC_TRACE_FILE` in `.env` to its filename, then run:
@@ -311,8 +326,8 @@ name with `RELIC_CLAUDE_OPUS_4_6_MODEL`. This remains a real provider route; it
 is not silently replaced by rules.
 
 Formal two-model reproduction still requires the separately missing,
-digest-pinned evaluator image and author-supplied evidence assets described in
-the handoff.
+author-published digest-pinned evaluator binding and author-supplied evidence
+assets described in the handoff.
 
 ProgramBench is represented only by the aggregate values reported in the paper;
 its tasks, adapter, harness, and reproduction entrypoints are intentionally not
