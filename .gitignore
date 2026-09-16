@@ -1,0 +1,36 @@
+# Local environments and credentials
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# JavaScript / Inspector
+node_modules/
+dist/
+
+# Runtime state (never part of the paper artifact)
+outputs/
+runs/
+logs/
+log/
+cache/
+.cache/
+checkpoints/
+*.log
+
+# Local editor and operating-system files
+.DS_Store
+.idea/
+.vscode/
+

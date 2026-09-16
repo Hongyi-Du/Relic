@@ -1,0 +1,16 @@
+* text=auto
+
+*.py text eol=lf
+*.sh text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.toml text eol=lf
+*.ps1 text
+
+# Benchmark snapshots are hashed as frozen byte trees. Git must not rewrite
+# their line endings on checkout, including when the outer repository is used
+# from Windows through WSL2.
+benchmarks/relic-main-v1/packs/** -text
+
