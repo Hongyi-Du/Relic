@@ -246,6 +246,147 @@ def _inspect_trace(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cooper_error(error: Exception) -> int:
+    code = getattr(error, "code", str(error))
+    print(json.dumps({"status": "failed", "error": code}), file=sys.stderr)
+    return 2
+
+
+def _check_cooper(args: argparse.Namespace) -> int:
+    from relic.cooper_release import missing_input_report
+
+    report = missing_input_report(
+        cooperbench_root=args.cooperbench_root,
+        dataset_dir=args.dataset_dir,
+        cooperbench_binary=args.cooperbench_bin,
+        check_provider=args.check_provider,
+        model_name=args.model,
+    )
+    print(json.dumps(report, indent=2, ensure_ascii=False))
+    return 0 if report["runtime_ready"] else 2
+
+
+def _preflight_cooper(args: argparse.Namespace) -> int:
+    from relic.cooper_release import (
+        CooperReleaseError,
+        public_preflight_command,
+        run_command,
+        source_selection,
+        verify_upstream_subset,
+    )
+
+    try:
+        selection = source_selection()
+        verify_upstream_subset(selection, args.dataset_dir)
+        command = public_preflight_command(
+            selection=selection,
+            pair_key=args.pair_key,
+            image=args.image,
+            dataset_dir=args.dataset_dir,
+            output=args.output,
+            config=args.config,
+        )
+    except CooperReleaseError as error:
+        return _cooper_error(error)
+    if args.dry_run:
+        print(json.dumps({"command": command, "provider_calls": 0}, indent=2))
+        return 0
+    return run_command(command, cwd=args.config.parent, environment=os.environ)
+
+
+def _run_cooper(args: argparse.Namespace) -> int:
+    from relic.cooper_release import (
+        CooperReleaseError,
+        external_environment,
+        provider_environment_issues,
+        resolve_cooperbench_binary,
+        run_command,
+        source_selection,
+        upstream_run_command,
+        verify_cooperbench_checkout,
+        verify_upstream_subset,
+    )
+
+    try:
+        selection = source_selection()
+        root = verify_cooperbench_checkout(args.cooperbench_root)
+        verify_upstream_subset(selection, args.dataset_dir)
+        binary = resolve_cooperbench_binary(args.cooperbench_bin)
+        command = upstream_run_command(
+            cooperbench_binary=binary,
+            dataset_dir=args.dataset_dir,
+            log_dir=args.log_dir,
+            run_name=args.run_name,
+            model_name=args.model,
+            concurrency=args.concurrency,
+            eval_concurrency=args.eval_concurrency,
+            redis_url=args.redis_url,
+            agent_config=args.config,
+        )
+        if not args.dry_run:
+            issues = provider_environment_issues(args.model)
+            if issues:
+                raise CooperReleaseError(issues[0])
+    except CooperReleaseError as error:
+        return _cooper_error(error)
+    if args.dry_run:
+        print(
+            json.dumps(
+                {
+                    "command": command,
+                    "resume": bool(args.resume),
+                    "note": "No --force is ever added; upstream skips terminal results.",
+                },
+                indent=2,
+            )
+        )
+        return 0
+    return run_command(command, cwd=root, environment=external_environment(root))
+
+
+def _evaluate_cooper(args: argparse.Namespace) -> int:
+    from relic.cooper_release import (
+        CooperReleaseError,
+        external_environment,
+        resolve_cooperbench_binary,
+        run_command,
+        source_selection,
+        upstream_eval_command,
+        verify_cooperbench_checkout,
+        verify_upstream_subset,
+    )
+
+    try:
+        selection = source_selection()
+        root = verify_cooperbench_checkout(args.cooperbench_root)
+        verify_upstream_subset(selection, args.dataset_dir)
+        binary = resolve_cooperbench_binary(args.cooperbench_bin)
+        command = upstream_eval_command(
+            cooperbench_binary=binary,
+            dataset_dir=args.dataset_dir,
+            log_dir=args.log_dir,
+            run_name=args.run_name,
+            concurrency=args.concurrency,
+        )
+    except CooperReleaseError as error:
+        return _cooper_error(error)
+    if args.dry_run:
+        print(json.dumps({"command": command, "note": "No --force is ever added."}, indent=2))
+        return 0
+    return run_command(command, cwd=root, environment=external_environment(root))
+
+
+def _cooper_summary(args: argparse.Namespace) -> int:
+    from relic.cooper_release import CooperReleaseError, read_upstream_summary
+
+    try:
+        raw = read_upstream_summary(args.log_dir, args.run_name)
+    except CooperReleaseError as error:
+        return _cooper_error(error)
+    sys.stdout.buffer.write(raw)
+    return 0
+
+
 def _add_inspector_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument(
@@ -414,6 +555,94 @@ def build_parser() -> argparse.ArgumentParser:
     aggregate.add_argument("--output-directory", type=Path, required=True)
     aggregate.add_argument("--allow-partial", action="store_true")
     aggregate.set_defaults(func=_aggregate_user_runs)
+
+    cooper_check = subparsers.add_parser(
+        "check-cooper",
+        help="check the source-retained paper-48 selection and external CooperBench inputs",
+    )
+    cooper_check.add_argument("--cooperbench-root", type=Path, default=None)
+    cooper_check.add_argument("--dataset-dir", type=Path, default=None)
+    cooper_check.add_argument("--cooperbench-bin", default=None)
+    cooper_check.add_argument("--model", default="", help="gateway alias for reported Claude Opus 4.6")
+    cooper_check.add_argument(
+        "--check-provider",
+        action="store_true",
+        help="also check non-secret OpenAI-compatible gateway settings",
+    )
+    cooper_check.set_defaults(func=_check_cooper)
+
+    cooper_preflight = subparsers.add_parser(
+        "preflight-cooper",
+        help="run the source-owned zero-provider preflight for one source-selected pair",
+    )
+    cooper_preflight.add_argument(
+        "--pair-key",
+        required=True,
+        help="exact source-selected key: repo:task_id:feature_a,feature_b",
+    )
+    cooper_preflight.add_argument("--image", required=True, help="upstream task-image reference")
+    cooper_preflight.add_argument("--dataset-dir", type=Path, required=True)
+    cooper_preflight.add_argument("--output", type=Path, required=True)
+    cooper_preflight.add_argument(
+        "--config",
+        type=Path,
+        default=Path(__file__).resolve().parents[1]
+        / "configs"
+        / "cooperbench"
+        / "b3_two_agent_smoke.yaml",
+    )
+    cooper_preflight.add_argument("--dry-run", action="store_true")
+    cooper_preflight.set_defaults(func=_preflight_cooper)
+
+    cooper_run = subparsers.add_parser(
+        "run-cooper",
+        help="delegate the source-verified paper-48 subset to pinned upstream CooperBench",
+    )
+    cooper_run.add_argument("--cooperbench-root", type=Path, required=True)
+    cooper_run.add_argument("--cooperbench-bin", default="cooperbench")
+    cooper_run.add_argument("--dataset-dir", type=Path, required=True)
+    cooper_run.add_argument("--log-dir", type=Path, required=True)
+    cooper_run.add_argument("--run-name", required=True)
+    cooper_run.add_argument("--model", required=True, help="gateway alias for reported Claude Opus 4.6")
+    cooper_run.add_argument("--concurrency", type=int, default=1)
+    cooper_run.add_argument("--eval-concurrency", type=int, default=1)
+    cooper_run.add_argument("--redis-url", default="redis://localhost:6379")
+    cooper_run.add_argument(
+        "--config",
+        type=Path,
+        default=Path(__file__).resolve().parents[1]
+        / "configs"
+        / "cooperbench"
+        / "b3_two_agent_case.yaml",
+    )
+    cooper_run.add_argument(
+        "--resume",
+        action="store_true",
+        help="reissue the same upstream command; terminal pairs remain skipped and --force is prohibited",
+    )
+    cooper_run.add_argument("--dry-run", action="store_true")
+    cooper_run.set_defaults(func=_run_cooper)
+
+    cooper_eval = subparsers.add_parser(
+        "evaluate-cooper",
+        help="delegate official evaluation of the source-verified paper-48 subset to upstream",
+    )
+    cooper_eval.add_argument("--cooperbench-root", type=Path, required=True)
+    cooper_eval.add_argument("--cooperbench-bin", default="cooperbench")
+    cooper_eval.add_argument("--dataset-dir", type=Path, required=True)
+    cooper_eval.add_argument("--log-dir", type=Path, required=True)
+    cooper_eval.add_argument("--run-name", required=True)
+    cooper_eval.add_argument("--concurrency", type=int, default=1)
+    cooper_eval.add_argument("--dry-run", action="store_true")
+    cooper_eval.set_defaults(func=_evaluate_cooper)
+
+    cooper_summary = subparsers.add_parser(
+        "cooper-summary",
+        help="emit the upstream-generated summary.json unchanged; never calculate a score",
+    )
+    cooper_summary.add_argument("--log-dir", type=Path, required=True)
+    cooper_summary.add_argument("--run-name", required=True)
+    cooper_summary.set_defaults(func=_cooper_summary)
     return parser
 
 

@@ -25,6 +25,26 @@ design, model and workload identities, seeds, metrics, denominators, aggregate
 results, and scientific claims. The Relic two-repository release handoff is
 authoritative for repository scope and release acceptance.
 
+## CooperBench exception on the `cooper` branch
+
+Core and HCI modules use the frozen HCI revision above. The handoff permits a
+module-level exception when that revision lacks a required paper extension. The
+`cooper` branch therefore takes only the B3-2 CooperBench module and its tests
+from the verified dedicated source branch:
+
+```text
+codex/cooperbench-b3-two-agent@bbe7c0ad47ada83a710e90b5436f98745586bd83
+implementation baseline: b872386c6f9dc1c96895641cc3b303f6b2569ff2
+```
+
+This exception does not import the external CooperBench repository, dataset,
+task images, hidden tests, evaluator, ProgramBench assets, or historical raw
+runs. The paper's fixed selection is retained verbatim as the source branch's
+`b3_v108_new16_b001` and `b3_v128_expand32_b001` files; their verified 16 + 32
+union, rather than the source branch's separate 652-pair runbook, is used by
+the release entrypoints. The pinned external integration is documented in
+[`reproduction/cooperbench/README.md`](../reproduction/cooperbench/README.md).
+
 The controlled source closure for the official paired reproduction path is:
 
 - `tools/run_org_baselines.py`;

@@ -3,9 +3,12 @@
 Research artifact for the Relic agent-organization paper.
 
 Scientific facts and reported results follow the final paper. Repository scope
-follows the two-repository release handoff. Curated implementation provenance is
-frozen exclusively to `SocioGenesis/hci-human-seat` at
-`dda36fb563375060ae8d8850300db01eb4695d29`.
+follows the two-repository release handoff. Core and HCI provenance is frozen
+to `SocioGenesis/hci-human-seat` at
+`dda36fb563375060ae8d8850300db01eb4695d29`. The `cooper` branch has one
+explicit module-level exception: its B3-2 CooperBench extension is sourced from
+the verified dedicated CooperBench branch, as documented in
+[`reproduction/cooperbench/README.md`](reproduction/cooperbench/README.md).
 
 ## Local setup
 
@@ -277,6 +280,27 @@ launcher, and replay/live semantics.
 Inspector views are descriptive: observed lineage, temporal order, and state
 differences do not by themselves establish that one protocol, member, or
 mechanism caused an outcome.
+
+## CooperBench extension (`cooper` branch)
+
+`cooper` is `main` plus the source-backed B3-2 CooperBench adapter and its
+Cooper-specific tests. It does not vendor the third-party benchmark, data,
+task images, official evaluator, or an Anthropic SDK adapter. The upstream
+v0.0.29 integration uses the same OpenAI-compatible Claude gateway route as
+the source runtime.
+
+The exact fixed selection is retained verbatim as the source branch's
+[16-pair batch](configs/cooperbench/batches/b3_v108_new16_b001.json) plus
+[32-pair batch](configs/cooperbench/batches/b3_v128_expand32_b001.json). The
+CLI verifies their immutable source hashes and requires the external upstream
+`b3_v133_combined48_b001` subset to equal that 48-pair union before it runs.
+The reported 29/48 remains a paper result: historical raw artifacts and the
+historical task-image digest ledger are not included. `preflight-cooper`,
+`run-cooper`, `evaluate-cooper`, and `cooper-summary` are thin boundaries over
+source-owned logic and pinned upstream CooperBench v0.0.29. See
+[`reproduction/cooperbench/README.md`](reproduction/cooperbench/README.md)
+for the external MIT-declared upstream installation, source provenance, and
+exact commands.
 
 ## Full regression test suite / 完整回归测试
 

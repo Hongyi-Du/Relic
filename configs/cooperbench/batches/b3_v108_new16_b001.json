@@ -1,0 +1,91 @@
+{
+  "name": "b3_v108_new16_b001",
+  "description": "Sixteen previously unrecorded CooperBench feature pairs for the v108 two-member B3 scale batch. Seven task IDs are wholly unseen; selection covers all 12 repository families without using evaluator outcomes.",
+  "stats": {
+    "tasks": 16,
+    "pairs": 16,
+    "repos": 12
+  },
+  "tasks": [
+    {
+      "repo": "dottxt_ai_outlines_task",
+      "task_id": 1371,
+      "pairs": [[1, 2]]
+    },
+    {
+      "repo": "dottxt_ai_outlines_task",
+      "task_id": 1655,
+      "pairs": [[1, 3]]
+    },
+    {
+      "repo": "dspy_task",
+      "task_id": 8563,
+      "pairs": [[1, 4]]
+    },
+    {
+      "repo": "go_chi_task",
+      "task_id": 27,
+      "pairs": [[3, 4]]
+    },
+    {
+      "repo": "huggingface_datasets_task",
+      "task_id": 7309,
+      "pairs": [[1, 2]]
+    },
+    {
+      "repo": "llama_index_task",
+      "task_id": 17070,
+      "pairs": [[1, 2]]
+    },
+    {
+      "repo": "llama_index_task",
+      "task_id": 17244,
+      "pairs": [[5, 6]]
+    },
+    {
+      "repo": "openai_tiktoken_task",
+      "task_id": 0,
+      "pairs": [[4, 8]]
+    },
+    {
+      "repo": "pallets_click_task",
+      "task_id": 2800,
+      "pairs": [[1, 4]]
+    },
+    {
+      "repo": "pallets_jinja_task",
+      "task_id": 1621,
+      "pairs": [[6, 10]]
+    },
+    {
+      "repo": "pillow_task",
+      "task_id": 25,
+      "pairs": [[1, 5]]
+    },
+    {
+      "repo": "pillow_task",
+      "task_id": 68,
+      "pairs": [[1, 5]]
+    },
+    {
+      "repo": "pillow_task",
+      "task_id": 290,
+      "pairs": [[3, 5]]
+    },
+    {
+      "repo": "react_hook_form_task",
+      "task_id": 153,
+      "pairs": [[2, 6]]
+    },
+    {
+      "repo": "samuelcolvin_dirty_equals_task",
+      "task_id": 43,
+      "pairs": [[2, 3]]
+    },
+    {
+      "repo": "typst_task",
+      "task_id": 6554,
+      "pairs": [[2, 6]]
+    }
+  ]
+}

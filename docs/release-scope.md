@@ -19,12 +19,13 @@ deliberately narrow roles:
 - `cooper` is `main` plus the CooperBench adapter and its tests; and
 - `full-tests` is `main` plus relevant historical core regression tests.
 
-Only `main` is present in the current local/remote ref snapshot. The extension
-branches are therefore release topology still to be published, not deliverables
-claimed by this checkout. Root Docker / Compose assets cover core environment
-checks, mock smoke, dry-run planning, mounted outputs, and the Inspector. The
-formal evaluator image and reviewed nested evaluator integration remain pending
-release inputs, so Docker formal execution continues to fail closed.
+On `main`, the extension branches remain deliberately absent. This `cooper`
+checkout adds only the CooperBench adapter, thin external entrypoints, and
+Cooper-specific tests; it does not pull HCI or ProgramBench into the branch.
+Root Docker / Compose assets cover core environment checks, mock smoke, dry-run
+planning, mounted outputs, and the Inspector. The formal evaluator image and
+reviewed nested evaluator integration remain pending release inputs, so Docker
+formal execution continues to fail closed.
 
 ProgramBench may be named only as a paper-reported aggregate result. Its tasks,
 adapter, harness, scripts, and reproduction artifacts are not included in this
