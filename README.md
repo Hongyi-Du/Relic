@@ -4,9 +4,8 @@ Research artifact for the Relic agent-organization paper.
 
 Scientific facts and reported results follow the final paper. Repository scope
 follows the two-repository release handoff. Curated implementation provenance is
-frozen to `SocioGenesis/hci-human-seat` at
-`dda36fb563375060ae8d8850300db01eb4695d29`; the obsolete SocioGenesis `main`
-branch is not an implementation source.
+frozen exclusively to `SocioGenesis/hci-human-seat` at
+`dda36fb563375060ae8d8850300db01eb4695d29`.
 
 ## Local setup
 
@@ -22,17 +21,39 @@ uv run pytest -q
 The Windows runtime path is WSL2/Docker. Native Windows experiment execution is
 not maintained.
 
-## Plan the canonical main study
+## Plan or run the canonical main study
 
-This writes the 120-cell plan for one model without contacting a provider:
+Use the scheduler's dry-run mode to freeze the 120-cell plan for one model
+without contacting a provider, evaluator, or cell subprocess:
 
 ```bash
-uv run relic plan-main \
+uv run relic run-main \
   --model gpt-5.6-terra \
   --output-root outputs/main-study \
   --manifest outputs/main-study/run_manifest.json \
-  --max-parallel 1
+  --max-parallel 1 \
+  --dry-run
 ```
+
+After reviewing that manifest, start or continue the plan with:
+
+```bash
+uv run relic run-main \
+  --manifest outputs/main-study/run_manifest.json \
+  --resume --max-parallel 1
+```
+
+Each cell runs in a separate subprocess. The scheduler never changes the
+parent process's `ORG_*` identity environment, skips completed cells, writes
+its manifest atomically, and keeps subprocess logs under
+`outputs/main-study/private/scheduler/`. To retry only cells classified as
+model, evaluator, or infrastructure failures, add `--retry-failed` to the
+resume command. `--cell-id` can safely narrow a run or retry to one frozen
+cell. Interrupting the scheduler stops its child process groups and records an
+interrupted state for a later `--resume`.
+
+Concurrency defaults to one; budget about 16 GiB for each active cell. Formal
+execution can be costly, so always inspect the dry-run manifest first.
 
 ## Run one cell
 

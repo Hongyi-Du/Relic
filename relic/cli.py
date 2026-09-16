@@ -81,6 +81,37 @@ def _run_cell(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_main(args: argparse.Namespace) -> int:
+    from relic.main_runner import MainRunnerError, run_main
+
+    try:
+        result = run_main(
+            model=args.model,
+            output_root=args.output_root,
+            manifest_path=args.manifest,
+            max_parallel=args.max_parallel,
+            dry_run=args.dry_run,
+            resume=args.resume,
+            retry_failed=args.retry_failed,
+            cell_id=args.cell_id,
+        )
+    except MainRunnerError as exc:
+        print(json.dumps({"status": "failed", "error": exc.code}), file=sys.stderr)
+        return 2
+    except KeyboardInterrupt:
+        print(json.dumps({"status": "interrupted", "error": "scheduler_interrupted"}), file=sys.stderr)
+        return 130
+    print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
+    if result.max_parallel > result.recommended_max_parallel:
+        print(
+            "WARNING: requested concurrency exceeds the conservative 16 GiB-per-cell "
+            "memory policy. On WSL2, also check the WSL and Docker memory limits."
+        )
+    if args.dry_run:
+        print("Dry run only: no provider, evaluator, or cell subprocess was started.")
+    return 0
+
+
 def _evaluate_cell(args: argparse.Namespace) -> int:
     from relic.cell_worker import CellWorkerError, evaluate_cell
 
@@ -155,6 +186,21 @@ def build_parser() -> argparse.ArgumentParser:
     destination.add_argument("--output-dir", type=Path, default=None)
     cell.add_argument("--resume", action="store_true")
     cell.set_defaults(func=_run_cell)
+
+    main_run = subparsers.add_parser(
+        "run-main",
+        aliases=["run-main-120"],
+        help="run or resume the canonical 120-cell single-model study",
+    )
+    main_run.add_argument("--model", default=None, help="required for a new run")
+    main_run.add_argument("--output-root", type=Path, default=None)
+    main_run.add_argument("--manifest", type=Path, default=None)
+    main_run.add_argument("--max-parallel", type=int, default=1)
+    main_run.add_argument("--dry-run", action="store_true")
+    main_run.add_argument("--resume", action="store_true")
+    main_run.add_argument("--retry-failed", action="store_true")
+    main_run.add_argument("--cell-id", default=None)
+    main_run.set_defaults(func=_run_main)
 
     status = subparsers.add_parser(
         "status", help="read public status and verified checkpoint sidecars"

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -85,6 +86,14 @@ def build_main_manifest(
         for seed in seeds:
             for arm in arms:
                 cell_id = f"{model}__{workload}__{arm}__seed{seed}"
+                cell_output = (
+                    destination
+                    / str(study["study"])
+                    / model
+                    / workload.lower()
+                    / arm.lower()
+                    / f"seed-{seed}"
+                )
                 cells.append(
                     {
                         "cell_id": cell_id,
@@ -95,7 +104,7 @@ def build_main_manifest(
                         "ticks": int(study["ticks"]),
                         "checkpoint_every": int(study["checkpoint_every"]),
                         "sprint_ticks": int(study["sprint_ticks"]),
-                        "output_path": str(destination / cell_id),
+                        "output_path": str(cell_output),
                         "status": "pending",
                     }
                 )
@@ -130,4 +139,25 @@ def build_main_manifest(
 
 def write_manifest(payload: dict[str, Any], destination: Path) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
-    destination.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{destination.name}.", suffix=".tmp", dir=destination.parent
+    )
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            json.dump(payload, handle, indent=2, ensure_ascii=False)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, destination)
+        if os.name == "posix":
+            directory_fd = os.open(
+                destination.parent,
+                os.O_RDONLY | getattr(os, "O_DIRECTORY", 0),
+            )
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
+    finally:
+        temporary.unlink(missing_ok=True)
