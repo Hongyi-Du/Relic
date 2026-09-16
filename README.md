@@ -258,7 +258,8 @@ every included cell before using a value. The output is deliberately named
 `user_run_aggregate.json/md`, begins with a “not paper results” notice, averages
 seeds inside each model-by-workload block, then weights applicable blocks
 equally. B3−B2 uses paired seeds and 10,000 fixed-block bootstrap draws with
-seed 1729. A single 120-cell model run is a partial design, so it requires
+seed 1729 through the source `environments.org_env.experiments.statistics`
+paired-unit and fixed-block functions. A single 120-cell model run is a partial design, so it requires
 `--allow-partial`; only both complete model receipts constitute the 240-cell
 design. Evaluator infrastructure or unavailable results are excluded as
 unavailable, never treated as low scores.

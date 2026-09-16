@@ -74,8 +74,8 @@ _CONDITION_ALIASES = {
     "b2": "B2",
     "b2_policy_conditioned_org": "B2",
     "b3": "B3",
-    "b3_relic_organization": "B3",
-    "relic_organization": "B3",
+    "b3_full_sociogenesis": "B3",
+    "full_sociogenesis": "B3",
 }
 
 # Rungs from the previous ladder. They keep their own labels rather than
