@@ -8,6 +8,7 @@ from pathlib import Path
 
 from relic.benchmark import load_benchmark_manifest, verify_benchmark
 from relic.manifest import build_main_manifest, write_manifest
+from relic.paper_results import write_results
 
 
 def _plan_main(args: argparse.Namespace) -> int:
@@ -51,6 +52,13 @@ def _verify_benchmark(_: argparse.Namespace) -> int:
     return 0
 
 
+def _build_paper_results(args: argparse.Namespace) -> int:
+    json_path, markdown_path = write_results(args.source, args.output_directory)
+    print(f"Wrote {json_path.resolve()}")
+    print(f"Wrote {markdown_path.resolve()}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="relic")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -66,6 +74,13 @@ def build_parser() -> argparse.ArgumentParser:
         "verify-benchmark", help="verify all frozen relic-main-v1 pack digests"
     )
     verify.set_defaults(func=_verify_benchmark)
+
+    results = subparsers.add_parser(
+        "build-paper-results", help="build canonical JSON and Markdown from paper values"
+    )
+    results.add_argument("--source", type=Path, default=None)
+    results.add_argument("--output-directory", type=Path, default=None)
+    results.set_defaults(func=_build_paper_results)
     return parser
 
 

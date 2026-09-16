@@ -1,0 +1,451 @@
+{
+  "schema_version": "relic-paper-results-v1",
+  "paper": {
+    "title": "Relic: From Multi-Agent Collaboration to Organizational Capability",
+    "status": "ICLR 2027 under review",
+    "snapshot_date": "2026-09-15",
+    "source_pdf_sha256": "3a7d4a6353d640a6e58508fc03125c99a5990992b60add04fa2ddbf56506ec2e"
+  },
+  "main_study": {
+    "runs": 240,
+    "models": [
+      {
+        "name": "GPT-5.6 Terra",
+        "runs": 120,
+        "reasoning_effort": "low"
+      },
+      {
+        "name": "Claude Opus 4.6",
+        "runs": 120,
+        "reasoning_effort": "low"
+      }
+    ],
+    "workloads": 10,
+    "seeds": [
+      1401,
+      2711,
+      4013
+    ],
+    "arms": [
+      "B0",
+      "B1",
+      "B2",
+      "B3"
+    ],
+    "ticks": 336,
+    "checkpoint_every": 24,
+    "aggregation": "Average seeds within each model-by-workload block, then equally weight applicable blocks. B3-B2 intervals use 10,000 paired block-bootstrap replicates with seed 1729.",
+    "metrics": [
+      {
+        "id": "complete_contracts",
+        "label": "Complete contracts on mainline",
+        "unit": "percent",
+        "direction": "higher",
+        "arms": {
+          "B0": {
+            "value": 10.3,
+            "ci95": [
+              5.1,
+              16.4
+            ]
+          },
+          "B1": {
+            "value": 18.21,
+            "ci95": [
+              10.9,
+              26.6
+            ]
+          },
+          "B2": {
+            "value": 16.31,
+            "ci95": [
+              10.3,
+              26.8
+            ]
+          },
+          "B3": {
+            "value": 22.82,
+            "ci95": [
+              14.6,
+              32.0
+            ]
+          }
+        },
+        "b3_minus_b2": {
+          "value": 6.51,
+          "unit": "percentage_points",
+          "ci95": [
+            2.812,
+            10.517
+          ]
+        }
+      },
+      {
+        "id": "held_out_cases",
+        "label": "Held-out cases on mainline",
+        "unit": "percent",
+        "direction": "higher",
+        "arms": {
+          "B0": {
+            "value": 10.29,
+            "ci95": [
+              0.0,
+              35.5
+            ]
+          },
+          "B1": {
+            "value": 12.25,
+            "ci95": [
+              0.0,
+              31.3
+            ]
+          },
+          "B2": {
+            "value": 13.86,
+            "ci95": [
+              1.0,
+              46.1
+            ]
+          },
+          "B3": {
+            "value": 24.51,
+            "ci95": [
+              1.7,
+              65.3
+            ]
+          }
+        },
+        "b3_minus_b2": {
+          "value": 10.65,
+          "unit": "percentage_points",
+          "ci95": [
+            2.041,
+            19.498
+          ]
+        }
+      },
+      {
+        "id": "exposed_cases",
+        "label": "Exposed cases on mainline",
+        "unit": "percent",
+        "direction": "higher",
+        "arms": {
+          "B0": {
+            "value": 14.89,
+            "ci95": [
+              7.2,
+              24.1
+            ]
+          },
+          "B1": {
+            "value": 26.12,
+            "ci95": [
+              14.9,
+              39.3
+            ]
+          },
+          "B2": {
+            "value": 22.57,
+            "ci95": [
+              15.0,
+              41.3
+            ]
+          },
+          "B3": {
+            "value": 30.3,
+            "ci95": [
+              17.9,
+              44.1
+            ]
+          }
+        },
+        "b3_minus_b2": {
+          "value": 7.73,
+          "unit": "percentage_points",
+          "ci95": [
+            2.183,
+            13.016
+          ]
+        }
+      },
+      {
+        "id": "evaluator_confirmed_seeded_issues",
+        "label": "Evaluator-confirmed seeded issues",
+        "unit": "percent",
+        "direction": "higher",
+        "arms": {
+          "B0": {
+            "value": 13.35,
+            "ci95": [
+              6.5,
+              21.5
+            ]
+          },
+          "B1": {
+            "value": 22.97,
+            "ci95": [
+              13.1,
+              34.6
+            ]
+          },
+          "B2": {
+            "value": 20.84,
+            "ci95": [
+              12.2,
+              30.1
+            ]
+          },
+          "B3": {
+            "value": 28.76,
+            "ci95": [
+              17.4,
+              41.1
+            ]
+          }
+        },
+        "b3_minus_b2": {
+          "value": 7.92,
+          "unit": "percentage_points",
+          "ci95": [
+            2.908,
+            14.409
+          ]
+        }
+      },
+      {
+        "id": "average_tokens_per_run",
+        "label": "Average tokens per run",
+        "unit": "million_tokens",
+        "direction": "lower",
+        "arms": {
+          "B0": {
+            "value": 3.522,
+            "ci95": [
+              3.35,
+              3.695
+            ]
+          },
+          "B1": {
+            "value": 43.903,
+            "ci95": [
+              40.745,
+              47.262
+            ]
+          },
+          "B2": {
+            "value": 3.751,
+            "ci95": [
+              3.439,
+              4.054
+            ]
+          },
+          "B3": {
+            "value": 6.523,
+            "ci95": [
+              5.119,
+              8.379
+            ]
+          }
+        },
+        "b3_minus_b2": {
+          "value": 2.772,
+          "unit": "million_tokens",
+          "ci95": [
+            1.373,
+            4.665
+          ]
+        }
+      },
+      {
+        "id": "tokens_per_confirmed_issue",
+        "label": "Tokens per evaluator-confirmed issue",
+        "unit": "million_tokens",
+        "direction": "lower",
+        "arms": {
+          "B0": {
+            "value": 4.947,
+            "ci95": [
+              3.396,
+              5.963
+            ]
+          },
+          "B1": {
+            "value": 31.76,
+            "ci95": [
+              25.994,
+              46.592
+            ]
+          },
+          "B2": {
+            "value": 2.907,
+            "ci95": [
+              2.402,
+              4.632
+            ]
+          },
+          "B3": {
+            "value": 3.651,
+            "ci95": [
+              2.359,
+              6.66
+            ]
+          }
+        },
+        "b3_minus_b2": {
+          "value": -0.174,
+          "unit": "million_tokens",
+          "ci95": [
+            -1.686,
+            0.633
+          ],
+          "note": "Paired contrast over 14 common nonzero blocks (42 pairs); it need not equal the difference between displayed arm means."
+        }
+      }
+    ]
+  },
+  "protocol_census": {
+    "b3_runs": 60,
+    "autonomous_proposal_lineages": 497,
+    "adopted_at_endpoint": 393,
+    "sustained_use": 280,
+    "stronger_execution_or_outcome_evidence": 32
+  },
+  "internal_transfer": {
+    "model": "GPT-5.6 Terra",
+    "target_runs": 60,
+    "text_runs": 30,
+    "exec_runs": 30,
+    "fresh_reference_runs_reused": 30,
+    "primary_metric": "behavioral_case_pass_rate",
+    "arms": {
+      "Fresh": {
+        "value": 25.4,
+        "unit": "percent",
+        "ci95": [
+          13.2,
+          41.1
+        ]
+      },
+      "Text": {
+        "value": 34.6,
+        "unit": "percent",
+        "ci95": [
+          24.1,
+          46.4
+        ]
+      },
+      "Exec": {
+        "value": 41.2,
+        "unit": "percent",
+        "ci95": [
+          23.4,
+          54.5
+        ]
+      }
+    },
+    "contrasts": {
+      "exec_minus_text": {
+        "value": 6.5,
+        "unit": "percentage_points",
+        "ci95": [
+          0.7,
+          15.6
+        ]
+      },
+      "exec_minus_fresh": {
+        "value": 15.8,
+        "unit": "percentage_points",
+        "ci95": [
+          9.2,
+          31.8
+        ]
+      }
+    },
+    "note": "Text and Exec receive identical frozen rule content; Exec adds runtime bindings. Fresh reuses the 30 GPT-5.6 Terra B2 main-study runs."
+  },
+  "binding_ablation": {
+    "model": "Claude Opus 4.6",
+    "reasoning_effort": "low",
+    "new_b3_text_runs": 30,
+    "matched_b3_runs_reused": 30,
+    "metric": "complete_contracts",
+    "b3_text_percent": 15.03,
+    "executable_b3_percent": 22.2,
+    "executable_minus_text": {
+      "value": 7.18,
+      "unit": "percentage_points",
+      "ci95": [
+        3.54,
+        10.91
+      ]
+    },
+    "note": "B3-text retains proposal, governance, adoption, revision, and readable rules while removing learned-protocol binding, automatic use credit, and protocol-specific enforcement."
+  },
+  "external_extensions": {
+    "cooperbench": {
+      "subset": "48 feature pairs from 30 task instances and 12 repositories",
+      "selection": "blind-selected before inspecting compared-system outcomes",
+      "reasoning_effort": "high",
+      "results": [
+        {
+          "system": "Relic B3-2",
+          "model": "Claude Opus 4.6",
+          "successes": 29,
+          "total": 48
+        },
+        {
+          "system": "Official Solo",
+          "model": "Claude Opus 4.6",
+          "successes": 26,
+          "total": 48
+        },
+        {
+          "system": "Official Peer",
+          "model": "Claude Opus 4.6",
+          "successes": 13,
+          "total": 48
+        },
+        {
+          "system": "Team with protocol verbs",
+          "model": "GPT-5.5-hao",
+          "successes": 26,
+          "total": 48
+        },
+        {
+          "system": "Team without protocol verbs",
+          "model": "GPT-5.5-hao",
+          "successes": 24,
+          "total": 48
+        }
+      ],
+      "claim_boundary": "The 48 pairs are not 48 independent samples, the selected subset was used during adapter development, and no statistical-superiority claim is made."
+    },
+    "programbench": {
+      "reproduction_artifacts_included": false,
+      "model": "GPT-5.6 Terra",
+      "tasks": 25,
+      "official_mini_swe_agent_percent": 64.164,
+      "with_executable_protocols_percent": 70.916,
+      "absolute_gain_percentage_points": 6.752,
+      "tasks_at_or_above_95_percent": {
+        "official_mini_swe_agent": 2,
+        "with_executable_protocols": 2
+      },
+      "release_note": "Results reported in the paper; code and artifacts are not included in this release."
+    }
+  },
+  "hci": {
+    "evidence_type": "formative_interface_exploration",
+    "interfaces": [
+      "P1 direct organization",
+      "P2 transparent liaison",
+      "P3 liaison-first interaction"
+    ],
+    "claim_boundary": "The appendix reports design and formative observations, not powered participant-study evidence, population estimates, or significance tests."
+  },
+  "limitations": [
+    "B3 does not improve every workload; W01 is negative and W05 is zero on the named contrast.",
+    "ProgramBench has aggregate reporting only in this release.",
+    "Historical per-run author data and complete raw trajectories are not included."
+  ]
+}
