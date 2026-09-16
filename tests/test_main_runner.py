@@ -502,29 +502,30 @@ def test_process_group_cleanup_escalates_signals(
 
 
 @pytest.mark.unit
-def test_claude_actual_run_fails_fast_but_dry_run_remains_safe(
+def test_claude_gateway_run_passes_the_openai_provider_guard(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, unverified_cell_specs: None
 ) -> None:
     manifest_path = tmp_path / "claude_manifest.json"
+    invocations: list[_CompletingPopen] = []
 
-    def spawn_forbidden(*_args: Any, **_kwargs: Any) -> None:
-        raise AssertionError("unsupported Claude runs must fail before child creation")
+    class CapturingPopen(_CompletingPopen):
+        def __init__(self, argv: list[str], **kwargs: Any) -> None:
+            super().__init__(argv, **kwargs)
+            invocations.append(self)
 
-    monkeypatch.setattr(main_runner.subprocess, "Popen", spawn_forbidden)
-    dry_result = run_main(
+    monkeypatch.setattr(main_runner.subprocess, "Popen", CapturingPopen)
+    result = run_main(
         model="claude-opus-4.6",
         output_root=tmp_path,
         manifest_path=manifest_path,
-        dry_run=True,
+        max_parallel=1,
+        cell_id="claude-opus-4.6__W01__B0__seed1401",
+        poll_interval=0,
     )
-    assert dry_result.status == "planned"
-
-    with pytest.raises(MainRunnerError, match="unsupported_model_provider:anthropic"):
-        run_main(
-            manifest_path=manifest_path,
-            output_root=tmp_path,
-            resume=True,
-        )
+    assert result.status == "partial"
+    assert result.selected_cells == result.completed_cells == 1
+    assert len(invocations) == 1
+    assert "claude-opus-4.6" in invocations[0].argv
 
 
 @pytest.mark.unit

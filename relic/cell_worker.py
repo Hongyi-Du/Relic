@@ -223,7 +223,13 @@ def _build_openai_client(spec: CellSpec) -> tuple[OpenAIOrgLLMClient, dict[str, 
     if not api_key:
         raise CellWorkerError("model_credential_missing:openai")
     runtime_model = _runtime_model(spec.model_config)
-    wire_api = str(os.environ.get("ORG_LLM_WIRE_API") or "responses").strip().lower()
+    wire_api = str(spec.model_config["wire_api"]).strip().lower().replace("-", "_")
+    json_transport = (
+        str(spec.model_config["json_transport"])
+        .strip()
+        .lower()
+        .replace("-", "_")
+    )
     base_url = os.environ.get("ORG_LLM_BASE_URL") or os.environ.get("OPENAI_BASE_URL")
     try:
         default_headers = configured_openai_default_headers()
@@ -237,6 +243,7 @@ def _build_openai_client(spec: CellSpec) -> tuple[OpenAIOrgLLMClient, dict[str, 
         max_retries=int(spec.model_config["max_retries"]),
         retry_backoff_seconds=float(spec.model_config["retry_backoff_seconds"]),
         wire_api=wire_api,
+        json_transport=json_transport,
         request_timeout_seconds=float(spec.model_config["request_timeout_seconds"]),
         store_responses=False,
         default_headers=default_headers,
@@ -249,6 +256,7 @@ def _build_openai_client(spec: CellSpec) -> tuple[OpenAIOrgLLMClient, dict[str, 
         "max_retries": int(spec.model_config["max_retries"]),
         "retry_backoff_seconds": float(spec.model_config["retry_backoff_seconds"]),
         "wire_api": wire_api,
+        "json_transport": json_transport,
         "routing_context_fingerprint": client.routing_context_fingerprint,
     }
     return client, binding

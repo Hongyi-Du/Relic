@@ -11,7 +11,6 @@ import hashlib
 import json
 import math
 import os
-import random
 import re
 import stat
 import tempfile
@@ -22,6 +21,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from environments.org_env.experiments.statistics import (
+    RunObservation,
+    build_paired_units,
+    paired_block_bootstrap_interval,
+    paired_block_weighted_mean,
+    validate_observations,
+)
 from relic.cell_spec import (
     SOURCE_BRANCH,
     SOURCE_COMMIT,
@@ -625,7 +631,7 @@ def _rebuild_and_validate_plan(manifest: Mapping[str, Any]) -> dict[str, CellSpe
     return compiled_by_id
 
 
-def _validate_receipt(payload: Mapping[str, Any]) -> None:
+def _validate_receipt(payload: Mapping[str, Any]) -> dict[str, CellSpec]:
     _require_exact_keys(
         payload, _TOP_LEVEL_RECEIPT_KEYS, code="evaluation_manifest_top_level_fields_invalid"
     )
@@ -905,6 +911,7 @@ def _validate_receipt(payload: Mapping[str, Any]) -> None:
             or item.get("analysis") != cells_by_id[cell_id].get("analysis")
         ):
             raise UserRunAggregateError("evaluation_manifest_evaluations_invalid")
+    return compiled_by_id
 
 
 def _metric_value(cell: Mapping[str, Any], metric: str) -> float | None:
@@ -1095,29 +1102,142 @@ def _validate_full_design_receipts(
         raise UserRunAggregateError("full_design_evaluator_provenance_mismatch")
 
 
-def _quantile(values: Sequence[float], probability: float) -> float:
-    ordered = sorted(values)
-    if not ordered:
-        raise UserRunAggregateError("bootstrap_has_no_draws")
-    if len(ordered) == 1:
-        return ordered[0]
-    position = min(1.0, max(0.0, probability)) * (len(ordered) - 1)
-    lower = int(math.floor(position))
-    upper = int(math.ceil(position))
-    if lower == upper:
-        return ordered[lower]
-    fraction = position - lower
-    return ordered[lower] * (1.0 - fraction) + ordered[upper] * fraction
+def _source_statistics_observation(
+    cell: Mapping[str, Any],
+    *,
+    spec: CellSpec,
+    metric: str,
+) -> RunObservation:
+    """Adapt one verified public receipt row to the source statistics contract.
+
+    The receipt has already passed Relic's formal-record, evaluator-digest, and
+    lineage gates.  This deliberately does not invent a second evaluator or
+    score: it presents the verified numeric field to hci's paired-statistics
+    implementation with its canonical model/provider/resource identities.
+    """
+
+    identity = _identity(cell)
+    analysis = cell.get("analysis")
+    if identity is None or not isinstance(analysis, Mapping):
+        raise UserRunAggregateError("source_statistics_adapter_identity_invalid")
+    value = _metric_value(cell, metric)
+    if value is None:
+        raise UserRunAggregateError("source_statistics_adapter_metric_unavailable")
+    lineage = analysis.get("lineage")
+    evaluator = analysis.get("evaluator")
+    final = analysis.get("final_evaluation")
+    if (
+        not isinstance(lineage, Mapping)
+        or not isinstance(evaluator, Mapping)
+        or not isinstance(final, Mapping)
+    ):
+        raise UserRunAggregateError("source_statistics_adapter_lineage_invalid")
+    model, workload, arm, seed = identity
+    if (
+        spec.model != model
+        or spec.workload.upper() != workload
+        or spec.arm.upper() != arm
+        or spec.seed != seed
+    ):
+        raise UserRunAggregateError("source_statistics_adapter_spec_mismatch")
+    provider = str(spec.model_config.get("provider") or "").strip().lower()
+    if not provider:
+        raise UserRunAggregateError("source_statistics_adapter_provider_missing")
+    resource_budget = stable_sha256(spec.resource_budget.to_dict())
+    mechanism_ablations = stable_sha256(
+        {"mechanism_ablations": list(spec.mechanism_ablations)}
+    )
+    return RunObservation(
+        run_id=str(cell["cell_id"]),
+        pack=spec.dataset_id,
+        condition=arm,
+        provider=provider,
+        model=model,
+        seed=seed,
+        metric=metric,
+        value=value,
+        metric_family="relic_user_run_release_adapter",
+        resource_budget_fingerprint=resource_budget,
+        ablation_fingerprint=mechanism_ablations,
+        # The public receipt intentionally omits raw run records.  Keep the
+        # adapter on source's v1 input schema; formal eligibility was proved at
+        # the receipt boundary above rather than reconstructed from redacted
+        # fields here.
+        schema_version="orgenv_experiment_run_v1",
+        status="completed",
+        final_status=(
+            str(final["status"]) if isinstance(final.get("status"), str) else None
+        ),
+        formal_claim_ready=(
+            final["formal_claim_ready"]
+            if isinstance(final.get("formal_claim_ready"), bool)
+            else None
+        ),
+        dataset_manifest_hash=stable_sha256(spec.benchmark_entry),
+        starter_repo_digest=(
+            str(lineage["starter_repo_digest"])
+            if isinstance(lineage.get("starter_repo_digest"), str)
+            else None
+        ),
+        reference_repo_digest=(
+            str(lineage["reference_repo_digest"])
+            if isinstance(lineage.get("reference_repo_digest"), str)
+            else None
+        ),
+        candidate_repo_digest=(
+            str(evaluator["candidate_repo_digest"])
+            if isinstance(evaluator.get("candidate_repo_digest"), str)
+            else None
+        ),
+        hidden_suite_hash=(
+            str(lineage["hidden_suite_hash"])
+            if isinstance(lineage.get("hidden_suite_hash"), str)
+            else None
+        ),
+        evaluator_environment_hash=(
+            str(lineage["evaluator_environment_sha256"])
+            if isinstance(lineage.get("evaluator_environment_sha256"), str)
+            else None
+        ),
+        information_budget_fingerprint=resource_budget,
+        llm_runtime_fingerprint=(
+            str(lineage["model_binding_sha256"])
+            if isinstance(lineage.get("model_binding_sha256"), str)
+            else None
+        ),
+        final_plan_hash=(
+            str(lineage["qualification_plan_sha256"])
+            if isinstance(lineage.get("qualification_plan_sha256"), str)
+            else None
+        ),
+        final_result_hash=(
+            str(evaluator["result_hash"])
+            if isinstance(evaluator.get("result_hash"), str)
+            else None
+        ),
+        final_artifact_hash=(
+            str(evaluator["artifact_hash"])
+            if isinstance(evaluator.get("artifact_hash"), str)
+            else None
+        ),
+    )
 
 
-def _paired_contrast(cells: Sequence[Mapping[str, Any]], metric: str) -> dict[str, Any]:
+def _paired_contrast(
+    cells: Sequence[Mapping[str, Any]],
+    metric: str,
+    *,
+    specs_by_cell_id: Mapping[str, CellSpec],
+) -> dict[str, Any]:
+    """Report B3−B2 through the hci fixed-block paired implementation."""
+
     index: dict[tuple[str, str, str, int], Mapping[str, Any]] = {}
     for cell in cells:
         identity = _identity(cell)
         if identity is not None and identity not in index:
             index[identity] = cell
-    by_block: dict[tuple[str, str], list[float]] = defaultdict(list)
     exclusions: Counter[str] = Counter()
+    paired_cells: list[Mapping[str, Any]] = []
     for model in CANONICAL_MODELS:
         for workload in CANONICAL_WORKLOADS:
             for seed in CANONICAL_SEEDS:
@@ -1134,8 +1254,8 @@ def _paired_contrast(cells: Sequence[Mapping[str, Any]], metric: str) -> dict[st
                 if low is None or high is None:
                     exclusions["metric_unavailable"] += 1
                     continue
-                by_block[(model, workload)].append(high - low)
-    if not by_block:
+                paired_cells.extend((b2, b3))
+    if not paired_cells:
         return {
             "b3_minus_b2": None,
             "ci95": None,
@@ -1143,22 +1263,44 @@ def _paired_contrast(cells: Sequence[Mapping[str, Any]], metric: str) -> dict[st
             "paired_cells": 0,
             "excluded_pairs": dict(sorted(exclusions.items())),
         }
-    block_means = [sum(values) / len(values) for values in by_block.values()]
-    estimate = sum(block_means) / len(block_means)
-    rng = random.Random(BOOTSTRAP_SEED)
-    draws: list[float] = []
-    ordered_blocks = [values for _key, values in sorted(by_block.items())]
-    for _ in range(BOOTSTRAP_DRAWS):
-        sampled_blocks = [
-            sum(values[rng.randrange(len(values))] for _ in values) / len(values)
-            for values in ordered_blocks
-        ]
-        draws.append(sum(sampled_blocks) / len(sampled_blocks))
+    try:
+        observations = tuple(
+            _source_statistics_observation(
+                cell,
+                spec=specs_by_cell_id[str(cell["cell_id"])],
+                metric=metric,
+            )
+            for cell in paired_cells
+        )
+        # Partial aggregates may contain only B2/B3.  Source validation still
+        # proves the paired resource/ablation/lineage constraints before the
+        # source pairing function constructs the contrast units.
+        validate_observations(
+            observations,
+            require_complete_conditions=False,
+            require_matched_resources=True,
+            require_matched_ablations=True,
+        )
+        units = build_paired_units(
+            observations,
+            metric=metric,
+            treatment="B3",
+            control="B2",
+            require_complete_pairs=True,
+        )
+        estimate = paired_block_weighted_mean(units)
+        confidence_low, confidence_high = paired_block_bootstrap_interval(
+            units,
+            samples=BOOTSTRAP_DRAWS,
+            seed=BOOTSTRAP_SEED,
+        )
+    except (KeyError, TypeError, ValueError) as exc:
+        raise UserRunAggregateError("source_statistics_adapter_invalid") from exc
     return {
         "b3_minus_b2": estimate,
-        "ci95": [_quantile(draws, 0.025), _quantile(draws, 0.975)],
-        "eligible_blocks": len(by_block),
-        "paired_cells": sum(len(values) for values in by_block.values()),
+        "ci95": [confidence_low, confidence_high],
+        "eligible_blocks": len({unit.block_key for unit in units}),
+        "paired_cells": len(units),
         "excluded_pairs": dict(sorted(exclusions.items())),
     }
 
@@ -1295,9 +1437,10 @@ def build_user_run_aggregate(
     receipts: list[tuple[dict[str, Any], str, Path]] = []
     cells: list[dict[str, Any]] = []
     seen_ids: set[str] = set()
+    specs_by_cell_id: dict[str, CellSpec] = {}
     for path in manifest_paths:
         payload, file_hash = _read_receipt(path)
-        _validate_receipt(payload)
+        receipt_specs = _validate_receipt(payload)
         receipts.append((payload, file_hash, path.resolve()))
         for raw_cell in payload["cells"]:
             if not isinstance(raw_cell, dict):
@@ -1307,6 +1450,7 @@ def build_user_run_aggregate(
                 raise UserRunAggregateError("duplicate_evaluation_cell")
             seen_ids.add(cell_id)
             cells.append(raw_cell)
+            specs_by_cell_id[cell_id] = receipt_specs[cell_id]
 
     represented = {_identity(cell) for cell in cells}
     represented.discard(None)
@@ -1354,7 +1498,11 @@ def build_user_run_aggregate(
             "paper_metric": metric == "average_tokens_per_run",
             "estimand": "seed_mean_then_equal_weight_model_workload_blocks",
             "by_arm": _block_macro(successful, metric),
-            "b3_minus_b2": _paired_contrast(successful, metric),
+            "b3_minus_b2": _paired_contrast(
+                successful,
+                metric,
+                specs_by_cell_id=specs_by_cell_id,
+            ),
         }
     available["generic_tokens_per_causal_fix_outcome"] = {
         "unit": "tokens",
@@ -1465,6 +1613,13 @@ def build_user_run_aggregate(
                 "resampling": "seeds_with_replacement_within_fixed_model_workload_blocks",
                 "ci": "percentile_95",
                 "quantiles": [0.025, 0.975],
+            },
+            "source_statistics": {
+                "module": "environments.org_env.experiments.statistics",
+                "pairing": "build_paired_units",
+                "point_estimate": "paired_block_weighted_mean",
+                "interval": "paired_block_bootstrap_interval",
+                "receipt_adapter": "verified_public_receipt_to_orgenv_v1_observation",
             },
         },
         "results": {

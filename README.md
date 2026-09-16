@@ -258,7 +258,8 @@ every included cell before using a value. The output is deliberately named
 `user_run_aggregate.json/md`, begins with a “not paper results” notice, averages
 seeds inside each model-by-workload block, then weights applicable blocks
 equally. B3−B2 uses paired seeds and 10,000 fixed-block bootstrap draws with
-seed 1729. A single 120-cell model run is a partial design, so it requires
+seed 1729 through the source `environments.org_env.experiments.statistics`
+paired-unit and fixed-block functions. A single 120-cell model run is a partial design, so it requires
 `--allow-partial`; only both complete model receipts constitute the 240-cell
 design. Evaluator infrastructure or unavailable results are excluded as
 unavailable, never treated as low scores.
@@ -326,12 +327,17 @@ private fixtures, credentials, and development-machine paths.
 
 ## Current provider boundary
 
-The frozen implementation has a real OpenAI runtime but no Anthropic adapter.
-Therefore `gpt-5.6-terra` is wired to the formal runner, while
-`claude-opus-4.6` fails before world execution with
-`unsupported_model_provider:anthropic`. The release cannot claim complete
-two-model/240-cell reproduction until a reviewed Anthropic adapter and tests are
-added. It will not be emulated through OpenAI or silently replaced by rules.
+The frozen formal runner accepts the source project's OpenAI-compatible provider
+surface. The Claude arm is not a native Anthropic SDK adapter: it uses the HCI
+source's gateway route (`provider: openai`, `chat_completions`, and
+`prompt_only` JSON transport). Configure the gateway URL and credential through
+the documented OpenAI-compatible variables, and bind its deployed Claude model
+name with `RELIC_CLAUDE_OPUS_4_6_MODEL`. This remains a real provider route; it
+is not silently replaced by rules.
+
+Formal two-model reproduction still requires the separately missing,
+digest-pinned evaluator image and author-supplied evidence assets described in
+the handoff.
 
 ProgramBench is represented only by the aggregate values reported in the paper;
 its tasks, adapter, harness, and reproduction entrypoints are intentionally not

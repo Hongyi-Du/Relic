@@ -27,9 +27,9 @@ USAGE_COUNTERS = ("prompt_tokens", "completion_tokens", "total_tokens", "cached_
 
 
 def _openai_call_watchdog(seconds: float, *, label: str):
-    """Import lazily to avoid a package-initialization cycle through society_core."""
+    """Import lazily to avoid a package-initialization cycle through the runtime helper."""
 
-    from society_core.openai_runtime import openai_call_watchdog
+    from relic.research.openai_runtime import openai_call_watchdog
 
     return openai_call_watchdog(seconds, label=label)
 

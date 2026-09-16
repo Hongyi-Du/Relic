@@ -3,8 +3,9 @@ model: gpt-5.6-terra
 paper_label: GPT-5.6 Terra
 provider: openai
 runtime_model_default: gpt-5.6-terra
+wire_api: responses
+json_transport: native
 reasoning_effort: low
 request_timeout_seconds: 180
 max_retries: 6
 retry_backoff_seconds: 3
-

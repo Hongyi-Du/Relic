@@ -1,10 +1,11 @@
 schema_version: relic-model-v1
 model: claude-opus-4.6
 paper_label: Claude Opus 4.6
-provider: anthropic
+provider: openai
 runtime_model_env: RELIC_CLAUDE_OPUS_4_6_MODEL
+wire_api: chat_completions
+json_transport: prompt_only
 reasoning_effort: low
 request_timeout_seconds: 180
 max_retries: 6
 retry_backoff_seconds: 3
-

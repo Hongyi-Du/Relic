@@ -117,7 +117,7 @@ def test_all_120_canonical_cell_specs_are_unique_and_frozen(tmp_path: Path) -> N
         ("B0", "b0_single_agent_founder", 1, "llm_direct", False, False, False),
         ("B1", "b1_persistent_role_org", 8, "llm_direct", False, False, False),
         ("B2", "b2_policy_conditioned_org", 8, "profile_policy", True, True, False),
-        ("B3", "b3_relic_organization", 8, "profile_policy", True, True, True),
+        ("B3", "b3_full_sociogenesis", 8, "profile_policy", True, True, True),
     ),
 )
 def test_arm_yaml_and_runtime_condition_are_bound_fail_closed(
@@ -171,10 +171,23 @@ def test_noncanonical_seed_is_rejected(tmp_path: Path) -> None:
         )
 
 
-def test_claude_fails_before_world_execution_until_adapter_exists(tmp_path: Path) -> None:
+def test_claude_uses_the_openai_compatible_gateway_binding(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     spec = _spec(tmp_path, model="claude-opus-4.6")
-    with pytest.raises(CellWorkerError, match="unsupported_model_provider:anthropic"):
-        _build_openai_client(spec)
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setenv("RELIC_CLAUDE_OPUS_4_6_MODEL", "claude-opus-4-6")
+
+    client, binding = _build_openai_client(spec)
+
+    assert client.provider == "openai"
+    assert client.model == "claude-opus-4-6"
+    assert client.wire_api == "chat_completions"
+    assert client.json_transport == "prompt_only"
+    assert client.effective_reasoning_effort == "low"
+    assert binding["provider"] == "openai"
+    assert binding["wire_api"] == "chat_completions"
+    assert binding["json_transport"] == "prompt_only"
 
 
 def test_evaluator_preflight_happens_before_client_construction(
