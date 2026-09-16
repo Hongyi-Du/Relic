@@ -7,7 +7,7 @@ snapshots by profile tier, temperature 0 + a prompt cache for reproducibility/co
 back to the deterministic HeuristicDecisionProvider on any error / when no API key is configured
 (so tests + offline runs stay free and reproducible).
 
-Supports a heuristic surrogate or live OpenAI provider with JSON-record output.
+Mirrors society_core's provider pattern (Heuristic surrogate ↔ live OpenAI) + JSON-record output.
 """
 from __future__ import annotations
 
@@ -96,8 +96,8 @@ def _num(v, default: float = 0.0) -> float:
 
 
 def _experience_cue(product: ProductOffering) -> str:
-    # Product-neutral experience language keeps every OSS tool grounded in its
-    # actual execution outcome.
+    # #5: product-neutral experience language (not research-agent "sourced output"), so an OSS tool
+    # (e.g. a repo-ingestion CLI) reads as a developer-tool trial, not a report-writing agent.
     q = product.quality * (0.55 if product.fallback_grounded else 1.0)
     if q >= 0.7:
         return "It ran cleanly end-to-end and produced correct, usable output."

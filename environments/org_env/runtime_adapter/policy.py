@@ -6,7 +6,7 @@ weight(agent, f)   = BASE_WEIGHT[f] + Σ_trait profile_or_skill[trait]·COEFF[tr
 
 In B3 the persona therefore *actually* changes the chosen action (O1 §2 #10): Calvin
 up-weights review/reproducibility/protocol-use; Sean up-weights progress/demo and
-discounts review; Los Xi up-weights external/customer; Will up-weights
+discounts review; Scarlett up-weights external/customer; Will up-weights
 review/claim-evidence; etc. B0/B1/B2 do not call ``select`` when an LLM client is
 available. Their client-free test path sets ``use_profile_conditioning=False``
 and uses deterministic argmax. Scoring modes:
@@ -85,7 +85,7 @@ PROFILE_COEFFS: List[Tuple[str, str, float]] = [
     ("claim_wording", "claim_evidence_gain", 0.5),
     ("clarity_review", "review_quality_gain", 0.4),
     ("communication_clarity", "clarity_gain", 0.4),
-    # Los Xi — community / customer
+    # Scarlett — community / customer
     ("external_community_sensing", "external_signal_value", 0.6),
     ("customer_sense", "customer_pressure", 0.5),
     ("customer_sense", "customer_relevance", 0.5),
@@ -205,6 +205,9 @@ class OrgPolicy:
         if not scored_candidates:
             return None
         tick = int(getattr(world, "world_tick", 0))
+        profile_decisions = self._programbench_candidate_decisions(
+            world, scored_candidates
+        )
         raw = [self.score(agent, feats, world) for _, feats in scored_candidates]
         # §11.3 / v8 #3.3: small soft priors for acting in a domain the agent has standing in
         if self.use_profile_conditioning:
@@ -218,25 +221,79 @@ class OrgPolicy:
         base = [r + ab + rb + cb for r, ab, rb, cb in zip(raw, abonus, rbonus, cbonus)]
         pens = [self._attractor_penalties(c, agent, world, tick) for c, _ in scored_candidates]
         utils = [b + sum(p.values()) for b, p in zip(base, pens)]
-        # seeded jitter for tie-breaking / exploration (deterministic via rng)
-        jit = [u + rng.uniform(-0.05, 0.05) for u in utils]
-        if self.mode == "argmax":
-            chosen = max(range(len(jit)), key=lambda i: jit[i])
+        if profile_decisions is not None:
+            utils = [
+                utility + decision.bonus
+                for utility, decision in zip(utils, profile_decisions)
+            ]
+            selectable = [
+                index
+                for index, decision in enumerate(profile_decisions)
+                if decision.allowed
+            ]
+            if not selectable:
+                self._record_trace(
+                    agent,
+                    world,
+                    tick,
+                    scored_candidates,
+                    base,
+                    pens,
+                    utils,
+                    None,
+                    abonus=abonus,
+                    rbonus=rbonus,
+                    decision_id=None,
+                    source="rule",
+                    profile_decisions=profile_decisions,
+                )
+                return None
         else:
-            m = max(jit)
-            exps = [math.exp((u - m) / TAU) for u in jit]
-            total = sum(exps) or 1.0
-            r = rng.random() * total
-            acc, chosen = 0.0, len(jit) - 1
-            for i, e in enumerate(exps):
-                acc += e
-                if r <= acc:
-                    chosen = i
-                    break
+            selectable = list(range(len(scored_candidates)))
+        # Keep the native sampler byte-for-byte equivalent; the adapted path
+        # draws jitter only for candidates that survived the hard guard.
+        if profile_decisions is None:
+            jit = [u + rng.uniform(-0.05, 0.05) for u in utils]
+            if self.mode == "argmax":
+                chosen = max(range(len(jit)), key=lambda i: jit[i])
+            else:
+                m = max(jit)
+                exps = [math.exp((u - m) / TAU) for u in jit]
+                total = sum(exps) or 1.0
+                r = rng.random() * total
+                acc, chosen = 0.0, len(jit) - 1
+                for i, e in enumerate(exps):
+                    acc += e
+                    if r <= acc:
+                        chosen = i
+                        break
+        else:
+            jit = {
+                index: utils[index] + rng.uniform(-0.05, 0.05)
+                for index in selectable
+            }
+            if self.mode == "argmax":
+                chosen = max(selectable, key=lambda i: jit[i])
+            else:
+                m = max(jit.values())
+                exps = {
+                    index: math.exp((jit[index] - m) / TAU)
+                    for index in selectable
+                }
+                total = sum(exps.values()) or 1.0
+                r = rng.random() * total
+                acc, chosen = 0.0, selectable[-1]
+                for i in selectable:
+                    e = exps[i]
+                    acc += e
+                    if r <= acc:
+                        chosen = i
+                        break
         dec = self._decision_for(world, agent.id, tick)
         self._record_trace(agent, world, tick, scored_candidates, base, pens, utils, chosen,
                            abonus=abonus, rbonus=rbonus, decision_id=getattr(dec, "decision_id", None),
-                           source=getattr(dec, "decision_source", "rule"))
+                           source=getattr(dec, "decision_source", "rule"),
+                           profile_decisions=profile_decisions)
         return scored_candidates[chosen][0]
 
     def trace_choice(self, agent, world, tick, scored_candidates, chosen_candidate, *,
@@ -246,6 +303,9 @@ class OrgPolicy:
         showing what the policy WOULD have scored vs what was actually chosen (§4)."""
         if not scored_candidates:
             return
+        profile_decisions = self._programbench_candidate_decisions(
+            world, scored_candidates
+        )
         raw = [self.score(agent, feats, world) for _, feats in scored_candidates]
         if self.use_profile_conditioning:
             abonus = [self._authority_bonus(agent, c, world) for c, _ in scored_candidates]
@@ -258,9 +318,72 @@ class OrgPolicy:
         base = [r + ab + rb + cb for r, ab, rb, cb in zip(raw, abonus, rbonus, cbonus)]
         pens = [self._attractor_penalties(c, agent, world, tick) for c, _ in scored_candidates]
         utils = [b + sum(p.values()) for b, p in zip(base, pens)]
+        if profile_decisions is not None:
+            utils = [
+                utility + decision.bonus
+                for utility, decision in zip(utils, profile_decisions)
+            ]
         chosen = next((i for i, (c, _) in enumerate(scored_candidates) if c is chosen_candidate), 0)
         self._record_trace(agent, world, tick, scored_candidates, base, pens, utils, chosen,
-                           abonus=abonus, rbonus=rbonus, decision_id=decision_id, source=source)
+                           abonus=abonus, rbonus=rbonus, decision_id=decision_id, source=source,
+                           profile_decisions=profile_decisions)
+
+    @staticmethod
+    def _programbench_candidate_decisions(world, scored_candidates):
+        """Return the explicit task-family overlay, or ``None`` in native mode.
+
+        Keeping the import and all candidate inspection behind the active-state
+        check leaves the native policy path (including RNG consumption and trace
+        schema) unchanged.  Candidate parameters are passed through verbatim so
+        probe mode and integration-candidate ownership remain auditable inputs.
+        """
+
+        if "programbench_profile_state" not in getattr(world, "__dict__", {}):
+            return None
+
+        from environments.org_env.programbench.leaderboard_profile import (
+            EXPLORE_PROTOCOL_FORMATION_TICKS,
+            candidate_decision,
+            refresh_programbench_protocol_adaptation,
+        )
+
+        state = refresh_programbench_protocol_adaptation(world)
+        phase = state.get("phase")
+        tick = int(getattr(world, "world_tick", 0) or 0)
+        observation_until = state.get("protocol_observation_until_tick")
+        observation_active = bool(
+            observation_until is not None
+            and tick < int(observation_until)
+        )
+        adaptation_active = bool(state.get("protocol_adaptation_active"))
+        friction_target_ids = list(
+            state.get("protocol_repair_eligible_target_ids") or []
+        )
+        exploration_eligible = int(
+            state.get("exploration_transition_eligible_tick") or 0
+        )
+        late_explore_formation = bool(
+            str(phase) == "explore"
+            and tick
+            >= exploration_eligible - EXPLORE_PROTOCOL_FORMATION_TICKS
+            and tick < exploration_eligible
+        )
+        return [
+            candidate_decision(
+                phase,
+                candidate.action_type,
+                parameters={
+                    **(candidate.parameters or {}),
+                    "programbench_protocol_observation_active": observation_active,
+                    "programbench_protocol_adaptation_active": adaptation_active,
+                    "programbench_protocol_friction_target_ids": friction_target_ids,
+                    "programbench_exploration_protocol_formation_active": (
+                        late_explore_formation
+                    ),
+                },
+            )
+            for candidate, _ in scored_candidates
+        ]
 
     def _decision_for(self, world, agent_id, tick):
         for d in reversed(getattr(world, "action_decisions", []) or []):
@@ -303,21 +426,40 @@ class OrgPolicy:
             return {}
 
     def _record_trace(self, agent, world, tick, scored, base, pens, utils, chosen,
-                      *, abonus=None, rbonus=None, decision_id=None, source="rule") -> None:
+                      *, abonus=None, rbonus=None, decision_id=None, source="rule",
+                      profile_decisions=None) -> None:
         from environments.org_env.experiments.profile_causality import (
             record_profile_counterfactual,
         )
 
-        record_profile_counterfactual(
-            world=world,
-            agent=agent,
-            scored_candidates=scored,
-            conditioned_utilities=utils,
-            penalties=pens,
-            chosen_index=chosen,
-            policy=self,
-            temperature=TAU,
-        )
+        if profile_decisions is None:
+            record_profile_counterfactual(
+                world=world,
+                agent=agent,
+                scored_candidates=scored,
+                conditioned_utilities=utils,
+                penalties=pens,
+                chosen_index=chosen,
+                policy=self,
+                temperature=TAU,
+            )
+        elif chosen is not None:
+            allowed = [
+                index
+                for index, decision in enumerate(profile_decisions)
+                if decision.allowed
+            ]
+            if chosen in allowed:
+                record_profile_counterfactual(
+                    world=world,
+                    agent=agent,
+                    scored_candidates=[scored[index] for index in allowed],
+                    conditioned_utilities=[utils[index] for index in allowed],
+                    penalties=[pens[index] for index in allowed],
+                    chosen_index=allowed.index(chosen),
+                    policy=self,
+                    temperature=TAU,
+                )
         sink = getattr(world, "policy_trace", None)
         if sink is None:
             return
@@ -327,16 +469,26 @@ class OrgPolicy:
             c = scored[i][0]
             ab = round(abonus[i], 3) if abonus else 0.0
             rb = round(rbonus[i], 3) if rbonus else 0.0
+            target = ((c.parameters or {}).get("artifact_id")
+                      or (c.parameters or {}).get("task_id"))
+            if profile_decisions is not None:
+                target = target or (c.parameters or {}).get("protocol_id")
             row = {"action": c.action_type,
-                   "target": (c.parameters or {}).get("artifact_id")
-                   or (c.parameters or {}).get("task_id"),
+                   "target": target,
                    # v8 #3.4: surface growth's influence so it's explainable, not just
                    # in the inspector — feature score vs authority_bonus vs reputation_bonus.
                    "raw_score": round(base[i] - ab - rb, 3), "authority_bonus": ab,
                    "reputation_bonus": rb, "final_score": round(utils[i], 3)}
             row.update({k: round(v, 3) for k, v in pens[i].items()})
+            if profile_decisions is not None:
+                profile_decision = profile_decisions[i]
+                row.update({
+                    "profile_bonus": round(profile_decision.bonus, 3),
+                    "profile_reason": profile_decision.reason,
+                    "profile_allowed": profile_decision.allowed,
+                })
             rows.append(row)
-        sink.append({
+        trace = {
             "agent_id": agent.id, "tick": tick,
             "decision_id": decision_id, "decision_source": source,
             "action_selection_mode": getattr(
@@ -345,8 +497,58 @@ class OrgPolicy:
             "profile_conditioning_enabled": self.use_profile_conditioning,
             "candidate_actions": rows,
             "masked_actions": getattr(world, "_attractor_masked", {}).get(agent.id, []),
-            "chosen_action": scored[chosen][0].action_type,
-        })
+            "chosen_action": scored[chosen][0].action_type if chosen is not None else None,
+        }
+        if profile_decisions is not None:
+            state = getattr(world, "__dict__", {}).get(
+                "programbench_profile_state", {}
+            )
+            if isinstance(state, dict):
+                evidence = state.get("protocol_friction_evidence")
+                trace["programbench_profile"] = {
+                    "phase": state.get("phase"),
+                    "previous_phase": state.get("previous_phase"),
+                    "phase_started_tick": state.get("phase_started_tick"),
+                    "phase_transition_count": state.get(
+                        "phase_transition_count"
+                    ),
+                    "transition_protocol_ids": list(
+                        state.get("transition_protocol_ids") or []
+                    ),
+                    "protocol_registry_event_cursor": state.get(
+                        "protocol_registry_event_cursor"
+                    ),
+                    "protocol_world_event_cursor": state.get(
+                        "protocol_world_event_cursor"
+                    ),
+                    "protocol_transition_mode": state.get(
+                        "protocol_transition_mode"
+                    ),
+                    "protocol_observation_until_tick": state.get(
+                        "protocol_observation_until_tick"
+                    ),
+                    "protocol_friction_target_ids": list(
+                        state.get("protocol_friction_target_ids") or []
+                    ),
+                    "protocol_live_friction_target_ids": list(
+                        state.get("protocol_live_friction_target_ids") or []
+                    ),
+                    "protocol_friction_evidence_digest": (
+                        evidence.get("evidence_digest")
+                        if isinstance(evidence, dict)
+                        else None
+                    ),
+                    "protocol_adaptation_started_tick": state.get(
+                        "protocol_adaptation_started_tick"
+                    ),
+                    "protocol_adaptation_min_until_tick": state.get(
+                        "protocol_adaptation_min_until_tick"
+                    ),
+                    "protocol_adaptation_active": bool(
+                        state.get("protocol_adaptation_active")
+                    ),
+                }
+        sink.append(trace)
         if len(sink) > 400:
             del sink[:len(sink) - 400]
 

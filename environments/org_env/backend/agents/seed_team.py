@@ -1,4 +1,4 @@
-"""Relic organization seed team.
+"""LanternForge seed team — the 8 founding members (DESIGN env_org §33.3 / O1 §4).
 
 Each member carries a rich lived persona: profile (long-term tendencies, superset
 of core ProfileVector), skills, failure_modes, communication_style, work_rhythm.
@@ -113,7 +113,7 @@ SEED_TEAM: List[SeedMember] = [
                      "deep_work_preference": 0.85, "meeting_tolerance": 0.3, "late_night_bias": 0.1},
     ),
     SeedMember(
-        agent_id="scarlett", agent_name="Los Xi", codename="Xi",
+        agent_id="scarlett", agent_name="Scarlett Ember", codename="Ember",
         role="community", is_founder=False,
         initial_identity="Community / Customer Voice / Narrative Operator — pro community+customer sense, morale; young, limited tech depth, overcommits.",
         profile={

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Dict, List
 
-from relic.core.domain import DomainAction
+from agent_sdk.lived.domain.interfaces import DomainAction
 
 CAT_WORK = "work"
 CAT_COMM = "comm"
@@ -123,7 +123,7 @@ ORG_ACTION_CATEGORIES: Dict[str, str] = {
     "formal_pr_review": CAT_REPO,
     # background helpers
     "ci_test": CAT_SANDBOX,
-    # --- current OSS workload actions --------------------------------------
+    # --- product substrate actions (messy research-agent prototype) -------
     "edit_repo_file": CAT_REPO, "open_issue": CAT_WORK, "close_issue": CAT_WORK,
     "create_eval_stub": CAT_SANDBOX, "run_eval_stub": CAT_SANDBOX,
     "create_report_template": CAT_ARTIFACT, "update_claim_tracker": CAT_ARTIFACT,

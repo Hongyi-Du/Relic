@@ -36,8 +36,50 @@ ACTION_MENU_BUDGETS = {
     "Inbox": UNBOUNDED,
     "Pull Requests": UNBOUNDED,
     "Test Results": UNBOUNDED,
+    # Bounded, but not at the 1500-character default: these entries now carry
+    # the refusal reasons that are the organization's only account of why it is
+    # blocked, and _bounded_lines drops from the end, so a tight budget would
+    # spend itself on routine chatter and cut exactly that. _recent_events puts
+    # refusals first for the same reason.
+    "Recent Events": 3000,
+    # The rules in force, with their text. At the 1500-character default a
+    # fourth adopted protocol pushes the first one's rule out, and an agent
+    # cannot comply with a rule it cannot read.
+    "Active Protocols": 2500,
 }
 from environments.org_env.llm.schemas import ACTION_DECISION_SCHEMA
+
+# Sections build_action_context derives from the world alone, so every agent
+# deciding at the same tick receives these bytes identically. Leading with them
+# is what makes the provider's prefix cache reachable: measured against the
+# bound endpoint, a repeated prefix is served at 8514/8516 cached tokens, while
+# the shipped run took 10.4% overall and 1.3% marginal across t120-t144 --
+# roughly the system prompt and nothing more, because the user message opened
+# with the agent's own identity and diverged at its first character.
+#
+# Membership is a claim about the source of each section, not a guess. Anything
+# built from agent_id, perception or candidates belongs below, and putting it
+# here would not corrupt the prompt, only quietly cost the cache.
+SHARED_CONTEXT_ORDER = (
+    "clock",                # world.time.clock, identical for every agent this tick
+    "product_context",      # render_product_context(world)
+    "active_protocols",     # world.protocol_registry
+    "active_tools",         # _active_tools(world)
+    "active_episodes",      # world.episode_manager, open episodes, unfiltered
+    "test_results",         # _test_results(world)
+    "channels",             # world.comm.channels
+)
+
+# This agent's own view, in the order it is useful to read: who it is, what it
+# has been doing, what is in front of it, and last the menu it must choose from.
+PERSONAL_CONTEXT_ORDER = (
+    "agent", "persona_summary", "work_state", "memory",
+    "recent_events", "external_posts", "knowledge_read",
+    "task_board", "inbox", "pull_requests", "pending_approvals",
+    "search_results", "meetings", "experiments",
+    "available_actions", "action_descriptions",
+    "candidate_options", "valid_targets",
+)
 
 # object-id param keys an action may carry (for valid-target extraction).
 # artifact_id is last so the more specific ids keep priority, but it must be here:
@@ -98,15 +140,66 @@ def _knowledge_read(agent_id: str, world: Any) -> List[Dict[str, Any]]:
     """The text of the knowledge files this agent has gone and read."""
     pw = (getattr(world, "personal", {}) or {}).get(agent_id)
     arts = getattr(world, "product_artifacts", {}) or {}
+    profile_state = None
+    if "programbench_profile_state" in getattr(world, "__dict__", {}):
+        try:
+            from environments.org_env.programbench import (
+                get_programbench_profile_state,
+                programbench_profile_active,
+            )
+
+            if programbench_profile_active(world):
+                profile_state = get_programbench_profile_state(world)
+        except (ImportError, AttributeError, TypeError, ValueError):
+            profile_state = None
+    required_ids = {
+        str(row.get("artifact_id") or "")
+        for row in (profile_state or {}).get("required_public_documents") or []
+        if isinstance(row, dict)
+    }
     out = []
+    adapted_chars = 0
     for oid in (getattr(pw, "downloaded_doc_ids", []) or []) if pw else ():
         art = arts.get(oid)
         path = str(getattr(art, "linked_file_path", "") or "") if art else ""
-        if not path.endswith(".md"):
+        required_programbench_surface = bool(
+            profile_state is not None and str(oid) in required_ids
+        )
+        if (
+            not path.endswith(".md")
+            and not required_programbench_surface
+        ):
             continue
+        if profile_state is not None:
+            # Preserve ordinary public markdown reading in the adapted run, but
+            # never render a sealed namespace even if a malformed checkpoint
+            # injects its artifact id into an agent's downloaded list.
+            from environments.org_env.programbench import (
+                programbench_public_path_is_agent_visible,
+            )
+
+            if not programbench_public_path_is_agent_visible(path):
+                continue
         body = (getattr(art, "mainline_content", "")
                 or getattr(art, "content", "") or "")
-        out.append({"file": path, "text": body})
+        if profile_state is not None:
+            # ProgramBench also exposes required non-markdown contract surfaces
+            # (notably compile.sh and the public probe schema), but keeps prompt
+            # payloads bounded and uses only the frozen seed/mainline view.
+            remaining = max(0, 128 * 1024 - adapted_chars)
+            if remaining <= 0:
+                break
+            rendered = body[: min(32 * 1024, remaining)]
+            adapted_chars += len(rendered)
+            out.append(
+                {
+                    "file": path,
+                    "text": rendered,
+                    "truncated": len(rendered) < len(body),
+                }
+            )
+        else:
+            out.append({"file": path, "text": body})
     return out
 
 
@@ -143,7 +236,6 @@ def build_action_context(agent_id: str, world: Any, perception: Any,
     available = sorted({c.action_type for c in visible_candidates})
     valid_targets = sorted(_valid_targets(visible_candidates, world))
     channels = sorted(getattr(world.comm, "channels", {}).keys())
-    protocols = list(getattr(getattr(world, "protocol_registry", None), "protocols", {}).keys())
     from environments.org_env.backend.actions import action_description
     context: Dict[str, Any] = {
         "agent": {"id": agent_id, "name": getattr(agent, "name", agent_id),
@@ -159,7 +251,7 @@ def build_action_context(agent_id: str, world: Any, perception: Any,
         },
         "memory": mem,
         "active_episodes": open_eps,
-        "recent_events": [e.get("type") for e in getattr(perception, "recent_events", [])][-8:],
+        "recent_events": _recent_events(perception),
         "product_context": render_product_context(world),
         "available_actions": available,        # bare action ids (candidate_action must match one)
         "action_descriptions": {a: action_description(a) for a in available},
@@ -183,10 +275,28 @@ def build_action_context(agent_id: str, world: Any, perception: Any,
         "task_board": _task_board(agent_id, perception),
         "inbox": _inbox(agent_id, perception),
         "pull_requests": _pull_requests(agent_id, perception),
+        # The perception adapter fills these every tick for every agent and,
+        # until now, nothing read any of them. Weighted by the actions that feed
+        # them, that is 131 searches, 55 pilots and 28 meetings by t144 whose
+        # output the organization produced and never saw.
+        "search_results": _search_results(perception),
+        "meetings": _meetings(perception),
+        "experiments": _experiments(perception),
         "test_results": _test_results(world),
+        # The clock is not decoration: _constrain_candidates drops the actions a
+        # duration spec forbids after hours and at weekends, so the menu shrinks
+        # overnight. Read only by that filter until now, which left the agent
+        # with fewer options and no way to know it was the hour rather than the
+        # work.
+        "clock": {
+            key: value
+            for key, value in (getattr(perception, "clock_state", None) or {}).items()
+            if key in ("hour_in_day", "day_index", "day_of_week", "is_weekend",
+                       "is_after_hours", "is_late_night", "rhythm_phase", "phase")
+        },
         "valid_targets": valid_targets,
         "channels": channels,
-        "active_protocols": protocols,
+        "active_protocols": _active_protocols(world),
         "active_tools": _active_tools(world),
         "pending_approvals": _pending_approvals(agent_id, world),
     }
@@ -293,6 +403,159 @@ def _pull_requests(agent_id: str, perception: Any) -> List[Dict[str, Any]]:
     # while a green request is merely waiting its turn.
     rows.sort(key=lambda row: (not row.get("blocked_by"),
                                not row["awaiting_my_review"]))
+    return rows
+
+
+# What a world event says, minus the parts a decision cannot use. A probe
+# receipt carries its stdout, stderr, input and definition; those are megabytes
+# across a run and say nothing the reason field does not.
+_EVENT_DETAIL_KEYS = (
+    "subtype", "action_type", "status", "outcome", "success",
+    "reason", "failure_reason", "rejection_reason",
+    "object_id", "artifact_id", "pr_id", "task_id", "issue_id",
+    "result_id", "protocol_id", "probe_id", "agent_id",
+)
+_EVENT_REASON_KEYS = ("reason", "failure_reason", "rejection_reason")
+
+
+def _project_event(event: Any) -> Optional[Dict[str, Any]]:
+    if not isinstance(event, dict):
+        return None
+    out: Dict[str, Any] = {"type": str(event.get("type") or "")}
+    for key in _EVENT_DETAIL_KEYS:
+        value = event.get(key)
+        if value in (None, "", [], {}):
+            continue
+        out[key] = value if isinstance(value, (int, float, bool)) else str(value)[:160]
+    return out
+
+
+def _recent_events(perception: Any) -> List[Dict[str, Any]]:
+    """What just happened, including why anything was refused.
+
+    This was ``[e.get("type") for e in recent_events][-8:]``. Every event type
+    in this world is one of a handful of coarse buckets, so the section rendered
+    as eight near-identical words -- 'repo_event', 'proposal_event' -- while the
+    event itself said which pull request, which proposal, and why the last
+    attempt was turned down. Measured over 144 ticks: 1442 events carried a
+    subtype and 571 carried a reason, and none of it reached the prompt.
+
+    The organization therefore could not learn from its own refusals. It spent
+    55 actions on a merge the profile refuses while the public differential has
+    unresolved mismatches, and 24 patches reproducing a patch it had already
+    made, having never once been told either thing. The same defect was fixed
+    for the public suite in ``_test_results``: a pass count with no test names
+    is enough to know something is wrong and not enough to know where to look.
+
+    A refusal is rarer than routine chatter and is the only channel through
+    which a blocked organization finds out what to fix, so refusals are carried
+    even when the tail would have pushed them out.
+    """
+    events = list(getattr(perception, "recent_events", None) or [])
+    projected = [p for p in (_project_event(e) for e in events) if p]
+    tail_from = max(0, len(projected) - 12)
+    tail = projected[tail_from:]
+    refusals = [
+        projected[i]
+        for i in range(tail_from)
+        if any(projected[i].get(key) for key in _EVENT_REASON_KEYS)
+    ][-6:]
+    return refusals + tail
+
+
+def _active_protocols(world: Any) -> List[Dict[str, Any]]:
+    """The rules in force, as rules rather than as identifiers.
+
+    This section was ``list(world.protocol_registry.protocols.keys())``, so an
+    agent read "proto_review_before_merge, protospec_1, protospec_2" and was
+    told nothing about what any of them required. An organization cannot comply
+    with a rule it cannot read, and the ledger shows what that looked like:
+    proto_review_before_merge recorded 12 uses and 0 enforcements by t144, where
+    a "use" is the system keyword-matching an action against the rule's text,
+    not an agent having followed it.
+
+    The spec carries the text; the registry carries the lifecycle. Both are
+    needed: an adopted rule and a merely proposed one place different
+    obligations, and only the registry knows which this is.
+    """
+    registry = getattr(world, "protocol_registry", None)
+    live = getattr(registry, "protocols", {}) or {}
+    manager = getattr(world, "proposal_manager", None)
+    specs = getattr(manager, "protocol_specs", None) or {}
+    by_id = {str(getattr(s, "protocol_id", "")): s for s in specs.values()}
+
+    rows = []
+    for protocol_id, protocol in live.items():
+        spec = by_id.get(str(protocol_id))
+        row: Dict[str, Any] = {
+            "protocol_id": protocol_id,
+            "status": getattr(protocol, "adoption_status", None),
+        }
+        if spec is not None:
+            rule = str(getattr(spec, "enforcement_rule", "") or "").strip()
+            steps = [str(s) for s in (getattr(spec, "required_steps", None) or [])]
+            row.update({
+                "name": str(getattr(spec, "name", "") or "")[:160],
+                "applies_to": [
+                    str(a) for a in (getattr(spec, "affected_actions", None) or [])
+                ][:10],
+                "rule": rule[:400],
+                "required_steps": steps[:10],
+            })
+        rows.append(row)
+    return rows
+
+
+def _search_results(perception: Any) -> List[Dict[str, Any]]:
+    """What this agent's own searches turned up.
+
+    internal_search is the most frequent action in the run -- 131 of 749 by
+    t144 -- and the perception adapter records every one of them, with the query
+    and the object ids it retrieved. Nothing read the field. An agent could
+    therefore search, be told the search happened, and never see a result, which
+    makes searching again the only available follow-up.
+    """
+    rows = []
+    for log in list(getattr(perception, "visible_search_results", None) or [])[-8:]:
+        if not isinstance(log, dict):
+            continue
+        found = [str(x) for x in (log.get("results") or [])][:12]
+        rows.append({
+            "query": str(log.get("query") or "")[:160],
+            "domain": log.get("domain"),
+            "found": found or "(nothing matched)",
+        })
+    return rows
+
+
+def _meetings(perception: Any) -> List[Dict[str, Any]]:
+    """Meetings this agent is a participant in, and whether it turned up."""
+    rows = []
+    for meeting in list(getattr(perception, "visible_meetings", None) or [])[-8:]:
+        if not isinstance(meeting, dict):
+            continue
+        rows.append({
+            "meeting_id": meeting.get("meeting_id"),
+            "title": str(meeting.get("title") or "")[:120],
+            "type": meeting.get("type"),
+            "status": meeting.get("status"),
+            "scheduled_tick": meeting.get("scheduled_tick"),
+            "attended": meeting.get("attended"),
+        })
+    return rows
+
+
+def _experiments(perception: Any) -> List[Dict[str, Any]]:
+    """Experiments this agent owns. run_cheap_pilot ran 55 times by t144."""
+    rows = []
+    for experiment in list(getattr(perception, "visible_experiments", None) or [])[-8:]:
+        if not isinstance(experiment, dict):
+            continue
+        rows.append({
+            "experiment_id": experiment.get("experiment_id"),
+            "title": str(experiment.get("title") or "")[:120],
+            "status": experiment.get("status"),
+        })
     return rows
 
 
@@ -424,21 +687,23 @@ class LLMActionPolicy:
         # system prompt stays byte-identical across agents (see prompt_assets).
         _identity = agent_identity_for(agent, world)
         _identity = (_identity + "\n\n") if _identity else ""
-        order = ["agent", "work_state", "memory", "active_episodes", "recent_events",
-                 "product_context", "external_posts",
-                 "task_board", "inbox", "pull_requests", "test_results",
-                 "pending_approvals",
-                 "available_actions", "action_descriptions",
-                 "candidate_options", "valid_targets", "active_protocols", "channels"]
+        shared = {key: ctx[key] for key in SHARED_CONTEXT_ORDER if key in ctx}
+        personal = {key: value for key, value in ctx.items() if key not in shared}
         # The menu and its targets are the action space, not context: a length
         # budget that drops entries there decides what the agent may do.
-        user = (f"Choose the next intentional action for {agent_id} at tick {tick}.\n\n"
-                + render_context(ctx, order, budgets=ACTION_MENU_BUDGETS)
-                + "\n\nReturn ONLY JSON matching the action schema "
-                  "(candidate_action and target_object_id MUST identify one exact "
-                  "entry from candidate_options).")
+        user = (
+            render_context(shared, SHARED_CONTEXT_ORDER, budgets=ACTION_MENU_BUDGETS)
+            + "\n\n"
+            + _identity
+            + f"Choose the next intentional action for {agent_id} at tick {tick}.\n\n"
+            + render_context(personal, PERSONAL_CONTEXT_ORDER,
+                             budgets=ACTION_MENU_BUDGETS)
+            + "\n\nReturn ONLY JSON matching the action schema "
+              "(candidate_action and target_object_id MUST identify one exact "
+              "entry from candidate_options)."
+        )
         try:
-            data = llm_client.generate_json(system, _identity + user, ACTION_DECISION_SCHEMA)
+            data = llm_client.generate_json(system, user, ACTION_DECISION_SCHEMA)
         except LLMError as e:
             return ActionDecision(decision_id=did, agent_id=agent_id, tick=tick,
                                   decision_source="llm_error", validation_status="rejected",
@@ -540,7 +805,7 @@ def reachable_edit_candidate(decision: ActionDecision, world: Any) -> Optional[A
     if issue is None:
         return None
 
-    from relic.decision.contracts import ActionCandidate, CandidateSource
+    from agent_sdk.lived.core.contracts import ActionCandidate, CandidateSource
     goal = (issue.get("acceptance") or issue.get("title") or "").strip()
     return ActionCandidate(
         action_type="edit_repo_file",

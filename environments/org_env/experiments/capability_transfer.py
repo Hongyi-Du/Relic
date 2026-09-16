@@ -72,11 +72,16 @@ TEXT_ONLY_DOC_TYPE = "inherited_capability_description"
 
 
 def _adopted_protocols(world: Any) -> list[Any]:
+    from environments.org_env.backend.protocol.registry import (
+        protocol_is_live,
+    )
+
     registry = getattr(world, "protocol_registry", None)
     return [
         protocol
         for protocol in (getattr(registry, "protocols", {}) or {}).values()
-        if str(getattr(protocol, "adoption_status", "")) == "adopted"
+        if protocol_is_live(protocol)
+        and str(getattr(protocol, "adoption_status", "")) == "adopted"
     ]
 
 
@@ -327,30 +332,26 @@ def _inject_executable(
 
 
 def capability_as_prose(row: Mapping[str, Any]) -> str:
-    """Everything the executable form carries, written out.
+    """What the executable form puts in front of a member, written out.
 
-    The arm exists to separate a rule that binds from a rule that is merely
-    known, and that contrast only holds if the two arms differ in the binding
-    and in nothing else. Writing the rule summary alone left the text arm short
-    of the scope, the process governed, who had backed it and how established
-    it had become -- every field the executable form registers. A reader would
-    have been right to answer that the executable arm simply knew more.
+    Matched against what a member of the executable arm can actually read --
+    protocol_review.adopted_rules, which yields the rule summary and the kind of
+    rule and nothing else -- not against what the registry stores.
+
+    This once carried scope, the process governed, who had backed it and how
+    established it had become, on the reasoning that the executable form
+    registers those fields. It does register them, and no prompt renders any of
+    them: they sit on the object where no member sees them. So the extra lines
+    corrected a disadvantage the text arm did not have and handed it a real
+    advantage instead -- four facts about every inherited rule, in front of
+    every decision, that the executable arm is never shown. The contrast is
+    supposed to be binding against merely known; that made it better informed
+    against binding.
+
+    To restore the symmetry the other way -- rendering these fields for both
+    arms -- would change what every B3 run sees, not only the transfer arms.
     """
     lines = [f"Rule: {str(row.get('rule_summary') or '').strip()}"]
-    scope = str(row.get("scope") or "").strip()
-    if scope:
-        lines.append(f"It applies across: {scope}")
-    governs = str(row.get("target_process") or "").strip()
-    if governs:
-        lines.append(f"It governs: {governs}")
-    supporters = [str(s) for s in (row.get("supporters") or []) if str(s)]
-    if supporters:
-        lines.append(
-            "Members who backed it: " + ", ".join(sorted(supporters))
-        )
-    level = str(row.get("emergence_level") or "").strip()
-    if level and level != "none":
-        lines.append(f"How established it became: {level}")
     kind = str(row.get("protocol_type") or "").strip()
     if kind:
         lines.append(f"Kind of rule: {kind.replace('_', ' ')}")

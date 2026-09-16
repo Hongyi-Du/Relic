@@ -9,7 +9,9 @@ Reads ``config/llm.yaml`` (tracked template) and overlays ``config/llm.local.yam
       model: gpt-4o-mini
       api_key: sk-...             # put real keys ONLY in llm.local.yaml
       base_url: null              # optional (custom OpenAI-compatible endpoint)
+      azure_api_version: null     # set to use AzureOpenAI with base_url as endpoint
       wire_api: responses         # responses | chat_completions
+      json_transport: native      # native | prompt_only
       decides_actions: false      # true = LLM also drives action decisions (more calls)
       reasoning_effort: low       # none|minimal|low|medium|high|xhigh
       max_retries: 5              # bounded transport-error retries per call (openai only)
@@ -28,6 +30,7 @@ import os
 from typing import Any, Dict, Optional, Tuple
 
 from environments.org_env.llm.client import (
+    OPENAI_JSON_TRANSPORTS,
     OPENAI_WIRE_APIS,
     REASONING_EFFORTS,
     GenericHTTPOrgLLMClient,
@@ -35,7 +38,7 @@ from environments.org_env.llm.client import (
     OpenAIOrgLLMClient,
     OrgLLMClient,
 )
-from relic.research.openai_runtime import (
+from society_core.openai_runtime import (
     configured_openai_default_headers,
     openai_response_storage_disabled,
     validate_openai_default_headers,
@@ -59,7 +62,12 @@ def _read_yaml(path: str) -> Dict[str, Any]:
 def load_org_llm_config(root: Optional[str] = None) -> Dict[str, Any]:
     root = root or _repo_root()
     base = _read_yaml(os.path.join(root, "config", "llm.yaml")).get("org_env", {}) or {}
-    local = _read_yaml(os.path.join(root, "config", "llm.local.yaml")).get("org_env", {}) or {}
+    local_path = os.environ.get("ORG_LLM_LOCAL_CONFIG")
+    if local_path:
+        local_path = os.path.abspath(os.path.expanduser(local_path))
+    else:
+        local_path = os.path.join(root, "config", "llm.local.yaml")
+    local = _read_yaml(local_path).get("org_env", {}) or {}
     cfg = dict(base)
     cfg.update({k: v for k, v in local.items() if v is not None})
     return cfg
@@ -144,6 +152,13 @@ def load_org_llm_client(root: Optional[str] = None) -> Tuple[Optional[OrgLLMClie
     ).strip().lower().replace("-", "_")
     if wire_api not in OPENAI_WIRE_APIS:
         return None, False
+    json_transport = str(
+        os.environ.get("ORG_LLM_JSON_TRANSPORT")
+        or cfg.get("json_transport")
+        or "native"
+    ).strip().lower().replace("-", "_")
+    if json_transport not in OPENAI_JSON_TRANSPORTS:
+        return None, False
     base_url = (
         os.environ.get("ORG_LLM_BASE_URL")
         or cfg.get("base_url")
@@ -153,6 +168,10 @@ def load_org_llm_client(root: Optional[str] = None) -> Tuple[Optional[OrgLLMClie
         os.environ.get("ORG_LLM_API_KEY")
         or cfg.get("api_key")
         or os.environ.get("OPENAI_API_KEY")
+    )
+    azure_api_version = (
+        os.environ.get("ORG_LLM_AZURE_API_VERSION")
+        or cfg.get("azure_api_version")
     )
     store_raw = os.environ.get("ORG_LLM_STORE_RESPONSES")
     if store_raw is None:
@@ -195,9 +214,11 @@ def load_org_llm_client(root: Optional[str] = None) -> Tuple[Optional[OrgLLMClie
                                         max_retries=max_retries,
                                         retry_backoff_seconds=backoff,
                                         wire_api=wire_api,
+                                        json_transport=json_transport,
                                         request_timeout_seconds=request_timeout,
                                         store_responses=store_responses,
-                                        default_headers=headers)
+                                        default_headers=headers,
+                                        azure_api_version=azure_api_version)
         elif provider in ("http", "generic"):
             client = GenericHTTPOrgLLMClient(endpoint=cfg["endpoint"], model=model)
         elif provider == "mock":

@@ -34,6 +34,23 @@ REVIEW_MIN_TICKS = 3      # preflight v3 §7: no same-tick adoption (review late
 ADOPT_MIN_SUPPORTERS = 2  # distinct supporters required to adopt
 
 
+def protocol_is_live(protocol: Any) -> bool:
+    """Whether a rule may still participate in the native lifecycle.
+
+    Native OrgEnv historically permits both proposed and adopted active rules
+    to receive support/use/violation/enforcement events.  Preserve that behavior
+    exactly; only terminal or internally inconsistent lifecycle states fail
+    closed.
+    """
+
+    return bool(
+        protocol is not None
+        and getattr(protocol, "status", None) == "active"
+        and getattr(protocol, "adoption_status", None)
+        in {"proposed", "adopted"}
+    )
+
+
 def effective_min_supporters(roster_size: int) -> int:
     """The endorsement threshold, capped at what the roster can supply.
 
@@ -98,6 +115,8 @@ class ProtocolRegistry:
 
     def support(self, agent_id: str, protocol_id: str, tick: int = 0) -> None:
         p = self.protocols[protocol_id]
+        if not protocol_is_live(p):
+            raise ValueError("protocol_not_live")
         if agent_id not in p.supporters:
             p.supporters.append(agent_id)
         self._ev("support", protocol_id, agent_id, tick)
@@ -109,7 +128,7 @@ class ProtocolRegistry:
             self.adopt(protocol_id, tick)
 
     def _can_adopt(self, p, tick: int) -> bool:
-        return (p.adoption_status == "proposed"
+        return (protocol_is_live(p) and p.adoption_status == "proposed"
                 and len(set(p.supporters)) >= self.min_supporters
                 and tick - int(getattr(p, "first_tick", 0) or 0) >= REVIEW_MIN_TICKS
                 and len(set(p.opposers)) < len(set(p.supporters)))
@@ -133,6 +152,8 @@ class ProtocolRegistry:
 
     def oppose(self, agent_id: str, protocol_id: str, tick: int = 0) -> None:
         p = self.protocols[protocol_id]
+        if not protocol_is_live(p):
+            raise ValueError("protocol_not_live")
         if agent_id not in p.opposers:
             p.opposers.append(agent_id)
         self._ev("oppose", protocol_id, agent_id, tick)
@@ -144,7 +165,10 @@ class ProtocolRegistry:
         happen the same tick it was proposed — unless ``force`` (a mirror of an already-
         governed ProtocolSpec, which carries its own latency + distinct approvers)."""
         p = self.protocols[protocol_id]
-        if p.adoption_status == "adopted":
+        if (
+            getattr(p, "status", None) != "active"
+            or p.adoption_status != "proposed"
+        ):
             return False
         # The freeze applies to `force` too. The forced path mirrors an
         # already-governed spec, and letting it through would give the
@@ -174,6 +198,8 @@ class ProtocolRegistry:
         task_id: str | None = None,
     ) -> ProtocolEvent:
         p = self.protocols[protocol_id]
+        if not protocol_is_live(p):
+            raise ValueError("protocol_not_live")
         e = self._ev(
             "use",
             protocol_id,
@@ -209,6 +235,8 @@ class ProtocolRegistry:
         context_id: str | None = None,
     ) -> ProtocolEvent:
         p = self.protocols[protocol_id]
+        if not protocol_is_live(p):
+            raise ValueError("protocol_not_enforceable")
         e = self._ev(
             "violation",
             protocol_id,
@@ -238,6 +266,8 @@ class ProtocolRegistry:
         governed_object_after: GovernedObjectSnapshot | None = None,
     ) -> ProtocolEvent:
         p = self.protocols[protocol_id]
+        if not protocol_is_live(p):
+            raise ValueError("protocol_not_enforceable")
         if (governed_object_before is None) != (governed_object_after is None):
             raise ValueError(
                 "enforcement_governed_transition_requires_both_snapshots"
@@ -382,6 +412,8 @@ class ProtocolRegistry:
     ) -> None:
         """Attach an external outcome attestation without deriving it from events."""
 
+        if not protocol_is_live(self.protocols.get(protocol_id)):
+            raise ValueError("protocol_not_enforceable")
         if not isinstance(observation, IndependentOutcomeOracle):
             raise TypeError("independent_outcome_requires_typed_oracle")
         if observation.oracle_type not in INDEPENDENT_OUTCOME_ORACLE_TYPES:
@@ -602,7 +634,10 @@ class ProtocolRegistry:
             return None
 
     def set_impact(self, protocol_id: str, metrics: Dict[str, float]) -> None:
-        self.protocols[protocol_id].impact_metrics.update(metrics)
+        protocol = self.protocols[protocol_id]
+        if not protocol_is_live(protocol):
+            raise ValueError("protocol_not_enforceable")
+        protocol.impact_metrics.update(metrics)
 
     def amend(
         self,
@@ -614,6 +649,8 @@ class ProtocolRegistry:
         source_proposal_id: str | None = None,
     ) -> ProtocolEvent:
         p = self.protocols[protocol_id]
+        if not protocol_is_live(p):
+            raise ValueError("protocol_not_enforceable")
         event = self._ev(
             "amendment",
             protocol_id,
@@ -640,6 +677,8 @@ class ProtocolRegistry:
         source_proposal_id: str | None = None,
     ) -> ProtocolEvent:
         p = self.protocols[protocol_id]
+        if not protocol_is_live(p):
+            raise ValueError("protocol_not_enforceable")
         p.status = "obsolete"
         p.adoption_status = "obsolete"
         event = self._ev(
@@ -677,7 +716,11 @@ class ProtocolRegistry:
         adoption_ticks = {e.protocol_id: e.tick for e in self.events
                           if e.event_type == "adoption"}
         for pid, p in self.protocols.items():
-            if p.adoption_status != "adopted" or pid not in adoption_ticks:
+            if (
+                not protocol_is_live(p)
+                or p.adoption_status != "adopted"
+                or pid not in adoption_ticks
+            ):
                 continue
             t0 = adoption_ticks[pid]
             acts = [(e.tick, e.event_type) for e in self.events
@@ -1025,4 +1068,5 @@ __all__ = [
     "REVIEW_MIN_TICKS",
     "USE_MIN",
     "ProtocolRegistry",
+    "protocol_is_live",
 ]

@@ -1,0 +1,28 @@
+# Run the human member workspace in Docker.
+#
+#   docker compose -f docker-compose.hci.yml up
+#   → http://localhost:8100/org/seat
+#
+# On Windows this goes through Docker Desktop and needs no WSL shell of your
+# own. If you would rather not use Docker at all, .\tools\run_hci.ps1 runs the
+# same server natively.
+
+services:
+  workspace:
+    build:
+      context: .
+      dockerfile: Dockerfile.hci
+    image: relic-hci:latest
+    # 127.0.0.1 keeps it on this machine. Drop the prefix to "8100:8100" when
+    # other people should be able to take seats — the only credential is the
+    # per-seat token.
+    ports:
+      - "127.0.0.1:8100:8100"
+    environment:
+      # Rules and templates by default: no API key, fully deterministic.
+      ORG_LLM: "0"
+    # Warm the company up so a new arrival walks into a day and a half of
+    # history rather than an empty office.
+    command: ["--warmup", "36", "--tick-seconds", "15"]
+    stop_grace_period: 5s
+    restart: unless-stopped

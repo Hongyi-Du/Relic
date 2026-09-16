@@ -158,10 +158,12 @@ class ProductRelease:
 
 @dataclass
 class CompanyRepo:
-    repo_id: str = "product_repo"
-    name: str = "OSS product"
+    repo_id: str = "lanternscout"
+    name: str = "LanternScout"
     main_branch: str = "main"
-    modules: List[str] = field(default_factory=list)
+    modules: List[str] = field(default_factory=lambda: [
+        "research_loop", "source_tracker", "claim_tracker", "report_writer",
+        "evidence_validator", "eval_stub", "onboarding_docs", "customer_feedback"])
     branches: dict = field(default_factory=dict)            # branch_id -> Branch
     commits: dict = field(default_factory=dict)             # commit_id -> Commit
     pull_requests: dict = field(default_factory=dict)       # pr_id -> PullRequest

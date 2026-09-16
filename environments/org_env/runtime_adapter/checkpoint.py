@@ -463,6 +463,7 @@ def load_world_checkpoint(
     expected_case_plan_fingerprint: Optional[str] = None,
     expected_target_tick: Optional[int] = None,
     expected_seed: Optional[int] = None,
+    world_pre_attach_validator: Any = None,
 ) -> Tuple[Any, Dict[str, Any]]:
     """Unpickle a world checkpoint and re-attach a live LLM client.
 
@@ -521,6 +522,13 @@ def load_world_checkpoint(
         raise ValueError("checkpoint_sidecar_payload_metadata_mismatch")
     _validate_checkpoint_identity(payload_metadata, expected_values)
     world = payload["world"]
+    if world_pre_attach_validator is not None:
+        if not callable(world_pre_attach_validator):
+            raise TypeError("checkpoint_world_pre_attach_validator_not_callable")
+        # This hook runs after the authenticated payload/identity boundary but
+        # before config loading, usage restoration, metering attachment, loop
+        # rebinding, or any mutation of the detached world.
+        world_pre_attach_validator(world, payload_metadata)
 
     client = llm_client
     cfg_decides = None

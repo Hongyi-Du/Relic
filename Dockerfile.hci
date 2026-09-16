@@ -1,0 +1,41 @@
+# The human member workspace, on its own.
+#
+# Not the experiment image: this installs four packages, not litellm + faiss +
+# datasets + pandas. Build context is trimmed hard by .dockerignore.hci -- the
+# frozen OSS datasets under environments/org_env/data are hundreds of megabytes
+# and the workspace never reads them.
+#
+#   docker compose -f docker-compose.hci.yml up
+#
+# On Windows this runs through Docker Desktop; you never open a WSL shell.
+
+FROM python:3.12-slim
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app
+
+WORKDIR /app
+
+# Dependencies first so code edits do not reinstall them.
+COPY requirements-hci.txt .
+RUN pip install --no-cache-dir -r requirements-hci.txt
+
+# The frontend is committed already built (CI does not build it), so there is
+# no Node stage here. Rebuild it on the host with `npm run build` if you change
+# anything under src/seat.
+COPY agent_sdk/ agent_sdk/
+COPY environments/ environments/
+COPY relic/ relic/
+COPY society_core/ society_core/
+# The HCI image is a focused demo rather than the full experiment image.  It
+# still needs the one frozen pack the desktop HCI path uses; without it the
+# setup page can start but cannot create a world.
+COPY benchmarks/relic-main-v1/packs/traffic_watch_v1/ benchmarks/relic-main-v1/packs/traffic_watch_v1/
+COPY tools/run_hci.py tools/
+
+EXPOSE 8100
+
+# 0.0.0.0 inside the container is how the port reaches the host; the published
+# port on the host side is what decides who can actually connect.
+ENTRYPOINT ["python", "tools/run_hci.py", "--host", "0.0.0.0", "--port", "8100"]

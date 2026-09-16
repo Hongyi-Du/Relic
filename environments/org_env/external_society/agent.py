@@ -3,7 +3,7 @@ and the bounded decision/intent records the decision provider returns.
 
 This is the NON-embodied LinkedIn model (per the OrgEnv story §6): users have an occupation-based
 profile + memory of what they've seen and experienced — NOT bodies/hunger. The purchase-intent
-record has a stable shape so provider results remain comparable and swappable.
+record mirrors society_core's `LLMIntentRecord` shape so results are comparable / swappable.
 """
 from __future__ import annotations
 
@@ -57,10 +57,9 @@ class ProductOffering:
 
 @dataclass
 class ProductIntent:
-    """A user's evaluation after experiencing the product.
-
-    ``converted`` is the thresholded intent-to-pay and willingness-to-pay decision.
-    """
+    """A user's evaluation after experiencing the product — mirrors society_core's LLMIntentRecord
+    fields (intent_to_try / intent_to_pay / WTP / recommend / satisfaction) so the two are
+    comparable. `converted` is the kernel-style decision (intent_to_pay over threshold + WTP)."""
     user_id: str
     product_id: str
     day: int

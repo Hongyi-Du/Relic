@@ -124,7 +124,7 @@ def generate_intervention(
 
 # -- organic / ambient forum life (the forum is NOT only about the company) ---------------------
 # The external community chats about the whole field; the company's product is one topic among
-# many. These are generic field posts, authored by whoever is
+# many. These are generic field posts (no LanternForge reference), authored by whoever is
 # interested in the topic, so a company agent who reads the feed sees a realistic mixed forum.
 ORGANIC_TEMPLATES: Dict[str, List[str]] = {
     "eval_infra": [

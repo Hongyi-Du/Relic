@@ -6,6 +6,7 @@ ProtocolSpec. Nothing is created on a raw LLM draft; adoption is never automatic
 """
 from __future__ import annotations
 
+import copy
 import re
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
@@ -88,6 +89,89 @@ class ProposalValidator:
             return ValidationResult(False, f"illegal proposal_type '{p.proposal_type}'")
         if not p.title or not p.summary:
             return ValidationResult(False, "missing title/summary")
+        registry_target = getattr(
+            p, "repair_target_registry_protocol_id", None
+        )
+        if registry_target is not None:
+            if (
+                p.proposal_type != "policy_repair_proposal"
+                or not isinstance(registry_target, str)
+                or not registry_target
+                or len(registry_target) > 200
+                or getattr(p, "repair_target_protocol_id", None) is not None
+                or getattr(p, "amends_protocol_id", None) is not None
+                or getattr(p, "repair_kind", None) != "deprecate"
+                or getattr(p, "programbench_transition_repair", False) is not True
+                or re.fullmatch(
+                    r"[0-9a-f]{64}",
+                    str(
+                        getattr(
+                            p,
+                            "programbench_friction_evidence_digest",
+                            "",
+                        )
+                        or ""
+                    ),
+                )
+                is None
+                or not isinstance(
+                    getattr(p, "programbench_transition_phase", None), str
+                )
+                or not getattr(p, "programbench_transition_phase", "")
+                or not isinstance(
+                    getattr(
+                        p, "programbench_phase_transition_count", None
+                    ),
+                    int,
+                )
+                or isinstance(
+                    getattr(
+                        p, "programbench_phase_transition_count", None
+                    ),
+                    bool,
+                )
+                or getattr(p, "programbench_phase_transition_count", -1) < 0
+                or not isinstance(
+                    getattr(
+                        p,
+                        "programbench_registry_observation_started_tick",
+                        None,
+                    ),
+                    int,
+                )
+                or isinstance(
+                    getattr(
+                        p,
+                        "programbench_registry_observation_started_tick",
+                        None,
+                    ),
+                    bool,
+                )
+                or getattr(
+                    p,
+                    "programbench_registry_observation_started_tick",
+                    -1,
+                )
+                < 0
+                or not isinstance(
+                    getattr(p, "programbench_registry_evidence_refs", None),
+                    list,
+                )
+                or not getattr(p, "programbench_registry_evidence_refs", [])
+                or len(
+                    getattr(p, "programbench_registry_evidence_refs", [])
+                )
+                > 64
+                or not all(
+                    isinstance(ref, str) and 0 < len(ref) <= 200
+                    for ref in getattr(
+                        p, "programbench_registry_evidence_refs", []
+                    )
+                )
+            ):
+                return ValidationResult(
+                    False, "invalid registry-only policy repair"
+                )
         try:
             from environments.org_env.backend.actions import registered_action_types
             known = set(registered_action_types())
@@ -189,10 +273,18 @@ class ProposalManager:
             # a repair targets a SPECIFIC adopted protocol (relax/deprecate); else fall back to the
             # semantically-covering protocol (a normal amendment).
             if proposal.proposal_type == "policy_repair_proposal":
-                self._name_the_rule_being_repaired(proposal, world)
+                if not getattr(
+                    proposal, "repair_target_registry_protocol_id", None
+                ):
+                    self._name_the_rule_being_repaired(proposal, world)
             tgt = getattr(proposal, "repair_target_protocol_id", None)
-            covering = (self.protocol_specs.get(tgt) if tgt in self.protocol_specs else None) \
+            registry_target = getattr(
+                proposal, "repair_target_registry_protocol_id", None
+            )
+            covering = None if registry_target else (
+                (self.protocol_specs.get(tgt) if tgt in self.protocol_specs else None)
                 or self._covering_protocol(proposal, world)
+            )
             if covering is not None:
                 proposal.amends_protocol_id = covering.protocol_id
             # v11 P2 abstraction gate: a single-episode protocol is too shallow — reject so it
@@ -337,6 +429,11 @@ class ProposalManager:
             p.object_created_id = obj.tool_id
             self._event(world, "tool_event", "created", p, extra={"tool_id": obj.tool_id, "family": obj.family})
         elif p.proposal_type in ("protocol_proposal", "policy_repair_proposal"):
+            if (
+                p.proposal_type == "policy_repair_proposal"
+                and getattr(p, "repair_target_registry_protocol_id", None)
+            ):
+                return self._repair_registry_protocol(p, world, tick)
             # v6 P0.2: amend an existing adopted protocol if this proposal is covered by
             # one (re-checked at adopt time to also catch a sibling adopted since draft).
             existing = self.protocol_specs.get(getattr(p, "amends_protocol_id", None) or "")
@@ -374,6 +471,197 @@ class ProposalManager:
             p.supporters = sorted(set(list(p.supporters) + list(p.approved_by)))
         p.status = "adopted" if obj is not None else "implemented"
         return obj
+
+    def _reject_registry_repair(self, proposal, world, reason: str):
+        proposal.status = "rejected"
+        proposal.rejection_reason = reason
+        proposal.updated_at_tick = int(getattr(world, "world_tick", 0) or 0)
+        self._event(
+            world,
+            "proposal_event",
+            "rejected_stale_registry_repair",
+            proposal,
+            extra={"reason": reason},
+        )
+        return None
+
+    def _repair_registry_protocol(self, proposal, world, tick: int):
+        """Adopt an evidence-bound repair without inventing a ProtocolSpec.
+
+        Registry-only rules have no structured fields that can be safely
+        relaxed.  The only supported operation is therefore deprecation: it
+        changes the live rule's lifecycle/enforcement status, while preserving
+        its complete event history.  Every public precondition is re-attested
+        after the ordinary review latency so a stale proposal fails closed.
+        """
+
+        protocol_id = str(
+            getattr(proposal, "repair_target_registry_protocol_id", "") or ""
+        )
+        if (
+            not protocol_id
+            or len(protocol_id) > 200
+            or getattr(proposal, "repair_target_protocol_id", None) is not None
+            or getattr(proposal, "amends_protocol_id", None) is not None
+            or getattr(proposal, "repair_kind", None) != "deprecate"
+            or getattr(proposal, "programbench_transition_repair", False)
+            is not True
+        ):
+            return self._reject_registry_repair(
+                proposal, world, "registry_repair_metadata_invalid"
+            )
+
+        try:
+            from environments.org_env.programbench import (
+                refresh_programbench_protocol_adaptation,
+            )
+
+            state = refresh_programbench_protocol_adaptation(world)
+        except Exception:
+            return self._reject_registry_repair(
+                proposal, world, "registry_repair_profile_invalid"
+            )
+
+        claimed_digest = getattr(
+            proposal, "programbench_friction_evidence_digest", None
+        )
+        bound_phase = getattr(
+            proposal, "programbench_transition_phase", None
+        )
+        bound_transition = getattr(
+            proposal, "programbench_phase_transition_count", None
+        )
+        bound_observation_start = getattr(
+            proposal,
+            "programbench_registry_observation_started_tick",
+            None,
+        )
+        bound_refs = getattr(
+            proposal, "programbench_registry_evidence_refs", None
+        )
+        cohort_rows = [
+            row
+            for row in (state.get("protocol_transition_cohort") or [])
+            if isinstance(row, dict)
+            and str(row.get("canonical_protocol_id") or "") == protocol_id
+            and row.get("protocol_spec_id") is None
+            and str(row.get("registry_protocol_id") or "") == protocol_id
+        ]
+        evidence = state.get("protocol_friction_evidence")
+        target_rows = [
+            row
+            for row in (
+                evidence.get("target_metrics", [])
+                if isinstance(evidence, dict)
+                else []
+            )
+            if isinstance(row, dict)
+            and str(row.get("protocol_id") or "") == protocol_id
+        ]
+        target_row = target_rows[0] if len(target_rows) == 1 else None
+        if (
+            state.get("protocol_adaptation_active") is not True
+            or protocol_id
+            not in set(state.get("protocol_repair_eligible_target_ids") or [])
+            or len(cohort_rows) != 1
+            or not isinstance(claimed_digest, str)
+            or re.fullmatch(r"[0-9a-f]{64}", claimed_digest) is None
+            or not isinstance(bound_phase, str)
+            or bound_phase != str(state.get("phase") or "")
+            or not isinstance(bound_transition, int)
+            or isinstance(bound_transition, bool)
+            or bound_transition
+            != int(state.get("phase_transition_count") or 0)
+            or not isinstance(bound_observation_start, int)
+            or isinstance(bound_observation_start, bool)
+            or bound_observation_start
+            != int(
+                cohort_rows[0].get("observation_started_tick") or 0
+            )
+            or target_row is None
+            or target_row.get("qualified") is not True
+            or target_row.get("live") is not True
+            or int(target_row.get("observation_started_tick") or 0)
+            != bound_observation_start
+            or not isinstance(bound_refs, list)
+            or not bound_refs
+            or len(bound_refs) > 64
+            or not all(
+                isinstance(ref, str) and 0 < len(ref) <= 200
+                for ref in bound_refs
+            )
+        ):
+            return self._reject_registry_repair(
+                proposal, world, "registry_repair_evidence_stale"
+            )
+
+        registry = getattr(world, "protocol_registry", None)
+        protocol = getattr(registry, "protocols", {}).get(protocol_id)
+        mirrored_spec_ids = {
+            f"proto_spec_{str(getattr(spec, 'protocol_id', spec_id)).split('_')[-1]}"
+            for spec_id, spec in self.protocol_specs.items()
+        }
+        if (
+            protocol is None
+            or str(getattr(protocol, "adoption_status", "")) != "adopted"
+            or str(getattr(protocol, "status", "active")) != "active"
+            or protocol_id in self.protocol_specs
+            or protocol_id in mirrored_spec_ids
+        ):
+            return self._reject_registry_repair(
+                proposal, world, "registry_repair_target_not_live_registry_only"
+            )
+
+        actor = (
+            (getattr(proposal, "approved_by", None) or [None])[0]
+            or getattr(proposal, "proposer_agent_id", "")
+            or "organizational_gate"
+        )
+        previous_revisions = sum(
+            1
+            for event in (getattr(registry, "events", None) or [])
+            if str(getattr(event, "protocol_id", "") or "") == protocol_id
+            and str(getattr(event, "event_type", "") or "")
+            in ("amendment", "obsolete")
+        )
+        registry_event = registry.obsolete(
+            actor,
+            protocol_id,
+            tick=tick,
+            source_proposal_id=proposal.proposal_id,
+        )
+        proposal.object_created_id = protocol_id
+        proposal.adopted_tick = tick
+        proposal.supporters = sorted(
+            set(
+                list(getattr(proposal, "supporters", None) or [])
+                + list(getattr(proposal, "approved_by", None) or [])
+            )
+        )
+        proposal.status = "adopted"
+        proposal.updated_at_tick = tick
+        self._event(
+            world,
+            "protocol_registry_event",
+            "deprecated",
+            proposal,
+            extra={"protocol_id": protocol_id},
+        )
+        getattr(world, "events", []).append(
+            {
+                "type": "protocol_revision_event",
+                "protocol_id": protocol_id,
+                "revision": previous_revisions + 1,
+                "kind": "deprecate",
+                "from_proposal_id": proposal.proposal_id,
+                "registry_event_id": getattr(
+                    registry_event, "event_id", None
+                ),
+                "agent_id": proposal.proposer_agent_id,
+                "tick": tick,
+            }
+        )
+        return protocol
 
     # -- v11 P2 tool family cap / fold ------------------------------------- #
     _TOOL_MERGE_CRITERION = (
@@ -525,20 +813,6 @@ class ProposalManager:
                 return s
         return None
 
-    def _mirror_registry_status(self, world, spec, status: str) -> None:
-        """Reflect a spec status change (e.g. deprecated) into the live protocol_registry mirror so
-        the enforcement machinery stops treating a repealed protocol as an active norm."""
-        reg = getattr(world, "protocol_registry", None)
-        if reg is None:
-            return
-        pid = f"proto_spec_{str(spec.protocol_id).split('_')[-1]}"
-        rp = getattr(reg, "protocols", {}).get(pid)
-        if rp is not None:
-            try:
-                rp.adoption_status = status
-            except Exception:
-                pass
-
     def _name_the_rule_being_repaired(self, proposal, world) -> None:
         """Decide which adopted rule a repair is about, and record it on the proposal.
 
@@ -612,27 +886,27 @@ class ProposalManager:
         *,
         tick: int,
         revision_kind: str,
-    ) -> None:
+    ):
         reg = getattr(world, "protocol_registry", None)
         if reg is None:
-            return
+            return None
         pid = f"proto_spec_{str(spec.protocol_id).split('_')[-1]}"
         if pid not in getattr(reg, "protocols", {}):
-            return
+            return None
         actor = (
             (getattr(proposal, "approved_by", None) or [None])[0]
             or getattr(proposal, "proposer_agent_id", "")
             or "organizational_gate"
         )
         if revision_kind == "deprecate":
-            reg.obsolete(
+            return reg.obsolete(
                 actor,
                 pid,
                 tick=tick,
                 source_proposal_id=proposal.proposal_id,
             )
         else:
-            reg.amend(
+            return reg.amend(
                 actor,
                 pid,
                 tick=tick,
@@ -640,18 +914,102 @@ class ProposalManager:
                 source_proposal_id=proposal.proposal_id,
             )
 
+    @staticmethod
+    def _protocol_revision_snapshot(world, spec, proposal) -> dict:
+        """Capture the bounded state one mirrored revision may mutate."""
+
+        registry = getattr(world, "protocol_registry", None)
+        mirror_id = f"proto_spec_{str(spec.protocol_id).split('_')[-1]}"
+        mirror = (
+            getattr(registry, "protocols", {}).get(mirror_id)
+            if registry is not None
+            else None
+        )
+        world_events = getattr(world, "events", None)
+        agent_log = getattr(world, "agent_log", None)
+        return {
+            "spec": copy.deepcopy(spec.__dict__),
+            "proposal": copy.deepcopy(proposal.__dict__),
+            "registry": registry,
+            "mirror": mirror,
+            "mirror_state": (
+                copy.deepcopy(mirror.__dict__)
+                if mirror is not None
+                else None
+            ),
+            "registry_events": (
+                list(getattr(registry, "events", []))
+                if registry is not None
+                else None
+            ),
+            "registry_seq": (
+                getattr(registry, "_seq", None)
+                if registry is not None
+                else None
+            ),
+            "world_events": world_events,
+            "world_event_rows": (
+                list(world_events) if isinstance(world_events, list) else None
+            ),
+            "agent_log": agent_log,
+            "agent_log_rows": (
+                list(agent_log) if isinstance(agent_log, list) else None
+            ),
+        }
+
+    @staticmethod
+    def _restore_protocol_revision_snapshot(snapshot, spec, proposal) -> None:
+        """Roll back a failed mirrored revision without replacing live objects."""
+
+        spec.__dict__.clear()
+        spec.__dict__.update(snapshot["spec"])
+        proposal.__dict__.clear()
+        proposal.__dict__.update(snapshot["proposal"])
+        mirror = snapshot["mirror"]
+        if mirror is not None:
+            mirror.__dict__.clear()
+            mirror.__dict__.update(snapshot["mirror_state"])
+        registry = snapshot["registry"]
+        if registry is not None:
+            registry.events[:] = snapshot["registry_events"]
+            if snapshot["registry_seq"] is not None:
+                registry._seq = snapshot["registry_seq"]
+        if snapshot["world_event_rows"] is not None:
+            snapshot["world_events"][:] = snapshot["world_event_rows"]
+        if snapshot["agent_log_rows"] is not None:
+            snapshot["agent_log"][:] = snapshot["agent_log_rows"]
+
     def _amend_protocol(self, spec, p, world, tick: int):
+        snapshot = self._protocol_revision_snapshot(world, spec, p)
+        try:
+            return self._amend_protocol_transaction(spec, p, world, tick)
+        except Exception:
+            self._restore_protocol_revision_snapshot(snapshot, spec, p)
+            raise
+
+    def _amend_protocol_transaction(self, spec, p, world, tick: int):
         """Record this proposal as a revision of an adopted protocol instead of minting a new spec.
         A normal amendment EXTENDS the protocol; a policy-repair proposal RELAXES (drops the named
         fields/steps, or undoes the last strengthening) or DEPRECATES it — so the org can undo a
         self-binding / harmful rule, not only ever tighten it (self-correction §)."""
         repair = getattr(p, "repair_kind", None) if p.proposal_type == "policy_repair_proposal" else None
+        # The registry mirror is the executable half of this rule. Transition
+        # it first, before touching the ProtocolSpec, so lifecycle rejection or
+        # a registry failure cannot leave the descriptive and executable views
+        # half-amended. A spec-only native rule still returns ``None`` here and
+        # follows its historical path unchanged.
+        registry_revision_event = self._mirror_registry_revision(
+            world,
+            spec,
+            p,
+            tick=tick,
+            revision_kind=repair or "extend",
+        )
         spec.revision += 1
         spec.last_revised_tick = tick           # v8d P1a: keep adopted_at_tick = FIRST adoption
         added_fields, added_steps, removed_fields, removed_steps = [], [], [], []
         if repair == "deprecate":
             spec.status = "deprecated"
-            self._mirror_registry_status(world, spec, "deprecated")
         elif repair == "relax":
             drop_f = set(ensure_list(p.required_artifacts))
             drop_s = set(ensure_list(p.required_actions))
@@ -677,13 +1035,6 @@ class ProposalManager:
             added_steps = [s for s in ensure_list(p.required_actions) if s not in spec.required_steps]
             spec.required_fields.extend(added_fields)
             spec.required_steps.extend(added_steps)
-        self._mirror_registry_revision(
-            world,
-            spec,
-            p,
-            tick=tick,
-            revision_kind=repair or "extend",
-        )
         for a in list(p.approved_by):
             if a not in spec.adopted_by:
                 spec.adopted_by.append(a)
@@ -701,10 +1052,15 @@ class ProposalManager:
         self._event(world, "protocol_spec_event", _sub, p,
                     extra={"protocol_id": spec.protocol_id, "revision": spec.revision})
         # spec #4: surface a dedicated revision event in the lifecycle stream
-        getattr(world, "events", []).append({
+        revision_event = {
             "type": "protocol_revision_event", "protocol_id": spec.protocol_id,
             "revision": spec.revision, "kind": repair or "extend", "from_proposal_id": p.proposal_id,
-            "agent_id": p.proposer_agent_id, "tick": int(getattr(world, "world_tick", 0))})
+            "agent_id": p.proposer_agent_id, "tick": int(getattr(world, "world_tick", 0))}
+        if repair == "deprecate" and registry_revision_event is not None:
+            revision_event["registry_event_id"] = getattr(
+                registry_revision_event, "event_id", None
+            )
+        getattr(world, "events", []).append(revision_event)
         return spec
 
     def _register_live_protocol(self, world, spec) -> None:

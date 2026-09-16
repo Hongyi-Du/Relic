@@ -14,3 +14,6 @@
 # from Windows through WSL2.
 benchmarks/relic-main-v1/packs/** -text
 
+# HCI frontend assets are source-committed Vite output.  Preserve the upstream
+# bytes and do not apply line-oriented whitespace diagnostics to minified blobs.
+environments/org_env/frontend/app/dist/** -whitespace

@@ -17,6 +17,7 @@ from environments.org_env.product.substrates import anonymize, controls, loader
 from environments.org_env.product.substrates.base import OSS_TIME_MACHINE
 from environments.org_env.product.substrates.eval_assets import (
     attach_oss_eval_assets,
+    programbench_qualification_bypass_record,
     qualify_oss_hidden_tests_for_spec,
 )
 
@@ -114,8 +115,8 @@ def seed_oss_time_machine_product(world: Any, substrate_config: Dict[str, Any]) 
     if mode == "formal" and loader.is_fixture_dir(spec.dataset_dir):
         raise ValueError(
             f"formal OSS experiment refuses a fixture substrate: {dataset_id!r} resolves to "
-            f"{spec.dataset_dir} (under fixtures/). Use a frozen release benchmark pack "
-            "benchmarks/relic-main-v1/packs (for example dataset_id='mini_blobstore_v1').")
+            f"{spec.dataset_dir} (under fixtures/). Use a real dataset under data/oss_time_machine/"
+            "real/ or projects/ (e.g. dataset_id='gitingest_v015_to_v030').")
     if mode == "formal":
         # dependency preflight (brief review §4): a formal run must have the product's runtime deps,
         # else readiness/smoke/hidden-tests are silently unstable across machines — fail clearly.
@@ -129,28 +130,40 @@ def seed_oss_time_machine_product(world: Any, substrate_config: Dict[str, Any]) 
                 f"formal OSS experiment for {dataset_id!r} is missing required runtime dependencies: "
                 f"{miss}. Install them (see {os.path.relpath(spec.starter_repo_dir)}/requirements.txt) "
                 "or run in a prepared venv/Docker before the formal experiment.")
-        qualification = qualify_oss_hidden_tests_for_spec(
-            spec,
-            timeout=int(os.environ.get("ORG_OSS_QUALIFICATION_TIMEOUT", "180")),
-        )
-        if not qualification["formal_ready"]:
-            raise RuntimeError(
-                f"formal OSS hidden suite qualification failed for {dataset_id!r}: "
-                f"{qualification['blocking_reasons']}"
+        execution_profile = str(
+            getattr(getattr(world, "scenario", None), "params", {}).get(
+                "execution_profile", ""
             )
+            or ""
+        ).strip()
+        if execution_profile == "programbench_leaderboard_v1":
+            qualification = programbench_qualification_bypass_record(spec)
+        else:
+            qualification = qualify_oss_hidden_tests_for_spec(
+                spec,
+                timeout=int(os.environ.get("ORG_OSS_QUALIFICATION_TIMEOUT", "180")),
+            )
+            if not qualification["formal_ready"]:
+                raise RuntimeError(
+                    f"formal OSS hidden suite qualification failed for {dataset_id!r}: "
+                    f"{qualification['blocking_reasons']}"
+                )
         world.__dict__["_oss_hidden_qualification"] = qualification
-    # Hidden tests remain evaluator-only during a formal rollout and run once at
-    # the controller's final evaluation. Public tests and smoke stay available.
+    # Hidden tests remain evaluator-only during formal and host-controlled
+    # pilot rollouts and run once at the controller's final evaluation. Public
+    # tests and smoke stay available.
     ec = dict(substrate_config.get("evaluator_config") or {})
-    if mode == "formal":
+    if mode in {"formal", "pilot"}:
         from environments.org_env.product.substrates.final_evaluation import (
             manifest_requires_manual_release_checks,
         )
 
         ec["run_oss_hidden_tests"] = False
         ec["run_oss_final_evaluation"] = True
-        ec["run_oss_manual_checks"] = manifest_requires_manual_release_checks(
-            manifest
+        ec["run_oss_manual_checks"] = (
+            manifest_requires_manual_release_checks(manifest)
+            if mode == "formal"
+            else False
         )
         ec["hidden_feedback_forbidden"] = True
         ec["run_oss_public_tests"] = True
@@ -170,10 +183,12 @@ def seed_oss_time_machine_product(world: Any, substrate_config: Dict[str, Any]) 
     control = controls.resolve(substrate_config, manifest)
     public_issues = controls.apply_to_issues(control, public_issues)
 
-    # Organization and repository identity come from the selected workload.
+    # company config (anonymized product identity only)
     cfg = dict(DEFAULT_COMPANY_CONFIG)
     cfg["product_name"] = spec.product_name
     cfg["company_name"] = str(manifest.get("company_name") or cfg.get("company_name"))
+    # #2 metadata unity: override the LanternScout research-agent identity so nothing downstream
+    # (snapshot product_purpose / market prompts / story) describes a research agent for an OSS run.
     cfg["product_stage"] = "early runnable OSS release (messy but shippable)"
     cfg["product_purpose"] = str(manifest.get("product_summary")
                                  or f"{spec.product_name}: a real OSS tool the org iterates from its "
@@ -181,13 +196,68 @@ def seed_oss_time_machine_product(world: Any, substrate_config: Dict[str, Any]) 
     cfg["product_substrate"] = dict(substrate_config)
     world.company_config = cfg
 
-    repo = world.repo_system.repo
-    repo.repo_id = f"repo_{spec.project_id}"
-    repo.name = spec.product_name
-    repo.modules = sorted(starter_files)
-    world.company.company_name = cfg["company_name"]
+    repo_id = (getattr(getattr(world, "repo_system", None), "repo", None)
+               and getattr(world.repo_system.repo, "repo_id", "repo")) or "repo"
 
-    repo_id = repo.repo_id
+    test_strategy = manifest.get("test_strategy") or {}
+    if not isinstance(test_strategy, dict):
+        test_strategy = {}
+    allow_unbound_reconstruction_issue = bool(
+        manifest.get("allow_unbound_reconstruction_issue") is True
+        or test_strategy.get("allow_unbound_reconstruction_issue") is True
+    )
+
+    # Copy only the public authoring/build contract into agent-visible product
+    # metadata.  The evaluator vault, reference tree and hidden-test inventory
+    # remain attached later through ``attach_oss_eval_assets`` and are never
+    # consulted by execution-time target selection or prompting.
+    raw_public_probes = manifest.get("public_probes") or {}
+    public_probe_authoring = {}
+    reconstruction_compile_path = ""
+    reconstruction_compile_command = []
+    reconstruction_output_path = ""
+    if isinstance(raw_public_probes, dict):
+        surface = raw_public_probes.get("definition_surface") or {}
+        limits = raw_public_probes.get("limits") or {}
+        env_allowlist = raw_public_probes.get("env_allowlist") or []
+        compile_contract = raw_public_probes.get("compile") or {}
+        if (
+            isinstance(surface, dict)
+            and isinstance(limits, dict)
+            and isinstance(env_allowlist, list)
+            and isinstance(compile_contract, dict)
+            and isinstance(raw_public_probes.get("schema_version"), str)
+        ):
+            public_probe_authoring = {
+                "schema_version": raw_public_probes["schema_version"],
+                "case_keys": ["argv", "stdin", "input_files", "env"],
+                "input_file_keys": ["path", "content_base64"],
+                "env_allowlist": [str(item) for item in env_allowlist],
+                "limits": {
+                    str(key): value
+                    for key, value in limits.items()
+                    if isinstance(value, (int, float)) and not isinstance(value, bool)
+                },
+                "definition_surface": {
+                    "exact_paths": [
+                        str(item) for item in (surface.get("exact_paths") or [])
+                    ],
+                    "path_patterns": [
+                        str(item) for item in (surface.get("path_patterns") or [])
+                    ],
+                    "max_definitions": surface.get("max_definitions"),
+                },
+            }
+            command = compile_contract.get("command")
+            if isinstance(command, list) and command:
+                reconstruction_compile_command = [str(item) for item in command]
+                for token in reversed(reconstruction_compile_command):
+                    normalized = token.replace("\\", "/")
+                    if normalized in starter_files:
+                        reconstruction_compile_path = normalized
+                        break
+            if isinstance(compile_contract.get("output_path"), str):
+                reconstruction_output_path = compile_contract["output_path"]
 
     ps = ProductState(
         product_id=f"product_{spec.project_id}",
@@ -198,8 +268,20 @@ def seed_oss_time_machine_product(world: Any, substrate_config: Dict[str, Any]) 
                        "future code and release notes are withheld. Iterate it from historical issues."),
         repo_id=repo_id,
         substrate_type=OSS_TIME_MACHINE,
-        substrate_meta={"dataset_id": spec.project_id, "product_name": spec.product_name,
-                        "starter_ref": manifest.get("starter_ref", "")},
+        substrate_meta={
+            "dataset_id": spec.project_id,
+            "product_name": spec.product_name,
+            "starter_ref": manifest.get("starter_ref", ""),
+            # Public, agent-safe affordance flag. It carries no evaluator asset
+            # or hidden-test detail and defaults closed for existing packs.
+            "allow_unbound_reconstruction_issue": (
+                allow_unbound_reconstruction_issue
+            ),
+            "public_probe_authoring": public_probe_authoring,
+            "reconstruction_compile_path": reconstruction_compile_path,
+            "reconstruction_compile_command": reconstruction_compile_command,
+            "reconstruction_output_path": reconstruction_output_path,
+        },
     )
 
     arts: Dict[str, ProductArtifact] = {}
@@ -256,7 +338,7 @@ def seed_oss_time_machine_product(world: Any, substrate_config: Dict[str, Any]) 
         if params
     }
 
-    # Backlog task specs consumed by OrgWorld.build — one per visible issue.
+    # backlog task specs consumed by OrgWorld.build (same shape as SEED_TASKS) — one per issue.
     # The control may withhold the backlog (affordance absent) — friction stays, means to act gone.
     seed_val = int(getattr(getattr(world, "scenario", None), "seed", 0) or 0)
     component_map = manifest.get("component_map") or {}

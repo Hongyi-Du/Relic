@@ -53,7 +53,7 @@ class ExternalUserProfile:
         return {k: (list(v) if isinstance(v, tuple) else v) for k, v in self.__dict__.items()}
 
     # -- lightweight psychometric proxies derived from the occupation profile (so the LinkedIn
-    # forum can reuse the same intent math without an embodied trait vector) --
+    # forum can reuse society_core-style intent math without the embodied trait vector) --
     def domain_need_proxy(self) -> float:
         return max(0.0, min(1.0, 0.3 + 0.6 * self.tech_affinity))
 

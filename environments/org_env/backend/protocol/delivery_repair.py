@@ -90,6 +90,16 @@ def repackage_and_land(
     Nothing is forced -- a red repackage stays a red request, and the caller can
     read the brief the gate wrote on it like any other.
     """
+    # This generic issue-scoped shortcut is not the ProgramBench public
+    # differential gate.  It also writes repo and mainline state directly,
+    # outside the profile's action authorization.  The adapted profile must
+    # repair its one integration candidate through VERIFY_REPAIR instead.
+    if "programbench_profile_state" in getattr(world, "__dict__", {}):
+        return {
+            "issue_id": issue_id,
+            "landed": False,
+            "reason": "programbench_requires_verified_integration_candidate",
+        }
     from environments.org_env.product.patch_objects import CodePatch
 
     arts = getattr(world, "product_artifacts", {}) or {}

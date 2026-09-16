@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>SocioGenesis · OrgEnv Live Inspector</title>
+<!-- graph: Cytoscape.js + dagre (layered, draggable, click-to-focus) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dagre/0.8.5/dagre.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape-dagre/2.5.0/cytoscape-dagre.min.js"></script>
+<!-- code view: highlight.js (multi-language + auto-detect) -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/atom-one-dark.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/highlight.min.js"></script>
+<style>
+:root{
+  /* ATLAS design tokens: indigo + teal on a deep navy, 14px radius, soft deep shadows */
+  --bg:#060a14; --bg2:#0b1222; --panel:#0f1729; --panel2:#16213a; --node-bg:#0f1a2e;
+  --line:#1e293b; --line2:#283548; --text:#e2e8f0; --muted:#94a3b8; --faint:#64748b;
+  --accent:#6366f1; --accent2:#2dd4bf; --cyan:#2dd4bf; --good:#34d399; --warn:#fbbf24; --bad:#f87171;
+  --pill:#14203a; --chip:#16213a; --glow:rgba(99,102,241,.5);
+  --grad:linear-gradient(135deg,#6366f1,#8b5cf6);
+  --grad2:linear-gradient(135deg,rgba(99,102,241,.18),rgba(45,212,191,.06));
+  --radius:14px; --shadow:0 18px 48px -24px rgba(0,0,0,.8); --shadow-sm:0 8px 22px -14px rgba(0,0,0,.7);
+}
+*{box-sizing:border-box}
+body{margin:0;font:13px/1.55 "Inter",-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  color:var(--text);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  background:
+    radial-gradient(1200px 600px at 12% -10%,rgba(99,102,241,.12),transparent 60%),
+    radial-gradient(1000px 500px at 100% 0%,rgba(45,212,191,.08),transparent 55%),
+    var(--bg)}
+h1,h2,h3,h4{margin:0;letter-spacing:.2px}
+.muted{color:var(--muted)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:#26344a;border:2px solid transparent;background-clip:padding-box;border-radius:8px}
+::-webkit-scrollbar-thumb:hover{background:#33445f;background-clip:padding-box}
+::-webkit-scrollbar-track{background:transparent}
+button,select,input{font:inherit;color:var(--text);background:rgba(255,255,255,.03);border:1px solid var(--line);
+  border-radius:8px;padding:5px 10px;cursor:pointer;transition:border-color .15s,background .15s,box-shadow .15s,transform .1s}
+button:hover{border-color:var(--accent);background:rgba(99,102,241,.12);box-shadow:0 0 0 3px rgba(99,102,241,.10)}
+button:active{transform:translateY(1px)}
+input[type=number]{width:70px;cursor:text}
+input[type=range]{accent-color:var(--accent)}
+.btn-accent{background:var(--grad);color:#fff;border:none;font-weight:700;box-shadow:0 8px 20px -8px var(--glow)}
+.btn-accent:hover{box-shadow:0 6px 20px var(--glow);filter:brightness(1.06)}
+/* top bar */
+.topbar{display:flex;gap:12px;align-items:center;padding:10px 16px;flex-wrap:wrap;position:sticky;top:0;z-index:20;
+  background:rgba(10,15,26,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);box-shadow:0 1px 0 rgba(255,255,255,.03),var(--shadow-sm)}
+.brand{font-weight:800;letter-spacing:.2px;font-size:15px;
+  background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.clock{font-variant-numeric:tabular-nums;background:var(--pill);padding:4px 11px;border-radius:8px;
+  border:1px solid var(--line);font-size:12px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--bad);margin-right:6px;
+  box-shadow:0 0 0 0 var(--bad)}
+.dot.run{background:var(--good);animation:pulse 1.6s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(70,212,134,.5)}70%{box-shadow:0 0 0 7px rgba(70,212,134,0)}100%{box-shadow:0 0 0 0 rgba(70,212,134,0)}}
+/* tabs */
+.maintabs{display:flex;gap:2px;background:rgba(10,15,26,.5);border-bottom:1px solid var(--line);padding:0 14px}
+.maintab{padding:11px 18px;border-bottom:2px solid transparent;cursor:pointer;color:var(--muted);font-weight:700;
+  font-size:12.5px;letter-spacing:.3px;transition:color .15s,border-color .15s}
+.maintab:hover{color:var(--text)}
+.maintab.active{color:var(--text);border-bottom-color:var(--accent);
+  text-shadow:0 0 18px var(--glow)}
+.subnav{display:flex;gap:5px;flex-wrap:wrap;padding:9px 14px;background:rgba(10,15,26,.35);border-bottom:1px solid var(--line)}
+.subnav .chip{padding:4px 12px;border-radius:20px;background:var(--chip);border:1px solid var(--line);cursor:pointer;
+  color:var(--muted);font-size:12px;transition:all .15s}
+.subnav .chip:hover{border-color:var(--line2);color:var(--text)}
+.subnav .chip.active{background:var(--grad);color:#fff;border-color:transparent;font-weight:700;box-shadow:0 6px 16px -6px var(--glow)}
+.wrap{padding:12px 14px}
+/* cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.card{position:relative;background:linear-gradient(160deg,var(--panel),var(--panel2));border:1px solid var(--line);
+  border-radius:12px;padding:11px 13px;overflow:hidden;box-shadow:var(--shadow-sm);transition:transform .14s,border-color .14s,box-shadow .14s}
+.card::before{content:"";position:absolute;inset:0 0 auto 0;height:2px;background:var(--grad);opacity:.65}
+.card .v{font-size:24px;font-weight:800;letter-spacing:.3px;line-height:1.25;
+  background:linear-gradient(180deg,#fff,#bcd0f5);-webkit-background-clip:text;background-clip:text;color:transparent}
+.card .l{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-top:1px}
+.card.clk{cursor:pointer}
+.card.clk:hover{transform:translateY(-2px);border-color:var(--accent);box-shadow:0 10px 26px rgba(0,0,0,.5),0 0 0 1px var(--glow)}
+/* agent grid */
+.agrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:12px}
+.acard{background:linear-gradient(160deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:12px;
+  padding:10px 12px;cursor:pointer;box-shadow:var(--shadow-sm);transition:transform .14s,border-color .14s,box-shadow .14s}
+.acard:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,.5),0 0 0 1px var(--glow)}
+.acard .nm{font-weight:700}
+.acard .cn{color:var(--muted);font-size:11px}
+.bar{height:6px;border-radius:4px;background:rgba(255,255,255,.06);margin:4px 0;overflow:hidden}
+.bar>i{display:block;height:100%;border-radius:4px;box-shadow:0 0 8px rgba(0,0,0,.3) inset}
+.mini{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+/* tables */
+table{border-collapse:collapse;width:100%;font-size:12px}
+th,td{text-align:left;padding:6px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:700;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;
+  position:sticky;top:0;background:rgba(15,23,36,.92);backdrop-filter:blur(6px);z-index:1}
+tr:nth-child(even) td{background:rgba(255,255,255,.012)}
+tr:hover td{background:rgba(99,102,241,.09)}
+.clickrow{cursor:pointer}
+.tag{display:inline-block;padding:2px 8px;border-radius:20px;background:var(--chip);border:1px solid var(--line);
+  font-size:11px;margin:1px;font-weight:600}
+.tag.good{background:rgba(52,211,153,.14);color:var(--good);border-color:rgba(52,211,153,.32)}
+.tag.warn{background:rgba(251,191,36,.14);color:var(--warn);border-color:rgba(251,191,36,.32)}
+.tag.bad{background:rgba(248,113,113,.14);color:var(--bad);border-color:rgba(248,113,113,.32)}
+.tag.viz{background:rgba(99,102,241,.16);color:#a5b4fc;border-color:rgba(99,102,241,.34)}
+.pillrow{display:flex;gap:4px;flex-wrap:wrap}
+/* graph */
+.graphwrap{position:relative;border:1px solid var(--line);border-radius:14px;height:440px;overflow:hidden;
+  background:radial-gradient(900px 500px at 22% -6%,rgba(99,102,241,.10),transparent 60%),
+    radial-gradient(700px 420px at 100% 0%,rgba(45,212,191,.06),transparent 55%),linear-gradient(160deg,#0b1322,#080d18);
+  box-shadow:var(--shadow),inset 0 0 60px rgba(0,0,0,.45)}
+svg{width:100%;height:100%;display:block}
+.cy{width:100%;height:100%;display:block}
+.gnode{cursor:pointer;transition:opacity .15s} .gnode circle{stroke:#05080e;stroke-width:1.4;transition:filter .15s}
+.gnode:hover circle{filter:drop-shadow(0 0 6px var(--glow))}
+.gnode text{font-size:9px;fill:var(--text);pointer-events:none}
+.gnode.dim{opacity:.12} .gedge{stroke:#2c3a4f;stroke-width:1;transition:stroke .15s} .gedge.hot{stroke:var(--accent);stroke-width:2;filter:drop-shadow(0 0 4px var(--glow))}
+.legend{position:absolute;top:8px;right:8px;background:rgba(8,12,20,.78);backdrop-filter:blur(10px);
+  border:1px solid var(--line);border-radius:10px;padding:7px 10px;font-size:11px;max-width:230px;box-shadow:var(--shadow-sm)}
+.legend span{display:inline-block;margin:1px 5px 1px 0}
+/* layout split */
+.split{display:grid;grid-template-columns:1fr 360px;gap:12px}
+.section{background:linear-gradient(160deg,var(--panel),rgba(22,33,47,.6));border:1px solid var(--line);
+  border-radius:12px;padding:12px 13px;margin-bottom:12px;box-shadow:var(--shadow-sm)}
+.section h3{font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:8px;
+  display:flex;align-items:center;gap:7px}
+.section h3::before{content:"";width:3px;height:13px;border-radius:3px;background:var(--grad)}
+.kv{font-size:12px;padding:3px 0;border-bottom:1px solid var(--line)} .kv b{color:var(--muted);font-weight:600}
+.scroll{max-height:380px;overflow:auto}
+.scroll-lg{max-height:560px;overflow:auto}
+/* drawer */
+.drawer{position:fixed;top:0;right:0;width:460px;height:100vh;border-left:1px solid var(--line2);
+  background:linear-gradient(180deg,var(--panel),var(--bg2));
+  transform:translateX(105%);transition:transform .22s cubic-bezier(.4,0,.2,1);z-index:40;overflow:auto;padding:16px;
+  box-shadow:-18px 0 40px rgba(0,0,0,.5)}
+.drawer.open{transform:translateX(0)}
+.drawer .x{float:right;cursor:pointer;color:var(--muted);font-size:20px;line-height:1}
+.drawer .x:hover{color:var(--text)}
+.hide{display:none !important}
+/* IDE-style full-screen file reader */
+.reader{position:fixed;inset:0;background:var(--bg);z-index:60;display:none;flex-direction:column}
+.reader.open{display:flex}
+.reader-bar{display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--panel);border-bottom:1px solid var(--line)}
+.reader-bar .fname{font-weight:700;font-variant-ligatures:none}
+.reader-body{flex:1;overflow:auto;display:flex;align-items:stretch;
+  font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.reader-gutter{padding:12px 10px;text-align:right;color:#5b6675;background:var(--panel);
+  user-select:none;border-right:1px solid var(--line);white-space:pre}
+.reader-code{padding:12px 16px;white-space:pre;flex:1;color:var(--text);overflow:auto}
+.reader-code .hljs{background:transparent;padding:0;font:inherit}
+.reader-bar .lang{margin-left:6px;padding:2px 8px;border-radius:20px;background:var(--chip);border:1px solid var(--line);
+  font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--accent)}
+code{background:var(--panel2);padding:1px 5px;border-radius:4px;font-size:11px}
+.scrubrow{display:flex;gap:8px;align-items:center;flex:1;min-width:280px}
+#scrub{flex:1}
+.flowstep{padding:3px 8px;background:var(--chip);border-radius:6px;margin:2px;display:inline-block}
+.arrow{color:var(--accent);margin:0 4px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <span class="brand">🔬 OrgEnv Inspector</span>
+  <span class="clock" id="clock">tick — · day — · —:00 · —</span>
+  <span id="runState"><span class="dot"></span>idle</span>
+  <span class="row">
+    <select id="sourceSel" title="data source"></select>
+    <button onclick="simStep(1)">Step</button>
+    <button onclick="simRun(10)">Run 10</button>
+    <button onclick="simRun(24)">Run 24</button>
+    <button onclick="simRun(72)">Run 3d</button>
+    <button onclick="simPause()">Pause</button>
+    <button onclick="simReset()">Reset</button>
+    seed <input type="number" id="seedInput" value="42"/>
+    <button onclick="exportReplay()">Export</button>
+  </span>
+  <span class="scrubrow">
+    <button id="btnPlay" onclick="togglePlay()">▶</button>
+    <input type="range" id="scrub" min="0" max="0" value="0" oninput="setFrame(+this.value)"/>
+    <span class="clock" id="frameLabel">0/0</span>
+  </span>
+  <span class="row">
+    view
+    <select id="viewSel" onchange="S.view=this.value;render()">
+      <option value="omniscient">Omniscient (debug)</option>
+      <option value="agent_visible">Agent-visible</option>
+    </select>
+  </span>
+</div>
+
+<div class="maintabs">
+  <div class="maintab active" id="tab-internal" onclick="setTab('internal')">Company Internal</div>
+  <div class="maintab" id="tab-external" onclick="setTab('external')">External Network</div>
+  <div class="maintab" id="tab-product" onclick="setTab('product')">🧪 Product Terminal</div>
+</div>
+
+<div id="content"></div>
+
+<div class="drawer" id="drawer"><span class="x" onclick="closeDrawer()">✕</span><div id="drawerBody"></div></div>
+
+<div class="reader" id="reader">
+  <div class="reader-bar"><span class="fname" id="readerTitle">file</span>
+    <span class="lang" id="readerLang"></span>
+    <span class="muted" id="readerMeta"></span><span style="flex:1"></span>
+    <button onclick="closeReader()">✕ close</button></div>
+  <div class="reader-body"><div class="reader-gutter" id="readerGutter"></div><div class="reader-code" id="readerCode"></div></div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const LIVE="__live__";
+const S={frames:[],fi:0,mode:"live",tab:"internal",sub:"dashboard",agent:null,node:null,
+  view:"omniscient",personaMode:"summary",curPersona:null,product:null,reader:null,
+  live:false,liveTimer:null,liveLast:-1,playing:false,timer:null,speed:700};
+const NODE_COLORS={agent:"#58a6ff",trait:"#bc8cff",skill:"#3fb950",failure_mode:"#f85149",routine:"#d29922",
+  communication_style:"#79c0ff",state:"#ff9bce",policy_bias:"#ffa657",action_feature:"#56d4dd",task:"#3fb950",doc:"#79c0ff",file:"#56d4dd",
+  message:"#d2a8ff",meeting:"#ffa657",pr:"#f0883e",commit:"#8b949e",result:"#3fb950",protocol:"#f778ba",
+  commitment:"#a5d6ff",dispute:"#f85149",request:"#d29922",external_profile:"#ff7b72",external_post:"#7ee787",
+  internal_agent:"#58a6ff",sandbox_job:"#8b949e",experiment:"#56d4dd",cost_event:"#d29922",action:"#3fb950",
+  feature:"#56d4dd",speech:"#d2a8ff",risk:"#f85149",evidence:"#7ee787",cluster:"#ffa657"};
+const SUBS_INTERNAL=["dashboard","product","episodes","reflections","llm","proposals","agents","tasks","docs","messages","meetings","repo","sandbox","budget","protocols","event graph"];
+const SUBS_EXTERNAL=["dashboard","profiles","posts","signals","network","offers","flow"];
+
+function frame(){return S.frames[S.fi]||null;}
+async function getJSON(u){const r=await fetch(u);return r.json();}
+async function postJSON(u,b){const r=await fetch(u,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b||{})});return r.json();}
+
+/* ---------- data sources ---------- */
+async function loadSources(){
+  const sel=$("sourceSel");sel.innerHTML="";
+  const lo=document.createElement("option");lo.value=LIVE;lo.textContent="● LIVE (running sim)";sel.appendChild(lo);
+  try{const d=await getJSON("/api/org/lived/replays");(d.replays||[]).forEach(r=>{
+    const o=document.createElement("option");o.value=r.name;o.textContent=`${r.name} (${(r.meta&&r.meta.ticks)||"?"}t)`;sel.appendChild(o);});}catch(e){}
+  sel.value=LIVE;sel.onchange=()=>{sel.value===LIVE?startLive():loadReplay(sel.value);};
+  startLive();
+}
+function startLive(){stopLive();pause();S.live=true;S.mode="live";S.liveLast=-1;S.frames=[];S.fi=0;
+  pollLive();S.liveTimer=setInterval(pollLive,1500);}
+function stopLive(){S.live=false;if(S.liveTimer){clearInterval(S.liveTimer);S.liveTimer=null;}}
+async function pollLive(){if(!S.live)return;
+  try{const d=await getJSON("/api/org/lived/frames?since="+S.liveLast);const fresh=d.frames||[];
+    if(fresh.length){const wasEnd=S.fi>=S.frames.length-1;fresh.forEach(f=>S.frames.push(f));
+      S.liveLast=S.frames[S.frames.length-1].tick;
+      if(!S.agent){const ag=Object.keys(S.frames[S.frames.length-1].agents||{});S.agent=ag[0]||null;}
+      $("scrub").max=Math.max(0,S.frames.length-1);if(wasEnd){S.fi=S.frames.length-1;}}
+    setRunState(d.running);render();}catch(e){}}
+/* incremental replay: reconstruct full frames from a base + per-tick deltas
+   (mirrors environments/org_env/runtime_adapter/replay_delta.py). */
+function applyDelta(prev,delta){
+  if(delta==null)return prev;
+  const op=delta[0];
+  if(op==="=")return delta[1];
+  if(op==="a")return (prev||[]).concat(delta[1]);
+  if(op==="d"){const out=Object.assign({},prev||{});const patch=delta[1]||{};
+    for(const k in patch)out[k]=applyDelta(out[k],patch[k]);
+    for(const k of (delta[2]||[]))delete out[k];return out;}
+  return delta.length>1?delta[1]:prev;}
+function expandReplay(d){
+  if(d&&(d.format==="org-delta-v1"||(d.base!==undefined&&d.deltas!==undefined))){
+    if(d.base==null)return [];
+    const frames=[d.base];let cur=d.base;
+    for(const dl of (d.deltas||[])){cur=applyDelta(cur,dl);frames.push(cur);}
+    /* keyframed heavy sections (graphs/logs/timeline) are carried forward so every
+       frame still renders them (keyframe-fresh). */
+    const keys=d.keyframe_keys||[];
+    if(keys.length){const last={};
+      for(const fr of frames){for(const k of keys){if(k in fr)last[k]=fr[k];else if(k in last)fr[k]=last[k];}}}
+    return frames;}
+  return (d&&d.frames)||[];}
+async function loadReplay(name){stopLive();pause();S.mode="replay";
+  const d=await getJSON("/api/org/lived/replay/"+name);S.frames=expandReplay(d);S.fi=Math.max(0,S.frames.length-1);
+  const ag=Object.keys((S.frames[0]||{}).agents||{});S.agent=ag[0]||null;
+  $("scrub").max=Math.max(0,S.frames.length-1);render();}
+
+/* ---------- sim controls ---------- */
+function setRunState(run){const e=$("runState");e.innerHTML=`<span class="dot ${run?'run':''}"></span>${run?'running':(S.mode==='replay'?'replay':'idle')}`;}
+async function simStep(n){if(S.mode!=='live')startLive();await postJSON("/api/org/sim/step",{n});S.liveLast=-1;await refreshLive();}
+async function simRun(n){if(S.mode!=='live')startLive();setRunState(true);await postJSON("/api/org/sim/run_ticks",{n});S.liveLast=-1;await refreshLive();}
+async function simPause(){await postJSON("/api/org/sim/pause",{});setRunState(false);}
+async function simReset(){const seed=+($("seedInput").value||42);await postJSON("/api/org/sim/reset",{seed});startLive();}
+async function refreshLive(){const d=await getJSON("/api/org/lived/frames?since=-1");S.frames=d.frames||[];
+  S.liveLast=S.frames.length?S.frames[S.frames.length-1].tick:-1;S.fi=S.frames.length-1;
+  $("scrub").max=Math.max(0,S.frames.length-1);if(!S.agent){const ag=Object.keys((frame()||{}).agents||{});S.agent=ag[0]||null;}render();}
+async function exportReplay(){const d=await postJSON("/api/org/sim/export",{name:"org_run_"+Date.now()});alert("Saved replay: "+(d.name||d.error));loadSources();}
+
+/* ---------- scrubber ---------- */
+function setFrame(i){S.fi=Math.max(0,Math.min(S.frames.length-1,i));$("scrub").value=S.fi;render();}
+function togglePlay(){if(S.playing){pause();return;}S.playing=true;$("btnPlay").textContent="⏸";
+  S.timer=setInterval(()=>{if(S.fi>=S.frames.length-1){pause();return;}setFrame(S.fi+1);},S.speed);}
+function pause(){S.playing=false;$("btnPlay").textContent="▶";if(S.timer)clearInterval(S.timer);S.timer=null;}
+
+/* ---------- tabs ---------- */
+function setTab(t){S.tab=t;S.sub="dashboard";$("tab-internal").classList.toggle("active",t==="internal");
+  $("tab-external").classList.toggle("active",t==="external");
+  $("tab-product").classList.toggle("active",t==="product");render();}
+function setSub(s){S.sub=s;render();}
+function selAgent(a){S.agent=a;S.sub="agents";S.tab="internal";$("tab-internal").classList.add("active");$("tab-external").classList.remove("active");render();}
+
+/* ---------- render root ---------- */
+function render(){
+  const f=frame();
+  if(!f){$("content").innerHTML='<div class="wrap muted">waiting for a frame… click Step / Run.</div>';return;}
+  $("clock").textContent=`tick ${f.tick} · day ${f.day} · ${String(f.hour).padStart(2,'0')}:00 · ${f.phase} · ${f.day_of_week||''}`;
+  $("frameLabel").textContent=`${S.fi+1}/${S.frames.length}`;
+  if($("scrub").value!=S.fi)$("scrub").value=S.fi;
+  if(S.tab==="product"){$("content").innerHTML=`<div class="wrap" id="panel"></div>`;return renderProductTerminal(f,$("panel"));}
+  const subs=S.tab==="internal"?SUBS_INTERNAL:SUBS_EXTERNAL;
+  const nav=`<div class="subnav">`+subs.map(s=>`<span class="chip ${S.sub===s?'active':''}" onclick="setSub('${s}')">${s}</span>`).join("")+`</div>`;
+  $("content").innerHTML=nav+`<div class="wrap" id="panel"></div>`;
+  if(S.tab==="internal")renderInternal(f); else renderExternal(f);
+}
+
+/* ====================== COMPANY INTERNAL ====================== */
+function renderInternal(f){
+  const p=$("panel");
+  if(S.sub==="dashboard")return renderDashboard(f,p);
+  if(S.sub==="product")return renderProduct(f,p);
+  if(S.sub==="episodes")return renderEpisodes(f,p);
+  if(S.sub==="reflections")return renderReflections(f,p);
+  if(S.sub==="llm")return renderLLM(f,p);
+  if(S.sub==="proposals")return renderProposals(f,p);
+  if(S.sub==="agents")return S.agent?renderAgentDetail(f,p):renderAgentGrid(f,p);
+  if(S.sub==="tasks")return renderTasks(f,p);
+  if(S.sub==="docs")return renderDocs(f,p);
+  if(S.sub==="messages")return renderMessages(f,p);
+  if(S.sub==="meetings")return renderMeetings(f,p);
+  if(S.sub==="repo")return renderRepo(f,p);
+  if(S.sub==="sandbox")return renderSandbox(f,p);
+  if(S.sub==="budget")return renderBudget(f,p);
+  if(S.sub==="protocols")return renderProtocols(f,p);
+  if(S.sub==="event graph")return renderEventGraph(f,p);
+}
+function card(l,v,onclick){return `<div class="card ${onclick?'clk':''}" ${onclick?`onclick="${onclick}"`:''}><div class="v">${v}</div><div class="l">${l}</div></div>`;}
+function renderDashboard(f,p){
+  const c=f.company;
+  p.innerHTML=`<div class="cards">
+    ${card("tick / day",`${c.tasks_done}/${c.task_count}`,"setSub('tasks')").replace('tick / day','tasks done')}
+    ${card("cash",c.cash_balance.toFixed(0),"setSub('budget')")}
+    ${card("runway days",(c.runway_days||0).toFixed(0),"setSub('budget')")}
+    ${card("payroll",c.payroll_status,"setSub('budget')")}
+    ${card("demo ready",c.demo_ready?"yes":"no")}
+    ${card("critical blockers",c.critical_blockers,"setSub('tasks')")}
+    ${card("open PRs",c.open_prs,"setSub('repo')")}
+    ${card("running jobs",c.running_sandbox_jobs,"setSub('sandbox')")}
+    ${card("untracked results",c.untracked_results,"setSub('sandbox')")}
+    ${card("protocols",c.protocol_count,"setSub('protocols')")}
+    ${card("meetings today",c.meetings_today,"setSub('meetings')")}
+    ${card("overtime",c.overtime_count)}
+    ${card("burnout max",(c.burnout_risk_max||0).toFixed(2))}
+    ${card("budget pressure",(c.budget_pressure||0).toFixed(2))}
+    ${card("weak protocols",(c.weak_protocols||[]).length,"setSub('protocols')")}
+  </div>
+  ${(()=>{const m=c.org_metrics||{};const M=(l,v)=>card(l,v);
+    return `<div class="section" style="margin-top:12px"><h3>Org Metrics <span class="muted" style="font-weight:400">· token economy + org health</span></h3><div class="cards">
+      ${M("treasury (tok)",(c.treasury_tokens||0).toFixed(0))}
+      ${M("daily burn (tok)",(c.daily_burn_tokens||0).toFixed(1))}
+      ${M("runway (days)",(c.runway_days_tokens||0).toFixed(0))}
+      ${M("runway pressure",(c.runway_pressure||0).toFixed(2))}
+      ${M("token burn total",(c.token_debits_total||0).toFixed(0))}
+      ${M("burn / merged PR",(m.budget_burn_per_merged_pr||0).toFixed(1))}
+      ${M("task cycle (t)",(m.task_cycle_time_avg||0).toFixed(1))}
+      ${M("PR review lat",(m.pr_review_latency_avg||0).toFixed(1))}
+      ${M("blocker dur",(m.release_blocker_duration_avg||0).toFixed(1))}
+      ${M("gap resolve %",((m.gap_resolution_rate||0)*100).toFixed(0))}
+      ${M("rework rate",(m.rework_rate||0).toFixed(2))}
+      ${M("msg linked %",((m.message_linked_ratio||0)*100).toFixed(0))}
+      ${M("proto use/enf",`${m.protocol_use_count||0}/${m.protocol_enforcement_count||0}`)}
+      ${M("go-to count",m.go_to_count||0)}
+      ${M("releases",m.release_count||0)}
+    </div></div>`;})()}
+  <div class="section" style="margin-top:12px"><h3>Agents</h3><div id="agbox"></div></div>`;
+  renderAgentGrid(f,$("agbox"));
+}
+function colBar(v,max,col){const pct=Math.max(0,Math.min(100,100*v/(max||1)));return `<div class="bar"><i style="width:${pct}%;background:${col}"></i></div>`;}
+function renderAgentGrid(f,host){
+  const ags=f.agents;
+  host.innerHTML=`<div class="agrid">`+Object.values(ags).map(a=>{
+    const ws=a.work_state,os=a.org_state;
+    return `<div class="acard" onclick="selAgent('${a.id}')">
+      <div class="nm">${esc(a.name)} <span class="cn">· ${esc(a.codename)}</span></div>
+      <div class="cn">${esc(a.role)} ${a.is_founder?'· founder':''} · ${esc(a.current_status)}</div>
+      <div class="mini"><span>activity</span><span>${esc(ws.current_activity_type||'idle')}</span></div>
+      <div class="mini"><span>attention</span><span>${(ws.attention_remaining_today||0).toFixed(2)}</span></div>${colBar(ws.attention_remaining_today,1,'#3fb950')}
+      <div class="mini"><span>fatigue</span><span>${(ws.fatigue||0).toFixed(2)}</span></div>${colBar(ws.fatigue,1,'#d29922')}
+      <div class="mini"><span>stress / burnout</span><span>${(ws.stress||0).toFixed(2)} / ${(ws.burnout_risk||0).toFixed(2)}</span></div>
+      <div class="mini"><span>trust / comp-stress</span><span>${(os.trust_in_company||0).toFixed(2)} / ${(os.compensation_stress||0).toFixed(2)}</span></div>
+      <div class="mini"><span>retention risk</span><span>${(os.retention_risk||0).toFixed(2)}</span></div>
+      <div class="pillrow" style="margin-top:4px">
+        <span class="tag">tasks ${a.assigned_tasks_count}</span>
+        <span class="tag">unread ${a.unread_messages_count}</span>
+        <span class="tag">commit ${a.open_commitments_count}</span>
+        <span class="tag">jobs ${a.sandbox_jobs_count}</span>
+        <span class="tag ${ws.next_available_tick>f.tick?'warn':'good'}">${ws.next_available_tick>f.tick?'busy→'+ws.next_available_tick:'free'}</span>
+      </div></div>`;}).join("")+`</div>`;
+}
+
+/* ---------- agent detail ---------- */
+function renderAgentDetail(f,p){
+  const a=f.agents[S.agent];if(!a){return renderAgentGrid(f,p);}
+  const ws=a.work_state,os=a.org_state;
+  const acts=(f.logs.actions||[]).filter(x=>x.agent_id===S.agent).slice(-25).reverse();
+  const myMsgs=(f.internal.messages||[]).filter(m=>m.sender_id===S.agent).slice(-15).reverse();
+  const myTasks=(f.internal.tasks||[]).filter(t=>a.assigned_tasks.includes(t.task_id)||t.owner_id===S.agent);
+  const myMeet=(f.internal.meetings||[]).filter(m=>(m.participants||[]).includes(S.agent));
+  const myCommit=(f.internal.commitments||[]).filter(c=>c.agent_id===S.agent);
+  const myDisp=(f.internal.disputes||[]).filter(c=>c.challenger_id===S.agent);
+  const myReq=(f.internal.requests||[]).filter(c=>c.requester_id===S.agent);
+  const text=(f.logs.text_generation||[]).filter(t=>t.agent===S.agent).slice(-15).reverse();
+  const mem=a.memory||{};
+  const myRefl=((f.reflections||{}).items||[]).filter(r=>r.agent_id===S.agent).slice(-10).reverse();
+  const myWishes=((f.wishes||{}).items||[]).filter(w=>w.agent_id===S.agent).slice(-10).reverse();
+  const memList=(t,arr)=>arr&&arr.length?`<div class="kv"><b>${t}</b><div>${arr.map(x=>`<div class="muted" style="font-size:11px">• ${esc(x)}</div>`).join("")}</div></div>`:'';
+  const memSec=`<div class="section"><h3>Memory <span class="muted" style="font-weight:400">· last reflection t${mem.last_reflection_tick!=null?mem.last_reflection_tick:'—'} · ${mem.reflection_count||0} reflections</span></h3>
+    ${memList("Lessons learned",(mem.lessons_learned||[]).slice(-4))}
+    ${memList("Unresolved needs",(mem.unresolved_needs||[]).slice(-5))}
+    ${memList("Repeated blockers",(mem.repeated_blockers||[]).slice(-4))}
+    ${memList("Concerns",(mem.concerns||[]).slice(-4))}
+    ${(mem.open_wishes||[]).length?`<div class="kv"><b>Open wishes</b> <div class="pillrow">${mem.open_wishes.map(w=>`<span class="tag clk" style="cursor:pointer" onclick="openWish('${w}')">${esc(w)}</span>`).join("")}</div></div>`:''}
+    ${!(mem.lessons_learned||[]).length&&!(mem.unresolved_needs||[]).length?'<div class="muted">no reflections yet</div>':''}</div>`;
+  const wsx=a.workspace||{};const lf=wsx.local_files||[];
+  const wsSec=`<div class="section"><h3>Workspace <span class="muted" style="font-weight:400">· private to ${esc(a.name)} · ${lf.length} local file${lf.length===1?'':'s'}</span></h3>
+    <div class="kv"><b>current focus</b>: ${esc(wsx.current_focus||'—')}</div>
+    ${memList("Personal notes",(wsx.personal_notes||[]).slice(-6))}
+    ${memList("Private todos",(wsx.private_todos||[]).slice(-6))}
+    ${memList("Open questions",(wsx.open_questions||[]).slice(-6))}
+    ${(wsx.draft_docs||[]).length?`<div class="kv"><b>drafts</b> <div class="pillrow">${(wsx.draft_docs||[]).map(d=>`<span class="tag clk" style="cursor:pointer" onclick="openFile('${esc(d)}')">${esc(d)}</span>`).join("")}</div></div>`:''}
+    ${(wsx.saved_post_ids||[]).length?`<div class="kv"><b>saved posts</b> <div class="pillrow">${(wsx.saved_post_ids||[]).map(d=>`<span class="tag clk" style="cursor:pointer" onclick="openObj('${esc(d)}')">${esc(d)}</span>`).join("")}</div></div>`:''}
+    <div class="kv"><b>local files</b></div>
+    ${lf.length?`<div class="scroll"><table><tr><th>id</th><th>title</th><th>type</th><th>rev</th><th>review</th></tr>`+
+      lf.map(fo=>`<tr class="clickrow" onclick="openFile('${esc(fo.object_id)}')"><td><code>${esc(fo.object_id)}</code></td><td>${esc(fo.title||'')}</td><td>${esc(fo.file_type||'')}</td><td>${fo.version||1}</td><td>${esc(fo.review_status||'')}</td></tr>`).join("")+`</table></div>`:'<div class="muted">no local files yet</div>'}</div>`;
+  const reflSec=`<div class="section"><h3>Reflection log (${myRefl.length})</h3><div class="scroll">${myRefl.map(r=>`<div class="kv clickrow" onclick="openReflection('${r.reflection_id}')"><b>t${r.tick}</b> ${esc(r.team_assessment||r.self_assessment||'').slice(0,80)} <span class="muted">(${(r.created_wish_ids||[]).length} wishes)</span></div>`).join("")||'<div class="muted">none</div>'}</div></div>`;
+  p.innerHTML=`<div class="row" style="margin-bottom:8px"><button onclick="S.agent=null;render()">← all agents</button>
+    <h2>${esc(a.name)} <span class="muted">· ${esc(a.codename)} · ${esc(a.role)}</span></h2>
+    <span class="tag viz">${esc(a.current_status)}</span></div>
+  <div class="split"><div>
+    <div class="section"><h3>Persona Graph <span id="personaModes" style="float:right"></span></h3>
+      <div class="muted" id="personaMeta" style="margin-bottom:4px"></div>
+      <div class="graphwrap"><div id="svgPersona" class="cy"></div><div class="legend" id="legPersona"></div></div></div>
+    <div class="section"><h3>Social Graph (this agent)</h3><div class="graphwrap"><div id="svgSocial" class="cy"></div><div class="legend" id="legSocial"></div></div></div>
+    <div class="section"><h3>Workplace · Assigned Tasks (${myTasks.length})</h3>${tableTasks(myTasks)}</div>
+    ${wsSec}
+    <div class="section"><h3>Messages sent (${myMsgs.length})</h3>${tableMsgs(myMsgs)}</div>
+    <div class="section"><h3>Meetings (${myMeet.length})</h3>${tableMeetings(myMeet)}</div>
+    <div class="section"><h3>Speech / Text events (${text.length})</h3>${tableText(text)}</div>
+  </div><div>
+    ${memSec}
+    ${reflSec}
+    <div class="section"><h3>Work State</h3>${kvBlock(ws)}</div>
+    <div class="section"><h3>Org State</h3>${kvBlock(os)}</div>
+    <div class="section"><h3>Compensation</h3>${kvBlock(a.compensation)}</div>
+    <div class="section"><h3>Routine</h3>${kvBlock(a.routine_profile)}</div>
+    <div class="section"><h3>Commitments / Disputes / Requests</h3>
+      ${myCommit.map(c=>`<div class="kv clickrow" onclick="openObj('${c.commitment_id}')"><b>commit</b> ${esc(c.description||'').slice(0,40)} <span class="tag ${c.status==='violated'?'bad':(c.status==='fulfilled'?'good':'')}">${c.status}</span></div>`).join("")||'<div class="muted">none</div>'}
+      ${myDisp.map(c=>`<div class="kv clickrow" onclick="openObj('${c.dispute_id}')"><b>dispute</b> → ${esc(c.target_object_id)} <span class="tag bad">${c.status}</span></div>`).join("")}
+      ${myReq.map(c=>`<div class="kv clickrow" onclick="openObj('${c.request_id}')"><b>request</b> ${esc(c.action_requested)} → ${esc(c.target_object_id||'')}</div>`).join("")}
+    </div>
+    <div class="section"><h3>Activity Log (${acts.length})</h3><div class="scroll">${acts.map(x=>`<div class="kv"><b>t${x.tick}</b> ${esc(x.action_type)}${x.target?` <span class="muted">[${esc(x.target)}]</span>`:''} <span class="tag ${x.success?'good':'bad'}">${x.success?'ok':'fail'}</span></div>`).join("")||'<div class="muted">none</div>'}</div></div>
+    <div class="section"><h3>Policy Trace <span class="muted" style="font-weight:400">· top-k utility + masks (how the policy chose, not the LLM)</span></h3><div class="scroll">${
+      ((f.logs||{}).policy_trace||[]).filter(pt=>pt.agent_id===S.agent).slice(-12).reverse().map(pt=>`<div class="kv" style="border-bottom:1px solid #2a2a2a;padding-bottom:4px"><b>t${pt.tick}</b> → chose <span class="tag good">${esc(pt.chosen_action)}</span>${(pt.candidate_actions||[]).map(c=>`<div class="muted" style="font-size:11px">${esc(c.action)}${c.target?(' ['+esc(c.target)+']'):''}: <b>${c.final_score}</b>${(c.raw_score!=null&&c.raw_score!==c.final_score)?(' <span style="color:#c66">(raw '+c.raw_score+')</span>'):''}</div>`).join("")}${(pt.masked_actions||[]).length?`<div class="muted" style="font-size:11px;color:#c66">masked: ${pt.masked_actions.map(m=>esc(m.action+(m.reason?(' ('+m.reason+')'):''))).join(", ")}</div>`:''}</div>`).join("")||'<div class="muted">no policy trace yet</div>'}</div></div>
+  </div></div>`;
+  const pgall=(f.graphs.persona||{})[S.agent]||{};
+  const MODES=["summary","policy_debug","evidence","raw"];
+  const ML={summary:"Summary",policy_debug:"Policy Debug",evidence:"Evidence",raw:"Raw"};
+  $("personaModes").innerHTML=MODES.map(m=>`<span class="chip ${S.personaMode===m?'active':''}" style="padding:1px 8px" onclick="S.personaMode='${m}';render()">${ML[m]}</span>`).join(" ");
+  const pg=pgall[S.personaMode]||pgall.summary||{nodes:[],edges:[]};
+  S.curPersona=pg;
+  const rc=pgall.summary||{};
+  $("personaMeta").textContent=`${S.personaMode} view · ${pg.nodes.length} nodes / ${pg.edges.length} edges (raw: ${rc.raw_node_count||'?'}n/${rc.raw_edge_count||'?'}e) · click a node for affected actions + evidence`;
+  drawGraph("svgPersona","legPersona",pg,null);
+  drawGraph("svgSocial","legSocial",f.graphs.social,S.agent);
+}
+function kvBlock(o){if(!o||!Object.keys(o).length)return '<div class="muted">—</div>';
+  return Object.entries(o).map(([k,v])=>`<div class="kv"><b>${esc(k)}</b>: ${esc(typeof v==='object'?JSON.stringify(v):v)}</div>`).join("");}
+
+/* ---------- internal panels ---------- */
+function vizTag(o){const v=o.visible_to_agents;if(!v)return "";
+  const all=Object.keys((frame()||{}).agents||{}).length;
+  return `<span class="tag viz" title="${(v||[]).join(', ')}">vis ${v.length}/${all}</span>`;}
+function rowVisible(o){if(S.view!=="agent_visible"||!S.agent)return true;
+  const v=o.visible_to_agents;return !v||v.includes(S.agent);}
+function tableTasks(ts){if(!ts.length)return '<div class="muted">none</div>';
+  return `<div class="scroll"><table><tr><th>id</th><th>title</th><th>status</th><th>pri</th><th>owner</th></tr>`+
+   ts.filter(rowVisible).map(t=>`<tr class="clickrow" onclick="openObj('${t.task_id}')"><td><code>${esc(t.task_id)}</code></td><td>${esc(t.title)}</td><td>${esc(t.status)}</td><td>${t.priority}</td><td>${esc(t.owner_id||'—')}</td></tr>`).join("")+`</table></div>`;}
+function renderTasks(f,p){p.innerHTML=`<div class="section"><h3>Tasks (${f.internal.tasks.length})</h3>${tableTasks(f.internal.tasks)}</div>`;}
+function tableMsgs(ms){if(!ms.length)return '<div class="muted">none</div>';
+  return `<div class="scroll"><table><tr><th>t</th><th>from</th><th>ch</th><th>text</th><th>read</th></tr>`+
+   ms.filter(rowVisible).map(m=>`<tr class="clickrow" onclick="openObj('${m.message_id}')"><td>${m.created_tick}</td><td>${esc(m.sender_id)}</td><td>${esc(m.channel_id||'')}</td><td>${esc((m.full_text||m.text_summary||'').slice(0,60))}</td><td>${(m.read_by||[]).length}</td></tr>`).join("")+`</table></div>`;}
+function renderMessages(f,p){
+  const chs=f.internal.channels||[];
+  p.innerHTML=`<div class="section"><h3>Channels</h3><div class="pillrow">`+chs.map(c=>`<span class="tag">#${esc(c.channel_id)} (${c.message_count})</span>`).join("")+`</div></div>
+   <div class="section"><h3>Messages (${f.internal.messages.length})</h3>${tableMsgs(f.internal.messages.slice().reverse())}</div>`;}
+function tableMeetings(ms){if(!ms.length)return '<div class="muted">none</div>';
+  return `<div class="scroll"><table><tr><th>id</th><th>type</th><th>status</th><th>parts</th><th>notes</th></tr>`+
+   ms.map(m=>`<tr class="clickrow" onclick="openObj('${m.meeting_id}')"><td><code>${esc(m.meeting_id)}</code></td><td>${esc(m.meeting_type)}</td><td>${esc(String(m.status))}</td><td>${(m.participants||[]).length}</td><td>${m.notes?'<span class="tag good">yes</span>':(m.notes_missing?'<span class="tag bad">missing</span>':'—')}</td></tr>`).join("")+`</table></div>`;}
+function renderMeetings(f,p){p.innerHTML=`<div class="section"><h3>Meetings (${f.internal.meetings.length})</h3>${tableMeetings(f.internal.meetings)}</div>`;}
+function renderDocs(f,p){const ds=f.internal.docs||[],fs=f.internal.files||[];
+  p.innerHTML=`<div class="section"><h3>Documents (${ds.length})</h3><div class="scroll"><table><tr><th>id</th><th>title</th><th>type</th><th>owner</th><th>vis</th></tr>`+
+   ds.filter(rowVisible).map(d=>`<tr class="clickrow" onclick="openObj('${d.doc_id}')"><td><code>${esc(d.doc_id)}</code></td><td>${esc(d.title)}</td><td>${esc(d.doc_type)}</td><td>${esc(d.owner_id||'')}</td><td>${vizTag(d)}</td></tr>`).join("")+`</table></div></div>
+   <div class="section"><h3>Files (${fs.length})</h3><div class="scroll"><table><tr><th>id</th><th>title</th><th>type</th><th>owner</th><th>vis</th></tr>`+
+   fs.filter(rowVisible).map(d=>`<tr class="clickrow" onclick="openFile('${d.object_id}')"><td><code>${esc(d.object_id)}</code></td><td>${esc(d.title)}</td><td>${esc(d.file_type)}</td><td>${esc(d.owner_id||'')}</td><td>${vizTag(d)}</td></tr>`).join("")+`</table></div></div>`;}
+function renderRepo(f,p){const r=f.internal.repo;
+  p.innerHTML=`<div class="cards">${card("modules",(r.modules||[]).length)}${card("branches",(r.branches||[]).length)}${card("commits",(r.commits||[]).length)}${card("PRs",(r.pull_requests||[]).length)}${card("build",r.build_status)}${card("tech debt",(r.technical_debt||0).toFixed(2))}</div>
+   <div class="section" style="margin-top:10px"><h3>Pull Requests</h3><div class="scroll"><table><tr><th>id</th><th>author</th><th>status</th><th>reviewed</th><th>linked tasks</th><th>linked issues</th></tr>`+
+   (r.pull_requests||[]).map(pr=>{const lt=pr.linked_task_ids||(pr.linked_task?[pr.linked_task]:[]),li=pr.linked_issue_ids||(pr.linked_issue?[pr.linked_issue]:[]);
+     return `<tr class="clickrow" onclick="openObj('${pr.pr_id}')"><td><code>${esc(pr.pr_id)}</code></td><td>${esc(pr.author_id)}</td><td>${esc(String(pr.status))}</td><td>${pr.reviewed?'<span class="tag good">yes</span>':'<span class="tag bad">no</span>'}</td><td>${lt.length?lt.map(t=>`<span class="tag">${esc(t)}</span>`).join(''):'<span class="tag bad">none</span>'}</td><td>${li.map(t=>`<span class="tag">${esc(t)}</span>`).join('')||'—'}</td></tr>`;}).join("")+`</table></div></div>
+   <div class="section"><h3>Commits (${(r.commits||[]).length})</h3><div class="scroll"><table><tr><th>id</th><th>author</th><th>branch</th><th>msg</th><th>flags</th></tr>`+
+   (r.commits||[]).slice(-30).reverse().map(c=>`<tr><td><code>${esc(c.commit_id)}</code></td><td>${esc(c.author_id)}</td><td>${esc(c.branch_id)}</td><td>${esc(c.message)}</td><td>${(c.quality_flags||[]).map(x=>`<span class="tag warn">${esc(x)}</span>`).join('')}</td></tr>`).join("")+`</table></div></div>`;}
+function renderSandbox(f,p){const jobs=f.internal.sandbox.jobs||[],res=f.internal.results||[];
+  p.innerHTML=`<div class="section"><h3>Sandbox Jobs (${jobs.length})</h3><div class="scroll"><table><tr><th>id</th><th>agent</th><th>type</th><th>status</th><th>result</th></tr>`+
+   jobs.slice(-30).reverse().map(j=>`<tr><td><code>${esc(j.job_id)}</code></td><td>${esc(j.agent_id)}</td><td>${esc(j.job_type)}</td><td>${esc(j.status)}</td><td>${esc(j.result_id||'—')}</td></tr>`).join("")+`</table></div></div>
+   <div class="section"><h3>Results (${res.length}) — lifecycle</h3><div class="scroll"><table><tr><th>id</th><th>exp</th><th>tracker</th><th>repro</th><th>config</th><th>disputed</th><th>seen by</th></tr>`+
+   res.filter(rowVisible).map(r=>`<tr class="clickrow" onclick="openObj('${r.result_id}')"><td><code>${esc(r.result_id)}</code></td><td>${esc(r.experiment_id)}</td><td>${r.logged_to_tracker?'<span class="tag good">logged</span>':'<span class="tag warn">private</span>'}</td><td>${esc(r.reproducibility_status)}</td><td>${r.config_hash?'<span class="tag good">y</span>':'<span class="tag bad">n</span>'}</td><td>${(r.disputed_by||[]).length?'<span class="tag bad">yes</span>':'—'}</td><td>${(r.visible_to_agents||[]).length}</td></tr>`).join("")+`</table></div></div>`;}
+function renderBudget(f,p){const b=f.internal.budget,pay=f.internal.payroll,c=f.company;
+  const led=(c.token_ledger_tail||[]).slice().reverse();
+  p.innerHTML=`<div class="cards">${card("treasury (tok)",(c.treasury_tokens||0).toFixed(0))}${card("daily burn (tok)",(c.daily_burn_tokens||0).toFixed(1))}${card("runway (days)",(c.runway_days_tokens||0).toFixed(0))}${card("runway pressure",(c.runway_pressure||0).toFixed(2))}${card("cost x",(b.cost_multiplier||1).toFixed(1))}${card("payroll",pay.payroll_status)}${card("debits",(c.token_debits_total||0).toFixed(0))}${card("credits",(c.token_credits_total||0).toFixed(0))}</div>
+   <div class="section" style="margin-top:10px"><h3>Token ledger <span class="muted" style="font-weight:400">· ${c.token_ledger_count||0} entries (latest first)</span></h3><div class="scroll"><table><tr><th>tick</th><th>kind</th><th>amount</th><th>reason</th><th>by</th><th>balance</th></tr>`+
+   led.map(e=>`<tr><td>${e.tick}</td><td><span class="tag ${e.kind==='credit'?'good':'bad'}">${esc(e.kind)}</span></td><td>${e.amount}</td><td>${esc(e.reason)}</td><td>${esc(e.agent)}</td><td>${e.balance_after}</td></tr>`).join("")+`</table>${led.length?'':'<div class="muted">no token flows yet</div>'}</div></div>
+   <div class="section" style="margin-top:10px"><h3>Compensation / Retention by agent</h3><div class="scroll"><table><tr><th>agent</th><th>salary</th><th>unpaid</th><th>trust</th><th>outside</th><th>retention risk</th></tr>`+
+   Object.values(f.agents).map(a=>{const c=a.compensation||{};return `<tr class="clickrow" onclick="selAgent('${a.id}')"><td>${esc(a.name)}</td><td>${(c.base_salary||0).toFixed(0)}</td><td>${(c.unpaid_salary||0).toFixed(0)}</td><td>${(c.trust_in_company||0).toFixed(2)}</td><td>${(c.outside_options||0).toFixed(2)}</td><td><span class="tag ${(c.retention_risk||0)>0.6?'bad':((c.retention_risk||0)>0.3?'warn':'good')}">${(c.retention_risk||0).toFixed(2)}</span></td></tr>`;}).join("")+`</table></div></div>
+   <div class="section"><h3>Cost events (${(f.internal.cost_events||[]).length})</h3><div class="scroll"><table><tr><th>t</th><th>agent</th><th>action</th><th>cost</th></tr>`+
+   (f.internal.cost_events||[]).slice(-25).reverse().map(c=>`<tr><td>${c.tick}</td><td>${esc(c.agent_id)}</td><td>${esc(c.action_type)}</td><td>${(c.final_cost||0).toFixed(1)}</td></tr>`).join("")+`</table></div></div>`;}
+function renderProtocols(f,p){const ps=f.internal.protocols||[];
+  p.innerHTML=`<div class="section"><h3>Protocols (${ps.length})</h3><div class="scroll"><table><tr><th>type</th><th>status</th><th>emergence</th><th>supporters</th><th>uses</th><th>violations</th><th>persist</th></tr>`+
+   ps.map(pr=>`<tr class="clickrow" onclick="openObj('${pr.protocol_id}')"><td>${esc(pr.protocol_type)}</td><td>${esc(pr.adoption_status)}</td><td><span class="tag ${pr.emergence_level==='strong'?'good':(pr.emergence_level==='weak'?'warn':'')}">${esc(pr.emergence_level)}</span></td><td>${(pr.supporters||[]).length}</td><td>${(pr.usage_events||[]).length}</td><td>${(pr.violation_events||[]).length}</td><td>${pr.persistence_ticks}</td></tr>`).join("")+`</table></div></div>
+   <div class="section"><h3>Detector Summary</h3>${Object.entries(f.internal.detectors||{}).map(([k,v])=>`<div class="kv"><b>${esc(k)}</b>: ${v.detected?'<span class="tag good">detected</span>':'<span class="tag">no</span>'} level=<span class="tag ${v.level==='strong'?'good':(v.level==='weak'?'warn':'')}">${esc(v.level)}</span> <span class="muted">${esc(JSON.stringify(v.evidence||{}).slice(0,80))}</span></div>`).join("")||'<div class="muted">no detector output yet (runs at day boundary)</div>'}</div>`;}
+const EP_COLORS={feedback_ingestion_episode:"#58a6ff",claim_dispute_episode:"#f85149",
+  experiment_episode:"#3fb950",protocol_formation_episode:"#d2a8ff",launch_crunch_episode:"#ffa657",
+  customer_triage_episode:"#79c0ff"};
+function epName(f,a){return (f.agents[a]||{}).name||a;}
+function renderEpisodes(f,p){
+  const eb=f.episodes||{items:[],by_type:{},open_count:0,closed_count:0,total:0};
+  const items=eb.items.slice().reverse();
+  const filt=S._epFilter||"all";
+  const types=Object.keys(eb.by_type||{});
+  const shown=items.filter(e=>filt==="all"||e.episode_type===filt);
+  const head=`<div class="cards">${card("episodes",eb.total)}${card("open",eb.open_count)}${card("closed",eb.closed_count)}</div>
+    <div class="row" style="margin:8px 0"><span class="muted">filter:</span>
+      <span class="chip ${filt==='all'?'active':''}" onclick="S._epFilter='all';render()">all</span>
+      ${types.map(t=>`<span class="chip ${filt===t?'active':''}" onclick="S._epFilter='${t}';render()">${esc(t.replace('_episode',''))} (${eb.by_type[t]})</span>`).join("")}</div>`;
+  const cards=shown.map(e=>{
+    const c=EP_COLORS[e.episode_type]||"#8b949e";
+    const linked=(e.linked_object_ids||[]).length;
+    const st=e.status==="resolved"?"good":(e.status==="open"?"warn":"");
+    return `<div class="section" style="border-left:3px solid ${c};cursor:pointer" onclick='openEpisode("${e.episode_id}")'>
+      <div class="row" style="justify-content:space-between"><b>${esc(e.title||e.episode_type)}</b>
+        <span class="tag ${st}">${esc(e.status)}</span></div>
+      <div class="muted" style="font-size:11px">${esc(e.episode_type)} · t${e.start_tick}${e.end_tick!=null?`→${e.end_tick}`:'→…'} · ${linked} objects · ${(e.participants||[]).length} ppl</div>
+      <div class="kv" style="margin-top:4px">${esc(e.problem_statement||'')}</div>
+      <div class="pillrow" style="margin-top:4px">${(e.participants||[]).map(a=>`<span class="tag">${esc(epName(f,a))}</span>`).join("")}</div>
+      ${e.outcome_summary?`<div class="muted" style="font-size:11px;margin-top:4px">${esc(e.outcome_summary)}</div>`:''}
+    </div>`;}).join("")||'<div class="muted">no episodes yet — run more ticks</div>';
+  p.innerHTML=head+cards;
+}
+function openEpisode(eid){
+  const f=frame();const e=((f.episodes||{}).items||[]).find(x=>x.episode_id===eid);
+  if(!e){drawerKV("Episode "+eid,{note:"not found"});return;}
+  const objRow=o=>`<span class="tag clk" onclick="openObj('${o}')" style="cursor:pointer">${esc(o)}</span>`;
+  const sec=(t,arr)=>arr&&arr.length?`<div class="section"><h3>${t} (${arr.length})</h3><div class="pillrow">${arr.map(objRow).join("")}</div></div>`:'';
+  let h=`<h3>${esc(e.title||e.episode_type)} <span class="tag ${e.status==='resolved'?'good':(e.status==='open'?'warn':'')}">${esc(e.status)}</span></h3>
+    <div class="section">
+      <div class="kv"><b>type</b>: ${esc(e.episode_type)}</div>
+      <div class="kv"><b>ticks</b>: ${e.start_tick} → ${e.end_tick!=null?e.end_tick:'(open)'}</div>
+      <div class="kv"><b>primary</b>: ${esc(epName(f,e.primary_agent_id))}</div>
+      <div class="kv"><b>participants</b>: ${(e.participants||[]).map(a=>esc(epName(f,a))).join(", ")}</div>
+      <div class="kv"><b>trigger</b>: ${esc(e.trigger_object_id||e.trigger_event_id||'—')}</div>
+    </div>
+    <div class="section"><h3>Problem</h3><div class="kv">${esc(e.problem_statement||'—')}</div>
+      ${e.conflict_summary?`<div class="kv"><b>conflict</b>: ${esc(e.conflict_summary)}</div>`:''}
+      ${e.decision_summary?`<div class="kv"><b>decision</b>: ${esc(e.decision_summary)}</div>`:''}
+      ${e.outcome_summary?`<div class="kv"><b>outcome</b>: ${esc(e.outcome_summary)}</div>`:''}</div>`;
+  h+=sec("Produced artifacts",e.produced_artifacts)+sec("Produced protocols",e.produced_protocols)
+    +sec("Produced tasks",e.produced_tasks)+sec("Product changes",e.produced_product_changes);
+  h+=sec("Tasks",e.linked_task_ids)+sec("Docs",e.linked_doc_ids)+sec("Messages",e.linked_message_ids)
+    +sec("Meetings",e.linked_meeting_ids)+sec("Repo",e.linked_repo_ids)
+    +sec("Sandbox/results",e.linked_sandbox_result_ids)+sec("Protocols",e.linked_protocol_ids)
+    +sec("External signals",e.linked_external_signal_ids);
+  if(e.linked_reflection_ids&&e.linked_reflection_ids.length)
+    h+=`<div class="section"><h3>Reflections produced</h3><div class="pillrow">${e.linked_reflection_ids.map(r=>`<span class="tag clk" style="cursor:pointer" onclick="openReflection('${r}')">${esc(r)}</span>`).join("")}</div></div>`;
+  if(e.linked_wish_ids&&e.linked_wish_ids.length)
+    h+=`<div class="section"><h3>Wishes</h3><div class="pillrow">${e.linked_wish_ids.map(w=>`<span class="tag clk" style="cursor:pointer" onclick="openWish('${w}')">${esc(w)}</span>`).join("")}</div></div>`;
+  if(e.related_episode_ids&&e.related_episode_ids.length)
+    h+=`<div class="section"><h3>Related episodes</h3><div class="pillrow">${e.related_episode_ids.map(r=>`<span class="tag clk" style="cursor:pointer" onclick="openEpisode('${r}')">${esc(r)}</span>`).join("")}</div></div>`;
+  if(e.timeline&&e.timeline.length)
+    h+=`<div class="section"><h3>Timeline (${e.timeline.length})</h3><div class="scroll">${e.timeline.map(t=>`<div class="kv"><b>t${t.tick}</b> ${esc(t.family)}${t.subtype?'/'+esc(t.subtype):''} <span class="muted">${esc(epName(f,t.actor_id))}</span> ${(t.object_ids||[]).slice(0,3).map(o=>`<code>${esc(o)}</code>`).join(" ")}</div>`).join("")}</div></div>`;
+  h+=`<div class="section"><h3>state_delta</h3>${kvBlock(e.state_delta||{})}</div>`;
+  $("drawerBody").innerHTML=h;$("drawer").classList.add("open");
+}
+const WISH_COLORS={tool_need:"#3fb950",protocol_need:"#d2a8ff",workflow_need:"#ffa657",
+  artifact_need:"#56d4dd",role_clarity_need:"#79c0ff",resource_need:"#f85149",
+  coordination_need:"#58a6ff",information_need:"#8b949e"};
+function renderReflections(f,p){
+  const rb=f.reflections||{items:[],total:0,by_agent:{}};
+  const wb=f.wishes||{items:[],by_type:{},total:0};
+  const refls=rb.items.slice().reverse();
+  const wishes=wb.items.slice().reverse();
+  const head=`<div class="cards">${card("reflections",rb.total)}${card("wishes",wb.total)}${card("agents reflecting",Object.keys(rb.by_agent||{}).length)}</div>
+    <div class="row" style="margin:8px 0"><span class="muted">Reflection → Wish chain. Click a wish to see its source reflection excerpt.</span></div>`;
+  const wishCards=`<div class="section"><h3>Wishes (extracted from reflections)</h3>`+
+    (wishes.map(w=>{const c=WISH_COLORS[w.wish_type]||"#8b949e";
+      return `<div class="kv clickrow" style="border-left:3px solid ${c};padding-left:6px" onclick='openWish("${w.wish_id}")'>
+        <b>${esc(w.wish_type)}</b> · <span class="muted">${esc(epName(f,w.agent_id))}</span> · urgency ${w.urgency}
+        <div>${esc(w.interpreted_need)}</div>
+        <div class="muted" style="font-size:11px">“${esc(w.raw_reflection_excerpt)}” ← <code>${esc(w.source_reflection_id)}</code></div>
+      </div>`;}).join("")||'<div class="muted">no wishes yet</div>')+`</div>`;
+  const reflCards=`<div class="section"><h3>Reflections</h3>`+
+    (refls.map(r=>`<div class="kv clickrow" onclick='openReflection("${r.reflection_id}")'>
+        <b>t${r.tick}</b> <span class="muted">${esc(epName(f,r.agent_id))}</span> · ${(r.improvement_ideas||[]).length} ideas · ${(r.created_wish_ids||[]).length} wishes
+        <div>${esc(r.team_assessment||r.self_assessment||'')}</div>
+        ${(r.source_episode_ids||[]).length?`<div class="muted" style="font-size:11px">from ${r.source_episode_ids.map(e=>esc(e)).join(", ")}</div>`:''}
+      </div>`).join("")||'<div class="muted">no reflections yet — run more ticks (episodes trigger reflection on close)</div>')+`</div>`;
+  p.innerHTML=head+wishCards+reflCards;
+}
+function openReflection(rid){
+  const f=frame();const r=((f.reflections||{}).items||[]).find(x=>x.reflection_id===rid);
+  if(!r){drawerKV("Reflection "+rid,{note:"not found"});return;}
+  let h=`<h3>Reflection <code>${esc(rid)}</code></h3>
+    <div class="section"><div class="kv"><b>agent</b>: ${esc(epName(f,r.agent_id))}</div>
+      <div class="kv"><b>tick</b>: ${r.tick} · trigger: ${esc(r.trigger_reason||'')}</div>
+      ${(r.source_episode_ids||[]).length?`<div class="kv"><b>from episodes</b>: ${r.source_episode_ids.map(e=>`<span class="tag clk" style="cursor:pointer" onclick="openEpisode('${e}')">${esc(e)}</span>`).join(" ")}</div>`:''}</div>
+    <div class="section"><h3>Self assessment</h3><div class="kv">${esc(r.self_assessment||'—')}</div></div>
+    <div class="section"><h3>Team assessment</h3><div class="kv">${esc(r.team_assessment||'—')}</div></div>`;
+  if((r.perceived_blockers||[]).length)h+=`<div class="section"><h3>Blockers</h3>${r.perceived_blockers.map(b=>`<div class="kv">${esc(b)}</div>`).join("")}</div>`;
+  if((r.improvement_ideas||[]).length)h+=`<div class="section"><h3>Improvement ideas</h3>${r.improvement_ideas.map(i=>`<div class="kv"><b>${esc(i.need_type)}</b> (urg ${i.urgency}): ${esc(i.description)}<div class="muted" style="font-size:11px">risk: ${esc(i.risk||'')}</div></div>`).join("")}</div>`;
+  if((r.created_wish_ids||[]).length)h+=`<div class="section"><h3>Wishes produced</h3><div class="pillrow">${r.created_wish_ids.map(w=>`<span class="tag clk" style="cursor:pointer" onclick="openWish('${w}')">${esc(w)}</span>`).join("")}</div></div>`;
+  $("drawerBody").innerHTML=h;$("drawer").classList.add("open");
+}
+function openWish(wid){
+  const f=frame();const w=((f.wishes||{}).items||[]).find(x=>x.wish_id===wid);
+  if(!w){drawerKV("Wish "+wid,{note:"not found"});return;}
+  const c=WISH_COLORS[w.wish_type]||"#8b949e";
+  let h=`<h3>Wish <code>${esc(wid)}</code> <span class="tag" style="background:${c}33;color:${c}">${esc(w.wish_type)}</span></h3>
+    <div class="section">
+      <div class="kv"><b>agent</b>: ${esc(epName(f,w.agent_id))}</div>
+      <div class="kv"><b>need</b>: ${esc(w.interpreted_need)}</div>
+      <div class="kv"><b>support type</b>: ${esc(w.missing_support_type)} · urgency ${w.urgency}</div>
+      <div class="kv"><b>scope</b>: ${w.self_related?'self':''}${w.self_related&&w.team_related?' + ':''}${w.team_related?'team':''}</div>
+      <div class="kv"><b>status</b>: ${esc(w.status)}</div>
+    </div>
+    <div class="section"><h3>Source reflection</h3>
+      <div class="kv">“${esc(w.raw_reflection_excerpt)}”</div>
+      <div class="kv"><span class="tag clk" style="cursor:pointer" onclick="openReflection('${w.source_reflection_id}')">${esc(w.source_reflection_id)}</span></div>
+      ${w.source_episode_id?`<div class="kv">episode: <span class="tag clk" style="cursor:pointer" onclick="openEpisode('${w.source_episode_id}')">${esc(w.source_episode_id)}</span></div>`:''}</div>
+    <div class="section"><h3>Rationale</h3>
+      <div class="kv"><b>target problem</b>: ${esc(w.target_problem||'')}</div>
+      <div class="kv"><b>expected benefit</b>: ${esc(w.expected_benefit||'')}</div>
+      <div class="kv"><b>risk if unaddressed</b>: ${esc(w.risk_if_unaddressed||'')}</div></div>`;
+  $("drawerBody").innerHTML=h;$("drawer").classList.add("open");
+}
+function renderProduct(f,p){
+  const pr=f.product||{repo_files:[],open_issues:[],known_gaps:[],recent_changes:[]};
+  const stColor=s=>s==="active"?"good":(s==="broken"?"bad":(s==="needs_review"?"warn":""));
+  const head=`<div class="cards">${card("stage",(pr.stage||"").replace(/_/g,' '))}${card("files",(pr.repo_files||[]).length)}${card("open issues",pr.open_issue_count||0)}${card("known gaps",(pr.known_gaps||[]).length)}</div>
+    <div class="section"><h3>${esc(pr.name||'Product')}</h3><div class="muted">${esc(pr.summary||'')}</div></div>`;
+  const files=`<div class="section"><h3>Repo / docs / eval (${(pr.repo_files||[]).length})</h3><div class="scroll"><table><tr><th>path</th><th>type</th><th>status</th><th>rev</th><th>known gaps</th></tr>`+
+    (pr.repo_files||[]).map(a=>`<tr class="clickrow" onclick="openArtifact('${esc(a.artifact_id)}')"><td><code>${esc(a.linked_file_path||a.title)}</code></td><td>${esc(a.artifact_type)}</td><td><span class="tag ${stColor(a.status)}">${esc(a.status)}</span></td><td>${a.revision}</td><td class="muted">${esc((a.known_gaps||[]).join("; ")||'—')}</td></tr>`).join("")+`</table></div></div>`;
+  const issues=`<div class="section"><h3>Open issues (${(pr.open_issues||[]).length})</h3>`+
+    (pr.open_issues||[]).map(a=>`<div class="kv"><b>${esc(a.artifact_id)}</b> ${esc(a.title)} <span class="tag">${esc(a.priority)}</span><div class="muted" style="font-size:11px">${esc(a.problem||a.summary||'')}</div></div>`).join("")+`</div>`;
+  const gaps=`<div class="section"><h3>Known systemic gaps</h3>`+(pr.known_gaps||[]).map(g=>`<div class="kv muted">• ${esc(g)}</div>`).join("")+`</div>`;
+  const recent=(pr.recent_changes||[]).length?`<div class="section"><h3>Recent product changes</h3>`+pr.recent_changes.map(a=>`<div class="kv"><b>t${a.updated_at_tick}</b> <code>${esc(a.linked_file_path||a.title)}</code> rev ${a.revision} <span class="tag ${stColor(a.status)}">${esc(a.status)}</span></div>`).join("")+`</div>`:'';
+  p.innerHTML=head+files+issues+recent+gaps;
+}
+function renderProposals(f,p){
+  const pb=f.proposals||{items:[],by_status:{},total:0};
+  const tb=f.tools||{items:[],total:0};
+  const sb=f.protocol_specs||{items:[],total:0};
+  const stColor=s=>(s==="adopted"||s==="approved"||s==="implemented")?"good":(s==="rejected"?"bad":"warn");
+  const head=`<div class="cards">${card("proposals",pb.total)}${card("adopted tools",tb.active_count||0)}${card("adopted protocols",sb.active_count||0)}</div>
+    <div class="row" style="margin:8px 0"><span class="muted">Wish → Proposal → evaluate → approve → adopt (Tool/Protocol). LLM drafts; system validates + approves.</span></div>`;
+  const props=pb.items.slice().reverse().map(p=>`<div class="section" style="padding:8px 10px;cursor:pointer" onclick='openProposal("${p.proposal_id}")'>
+      <div class="row" style="justify-content:space-between"><b>${esc(p.title||p.proposal_type)}</b><span class="tag ${stColor(p.status)}">${esc(p.status)}</span></div>
+      <div class="muted" style="font-size:11px">${esc(p.proposal_type)} · ${esc(epName(f,p.proposer_agent_id))}${p.source_wish_id?` · ← ${esc(p.source_wish_id)}`:''}${p.adoption_score!=null?` · adoption ${p.adoption_score}`:''}</div>
+      <div class="kv">${esc(p.summary||'')}</div>
+      ${p.object_created_id?`<div class="muted" style="font-size:11px">created <code>${esc(p.object_created_id)}</code></div>`:''}
+    </div>`).join("")||'<div class="muted">no proposals yet</div>';
+  const tools=tb.items.length?`<div class="section"><h3>Adopted Tools (${tb.items.length})</h3>${tb.items.map(t=>`<div class="kv"><b>${esc(t.name)}</b> <span class="tag good">${esc(t.status)}</span><div class="muted" style="font-size:11px">${esc(t.tool_type)} · actions: ${(t.required_actions||[]).join(", ")||'—'}</div></div>`).join("")}</div>`:'';
+  const specs=sb.items.length?`<div class="section"><h3>Adopted Protocols (${sb.items.length})</h3>${sb.items.map(s=>`<div class="kv"><b>${esc(s.name)}</b> <span class="tag ${s.status==='adopted'?'good':''}">${esc(s.status)}</span><div class="muted" style="font-size:11px">${esc(s.trigger_condition||'')} · fields: ${(s.required_fields||[]).join(", ")||'—'}</div></div>`).join("")}</div>`:'';
+  p.innerHTML=head+`<div class="section"><h3>Proposals</h3></div>`+props+tools+specs;
+}
+function openProposal(pid){
+  const f=frame();const p=((f.proposals||{}).items||[]).find(x=>x.proposal_id===pid);
+  if(!p){drawerKV("Proposal "+pid,{note:"not found"});return;}
+  let h=`<h3>${esc(p.title)} <span class="tag">${esc(p.proposal_type)}</span></h3>
+    <div class="section">
+      <div class="kv"><b>status</b>: ${esc(p.status)}</div>
+      <div class="kv"><b>proposer</b>: ${esc(epName(f,p.proposer_agent_id))}</div>
+      ${p.source_wish_id?`<div class="kv"><b>from wish</b>: <span class="tag clk" style="cursor:pointer" onclick="openWish('${p.source_wish_id}')">${esc(p.source_wish_id)}</span></div>`:''}
+      ${p.source_episode_id?`<div class="kv"><b>from episode</b>: <span class="tag clk" style="cursor:pointer" onclick="openEpisode('${p.source_episode_id}')">${esc(p.source_episode_id)}</span></div>`:''}
+    </div>
+    <div class="section"><h3>Problem / Solution</h3><div class="kv">${esc(p.target_problem||'')}</div><div class="kv">${esc(p.proposed_solution||'')}</div></div>
+    <div class="section"><h3>Scores</h3>${['feasibility_score','usefulness_score','risk_score','adoption_score'].map(k=>`<div class="kv"><b>${k.replace('_score','')}</b>: ${p[k]!=null?p[k]:'—'}</div>`).join("")}${p.suggested_revision?`<div class="muted" style="font-size:11px">revision: ${esc(p.suggested_revision)}</div>`:''}</div>
+    <div class="section"><h3>Required</h3><div class="kv">actions: ${(p.required_actions||[]).join(", ")||'—'}</div><div class="kv">capabilities: ${(p.required_capabilities||[]).join(", ")||'—'}</div></div>
+    <div class="section"><h3>Approval</h3><div class="kv">required from: ${(p.approval_required_from||[]).map(a=>esc(epName(f,a))).join(", ")||'—'}</div><div class="kv">approved by: ${(p.approved_by||[]).map(a=>esc(epName(f,a))).join(", ")||'—'}</div>${p.object_created_id?`<div class="kv"><b>created</b>: <code>${esc(p.object_created_id)}</code></div>`:''}</div>`;
+  $("drawerBody").innerHTML=h;$("drawer").classList.add("open");
+}
+function renderLLM(f,p){
+  const llm=f.llm||{enabled:false};const ad=f.action_decisions||{recent:[],total:0};
+  const decs=(ad.recent||[]).slice().reverse();
+  const stColor=s=>s==="accepted"?"good":(s==="rejected"?"bad":"warn");
+  const head=`<div class="cards">
+    ${card("LLM",llm.enabled?(llm.provider||"on"):"off")}${card("calls",llm.calls||0)}${card("failures",llm.failures||0)}${card("fallbacks",llm.fallbacks||0)}
+    ${card("decisions",ad.total||0)}${card("accepted",ad.accepted_count||0)}${card("rejected",ad.rejected_count||0)}</div>
+    <div class="row" style="margin:8px 0"><span class="muted">LLM proposes intent → validator gates → world executes. Rejected/failed → rule fallback.</span></div>`;
+  const rows=decs.map(d=>`<div class="section" style="padding:8px 10px">
+      <div class="row" style="justify-content:space-between">
+        <b>${esc(d.candidate_action||'(none)')}</b>
+        <span class="tag ${stColor(d.validation_status)}">${esc(d.validation_status)}</span></div>
+      <div class="muted" style="font-size:11px">t${d.tick} · ${esc(epName(f,d.agent_id))} · src ${esc(d.decision_source)} · conf ${d.confidence}
+        ${d.target_object_id?` · → ${esc(d.target_object_id)}`:''}${d.channel_id?` · #${esc(d.channel_id)}`:''}</div>
+      ${d.rationale?`<div class="kv">${esc(d.rationale)}</div>`:''}
+      ${d.expected_effect?`<div class="muted" style="font-size:11px">effect: ${esc(d.expected_effect)}</div>`:''}
+      ${d.rejection_reason?`<div class="muted" style="font-size:11px;color:#f85149">rejected: ${esc(d.rejection_reason)}</div>`:''}
+    </div>`).join("")||'<div class="muted">no LLM decisions — inject an OrgLLMClient (world.llm_client) to enable the LLM decision layer; default is the rule policy</div>';
+  p.innerHTML=head+rows;
+}
+function renderEventGraph(f,p){
+  p.innerHTML=`<div class="section"><h3>Event Graph (${f.graphs.event.nodes.length} nodes / ${f.graphs.event.edges.length} edges)</h3>
+    <div class="row" style="margin-bottom:6px"><span class="muted">filter agent:</span>
+      <select id="egAgent" onchange="render()"><option value="">all</option>${Object.keys(f.agents).map(a=>`<option ${S._egAgent===a?'selected':''} value="${a}">${a}</option>`).join("")}</select></div>
+    <div class="graphwrap" style="height:560px"><div id="svgEvent" class="cy"></div><div class="legend" id="legEvent"></div></div></div>`;
+  const sel=$("egAgent");if(sel)sel.onchange=()=>{S._egAgent=sel.value;render();};
+  let g=f.graphs.event;
+  if(S._egAgent){const keep=new Set([S._egAgent]);g.edges.forEach(e=>{if(e.src===S._egAgent)keep.add(e.dst);if(e.dst===S._egAgent)keep.add(e.src);});
+    g={nodes:g.nodes.filter(n=>keep.has(n.id)),edges:g.edges.filter(e=>keep.has(e.src)&&keep.has(e.dst))};}
+  drawGraph("svgEvent","legEvent",g,S._egAgent||null);
+}
+function tableText(ts){if(!ts.length)return '<div class="muted">none</div>';
+  return `<div class="scroll"><table><tr><th>t</th><th>speech act</th><th>action</th><th>valid</th></tr>`+
+   ts.map(t=>`<tr><td>${t.tick}</td><td>${esc(t.speech_act)}</td><td>${esc(t.text_action_type)}</td><td>${esc(t.validation_status)}</td></tr>`).join("")+`</table></div>`;}
+
+/* ====================== EXTERNAL NETWORK ====================== */
+function renderExternal(f){
+  const p=$("panel"),x=f.external;
+  if(S.sub==="dashboard"){
+    const roles={};(x.profiles||[]).forEach(pr=>roles[pr.role]=(roles[pr.role]||0)+1);
+    p.innerHTML=`<div class="cards">${card("profiles",(x.profiles||[]).length,"setSub('profiles')")}${card("posts",(x.posts||[]).length,"setSub('posts')")}${card("signals",(x.signals||[]).length,"setSub('signals')")}${card("offers",(x.offers||[]).length,"setSub('offers')")}
+      ${card("shared internally",(x.posts||[]).filter(po=>(po.internal_exposure||{}).shared_to_internal_channels.length).length,"setSub('flow')")}
+      ${card("read internally",(x.posts||[]).filter(po=>(po.internal_exposure||{}).read_by_internal_agents.length).length,"setSub('flow')")}</div>
+      <div class="section" style="margin-top:10px"><h3>Roles</h3><div class="pillrow">${Object.entries(roles).map(([r,n])=>`<span class="tag">${esc(r)} ${n}</span>`).join("")}</div></div>`;return;}
+  if(S.sub==="profiles"){p.innerHTML=`<div class="section"><h3>External Profiles (${(x.profiles||[]).length})</h3><div class="scroll"><table><tr><th>id</th><th>name</th><th>role</th><th>org</th><th>cred</th><th>topics</th></tr>`+
+    (x.profiles||[]).map(pr=>`<tr class="clickrow" onclick="openObj('${pr.external_agent_id}')"><td><code>${esc(pr.external_agent_id)}</code></td><td>${esc(pr.name)}</td><td><span class="tag">${esc(pr.role)}</span></td><td>${esc(pr.organization)}</td><td>${(pr.credibility||0).toFixed(2)}</td><td>${(pr.topic_interests||[]).join(', ')}</td></tr>`).join("")+`</table></div></div>`;return;}
+  if(S.sub==="posts"){p.innerHTML=`<div class="section"><h3>External Posts (${(x.posts||[]).length})</h3><div class="scroll"><table><tr><th>id</th><th>author</th><th>topic</th><th>summary</th><th>reach</th><th>read int.</th><th>shared int.</th></tr>`+
+    (x.posts||[]).map(po=>{const ie=po.internal_exposure||{};return `<tr class="clickrow" onclick="openObj('${po.post_id}')"><td><code>${esc(po.post_id)}</code></td><td>${esc(po.author_id)}</td><td>${esc(po.topic)}</td><td>${esc((po.content_summary||'').slice(0,50))}</td><td>${po.reach}</td><td>${(ie.read_by_internal_agents||[]).length}</td><td>${(ie.shared_to_internal_channels||[]).length}</td></tr>`;}).join("")+`</table></div></div>`;return;}
+  if(S.sub==="signals"){p.innerHTML=`<div class="section"><h3>External Signals (${(x.signals||[]).length})</h3><div class="scroll"><table><tr><th>id</th><th>type</th><th>tick</th><th>topic</th><th>source</th></tr>`+
+    (x.signals||[]).map(s=>`<tr><td><code>${esc(s.signal_id)}</code></td><td>${esc(s.type||s.signal_type)}</td><td>${s.tick||s.start_tick||''}</td><td>${esc(s.topic)}</td><td>${esc(s.source||'')}</td></tr>`).join("")+`</table>${(x.signals||[]).length?'':'<div class="muted">no signals yet (market shocks + external_signal events appear here)</div>'}</div></div>`;return;}
+  if(S.sub==="offers"){p.innerHTML=`<div class="section"><h3>Offers / Recruiting (${(x.offers||[]).length})</h3><div class="scroll"><table><tr><th>id</th><th>candidate</th><th>source</th><th>role</th><th>status</th></tr>`+
+    (x.offers||[]).map(o=>`<tr><td><code>${esc(o.offer_id)}</code></td><td>${esc(o.candidate_agent_id)}</td><td>${esc(o.source_external_agent_id)}</td><td>${esc(o.role)}</td><td>${esc(o.status)}</td></tr>`).join("")+`</table>${(x.offers||[]).length?'':'<div class="muted">no external offers yet</div>'}</div></div>`;return;}
+  if(S.sub==="network"){p.innerHTML=`<div class="section"><h3>External Network Graph</h3><div class="graphwrap" style="height:560px"><div id="svgExt" class="cy"></div><div class="legend" id="legExt"></div></div></div>`;drawGraph("svgExt","legExt",f.graphs.external_network,null);return;}
+  if(S.sub==="flow"){
+    p.innerHTML=`<div class="section"><h3>External → Internal signal flow</h3>`+
+      (x.posts||[]).map(po=>{const ie=po.internal_exposure||{};const read=ie.read_by_internal_agents||[],sh=ie.shared_to_internal_channels||[];
+        if(!read.length&&!sh.length)return "";
+        return `<div class="kv"><b>${esc(po.topic)}</b> <code>${esc(po.post_id)}</code><div>
+          <span class="flowstep">post by ${esc(po.author_id)}</span><span class="arrow">→</span>
+          <span class="flowstep">read by ${read.join(', ')||'—'}</span>${sh.length?`<span class="arrow">→</span><span class="flowstep">shared to ${sh.join(', ')}</span>`:''}</div></div>`;}).join("")
+      +`<div class="muted" style="margin-top:6px">Shows which external posts entered the company (read / shared internally).</div></div>`;return;}
+}
+
+/* ====================== SVG FORCE GRAPH (zoom + pan) ====================== */
+const ZOOM={};  // svgId -> {k,x,y,user}
+function hashf(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return((h>>>0)%1000)/1000;}
+function layout(nodes,edges,W,H){
+  const N=nodes.slice(0,200),idset=new Set(N.map(n=>n.id));
+  const E=edges.filter(e=>idset.has(e.src)&&idset.has(e.dst));
+  const pos={};N.forEach(n=>{const a=hashf(n.id)*6.283,r=80+hashf(n.id+"r")*Math.min(W,H)*0.42;pos[n.id]={x:W/2+Math.cos(a)*r,y:H/2+Math.sin(a)*r,vx:0,vy:0};});
+  const k=Math.sqrt((W*H)/Math.max(1,N.length))*1.15,it=Math.min(300,120+N.length);
+  for(let t=0;t<it;t++){const cool=1-t/it;
+    for(let i=0;i<N.length;i++){const a=pos[N[i].id];for(let j=i+1;j<N.length;j++){const b=pos[N[j].id];
+      let dx=a.x-b.x,dy=a.y-b.y,d=Math.sqrt(dx*dx+dy*dy)||0.01;const f=(k*k)/(d*d)*14,fx=dx/d*f,fy=dy/d*f;a.vx+=fx;a.vy+=fy;b.vx-=fx;b.vy-=fy;}}
+    E.forEach(e=>{const a=pos[e.src],b=pos[e.dst];let dx=b.x-a.x,dy=b.y-a.y,d=Math.sqrt(dx*dx+dy*dy)||0.01;const f=(d-k)*0.018,fx=dx/d*f,fy=dy/d*f;a.vx+=fx;a.vy+=fy;b.vx-=fx;b.vy-=fy;});
+    N.forEach(n=>{const p=pos[n.id];p.vx+=(W/2-p.x)*0.002;p.vy+=(H/2-p.y)*0.002;p.x+=Math.max(-30,Math.min(30,p.vx))*cool;p.y+=Math.max(-30,Math.min(30,p.vy))*cool;p.vx*=0.86;p.vy*=0.86;});}
+  return {pos,N,E};
+}
+function applyTransform(svgId){const z=ZOOM[svgId];const g=$(svgId+"__g");if(g&&z)g.setAttribute("transform",`translate(${z.x},${z.y}) scale(${z.k})`);}
+function fitTransform(bb,W,H){const bw=Math.max(1,bb.maxx-bb.minx),bh=Math.max(1,bb.maxy-bb.miny);
+  const k=Math.max(.12,Math.min(2.2,Math.min(W/(bw+80),H/(bh+80))));
+  return {k,x:W/2-(bb.minx+bw/2)*k,y:H/2-(bb.miny+bh/2)*k,user:false};}
+function attachZoom(svg,svgId,W,H){
+  svg.onwheel=e=>{e.preventDefault();const z=ZOOM[svgId];const r=svg.getBoundingClientRect();
+    const mx=e.clientX-r.left,my=e.clientY-r.top;const f=e.deltaY<0?1.12:1/1.12;const nk=Math.max(.06,Math.min(6,z.k*f));
+    z.x=mx-(mx-z.x)*(nk/z.k);z.y=my-(my-z.y)*(nk/z.k);z.k=nk;z.user=true;applyTransform(svgId);};
+  svg.onmousedown=e=>{if(e.target.closest(".gnode"))return;e.preventDefault();const z=ZOOM[svgId];
+    const sx=e.clientX,sy=e.clientY,ox=z.x,oy=z.y;svg.style.cursor="grabbing";
+    const mv=ev=>{z.x=ox+(ev.clientX-sx);z.y=oy+(ev.clientY-sy);z.user=true;applyTransform(svgId);};
+    const up=()=>{svg.style.cursor="grab";window.removeEventListener("mousemove",mv);window.removeEventListener("mouseup",up);};
+    window.addEventListener("mousemove",mv);window.addEventListener("mouseup",up);};
+  svg.ondblclick=()=>{ZOOM[svgId].user=false;render();};
+  svg.style.cursor="grab";
+}
+/* ---------- Cytoscape graph (draggable nodes · click=focus+highlight neighbors · layered) ---------- */
+const CY={}, CYVIEW={};                 // divId -> instance / persisted pan+zoom
+let _dagreReg=false;
+function _nodeSize(t){return (t==="agent"||t==="internal_agent")?26:(t==="action_feature"||t==="policy_bias"?13:16);}
+function _hlNbr(cy,nd){cy.batch(()=>{cy.elements().addClass("dim").removeClass("hl");
+  nd.closedNeighborhood().removeClass("dim").addClass("hl");});}
+function drawGraph(divId,legId,g,focus){
+  const el=$(divId);if(!el||typeof cytoscape==="undefined")return;
+  if(!_dagreReg){try{if(window.cytoscapeDagre)cytoscape.use(window.cytoscapeDagre);}catch(e){}_dagreReg=true;}
+  g=g||{nodes:[],edges:[]};
+  const nodes=(g.nodes||[]).slice(0,300), idset=new Set(nodes.map(n=>n.id));
+  const edges=(g.edges||[]).filter(e=>idset.has(e.src)&&idset.has(e.dst));
+  // legend (cheap, always refresh)
+  const types=[...new Set(nodes.map(n=>n.type))], leg=$(legId);
+  if(leg)leg.innerHTML=types.map(t=>`<span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${NODE_COLORS[t]||'#8b949e'};vertical-align:-1px"></span> ${esc(t)}</span>`).join("")
+    +`<div class="muted" style="margin-top:4px">drag node · click=focus+neighbors · scroll=zoom · drag bg=pan</div>`;
+  if(CY[divId]){try{CY[divId].destroy();}catch(e){}delete CY[divId];}   // container is rebuilt each render
+  if(!nodes.length){el.innerHTML=`<div class="muted" style="padding:14px">no graph data in this frame</div>`;return;}
+  const useDagre=_dagreReg&&!!window.cytoscapeDagre;
+  const cy=cytoscape({container:el,wheelSensitivity:0.25,minZoom:0.06,maxZoom:6,
+    elements:[
+      ...nodes.map(n=>({data:{id:n.id,label:String(n.label||n.id).replace(/^[a-z_]+:/,"").slice(0,26),ntype:n.type||"",raw:n}})),
+      ...edges.map((e,i)=>({data:{id:"e"+i,source:e.src,target:e.dst,etype:e.type||""}}))],
+    style:[
+      // ATLAS-style node "cards": rounded rect, dark node-bg fill, type-colored border, label inside
+      {selector:"node",style:{"shape":"round-rectangle","label":"data(label)",
+        "background-color":"#0f1a2e","background-opacity":0.96,
+        "border-width":1.8,"border-color":ele=>NODE_COLORS[ele.data("ntype")]||"#8b949e",
+        "color":"#dce6f3","font-size":"9px","font-weight":600,"font-family":"Inter,Segoe UI,sans-serif",
+        "text-valign":"center","text-halign":"center","text-wrap":"wrap","text-max-width":"118px",
+        "width":"label","height":"label","padding":"8px","min-zoomed-font-size":6}},
+      {selector:"edge",style:{"width":1.1,"line-color":"#334155","target-arrow-color":"#334155","target-arrow-shape":"triangle",
+        "arrow-scale":0.8,"curve-style":"bezier","opacity":0.8}},
+      {selector:"node.hl",style:{"border-color":"#6366f1","border-width":2.6,"color":"#fff","z-index":20,
+        "underlay-color":"#6366f1","underlay-opacity":0.28,"underlay-padding":7}},
+      {selector:"edge.hl",style:{"line-color":"#2dd4bf","target-arrow-color":"#2dd4bf","width":2.2,"opacity":1,"z-index":15}},
+      {selector:".dim",style:{"opacity":0.12}}],
+    layout:useDagre?{name:"dagre",rankDir:"LR",nodeSep:24,rankSep:82,edgeSep:12,animate:false,fit:true,padding:30}
+                   :{name:"cose",animate:false,fit:true,padding:30,nodeRepulsion:14000,idealEdgeLength:120,nodeOverlap:24}});
+  CY[divId]=cy;
+  let ready=false;
+  cy.one("layoutstop",()=>{const v=CYVIEW[divId];if(v&&v.moved)cy.viewport({zoom:v.zoom,pan:v.pan});ready=true;});
+  cy.on("zoom pan",()=>{if(ready)CYVIEW[divId]={pan:cy.pan(),zoom:cy.zoom(),moved:true};});
+  cy.on("tap","node",ev=>{_hlNbr(cy,ev.target);openNodeObj(ev.target.data("raw"));});
+  cy.on("tap",ev=>{if(ev.target===cy)cy.elements().removeClass("dim hl");});
+  if(focus){const fn=cy.getElementById(focus);if(fn.nonempty())_hlNbr(cy,fn);}
+}
+function openNode(js){openNodeObj(JSON.parse(JSON.parse(js)));}
+function openNodeObj(n){if(!n)return;
+  if(n.type==="agent"||n.type==="internal_agent"){if(n.type==="agent"&&S.curPersona){personaNodeDrawer(n);return;}selAgent(n.id);return;}
+  // persona-graph nodes -> rich persona drawer (affected actions/speech/evidence)
+  if(/^(trait:|skill:|state:|style:|fail:|feat:|act:|speech:|risk:|ev:|hub:)/.test(n.id)){personaNodeDrawer(n);return;}
+  // node id may be an object id (event graph) -> object drawer
+  if(/^(task_|doc_|msg_|pr_|result|proto_|meeting_|commitment_|dispute_|request_|post_|ext_)/.test(n.id)){openObj(n.id);return;}
+  drawerKV("Node "+n.id,{type:n.type,...(n.attrs||{})});
+}
+function personaNodeDrawer(n){
+  const g=S.curPersona||{nodes:[],edges:[]};
+  const outs=g.edges.filter(e=>e.src===n.id), ins=g.edges.filter(e=>e.dst===n.id);
+  const acts=outs.filter(e=>/^(act:)/.test(e.dst)).map(e=>e.dst.split(":")[1]);
+  const speech=outs.filter(e=>/^(speech:)/.test(e.dst)).map(e=>e.dst.split(":")[1]);
+  const risks=outs.filter(e=>/^(risk:)/.test(e.dst)).map(e=>e.dst.split(":")[1]);
+  const feats=outs.filter(e=>/^(feat:)/.test(e.dst)).map(e=>e.dst.split(":")[1]);
+  const drivenBy=ins.filter(e=>/^(trait:|skill:|state:|ev:)/.test(e.src));
+  const evRows=ins.filter(e=>/^ev:/.test(e.src)).map(e=>{const ev=g.nodes.find(x=>x.id===e.src)||{};const a=ev.attrs||{};
+    return {label:ev.label||e.src,strength:e.strength,reason:e.reason||e.explanation,event_type:a.event_type,target:a.target_object};});
+  const edgeRow=e=>`<div class="kv">${esc(e.src.split(":").pop())} <i class="muted">${esc(e.type)}${e.weight!=null&&e.weight!==1?` (${e.weight>0?'+':''}${e.weight})`:''}${e.strength!=null?` · str ${e.strength}`:''}</i> → ${esc(e.dst.split(":").pop())}${(e.reason||e.explanation)?`<div class="muted" style="font-size:11px">${esc(e.reason||e.explanation)}</div>`:''}</div>`;
+  const att=n.attrs||{};
+  let h=`<h3>${esc(n.type)} · <code>${esc(n.label||n.id)}</code>${att.suppressed?` <span class="tag bad" style="font-size:10px">suppressed</span>`:''}</h3>
+    <div class="section"><div class="kv"><b>cluster</b>: ${esc(n.cluster||'')}</div>
+      ${n.value!=null?`<div class="kv"><b>value</b>: ${esc(n.value)}</div>`:''}
+      <div class="kv"><b>salience</b>: ${esc(n.salience)}</div>
+      ${att.skill_fit!=null?`<div class="kv"><b>skill_fit</b>: ${esc(att.skill_fit)}</div>`:''}
+      ${att.event_type?`<div class="kv"><b>event</b>: ${esc(att.event_type)}${att.target_object?` → ${esc(att.target_object)}`:''}</div>`:''}</div>`;
+  if(acts.length)h+=`<div class="section"><h3>Affected actions</h3><div class="pillrow">${acts.map(a=>`<span class="tag good">${esc(a)}</span>`).join("")}</div></div>`;
+  if(speech.length)h+=`<div class="section"><h3>Affected speech acts</h3><div class="pillrow">${speech.map(a=>`<span class="tag" style="background:#2a2140;color:#d2a8ff">${esc(a)}</span>`).join("")}</div></div>`;
+  if(risks.length)h+=`<div class="section"><h3>Risks</h3><div class="pillrow">${risks.map(a=>`<span class="tag bad">${esc(a)}</span>`).join("")}</div></div>`;
+  if(feats.length)h+=`<div class="section"><h3>Policy features</h3><div class="pillrow">${feats.map(a=>`<span class="tag viz">${esc(a)}</span>`).join("")}</div></div>`;
+  if(evRows.length)h+=`<div class="section"><h3>Evidence (behavioral)</h3>${evRows.slice(0,12).map(e=>`<div class="kv">${esc(e.label)}${e.strength!=null?` <span class="muted">str ${esc(e.strength)}</span>`:''}${e.event_type?` <i class="muted">[${esc(e.event_type)}${e.target?` · ${esc(e.target)}`:''}]</i>`:''}${e.reason?`<div class="muted" style="font-size:11px">${esc(e.reason)}</div>`:''}</div>`).join("")}</div>`;
+  if(drivenBy.length)h+=`<div class="section"><h3>Driven by (${drivenBy.length})</h3>${drivenBy.slice(0,12).map(edgeRow).join("")}</div>`;
+  if(outs.length)h+=`<div class="section"><h3>Outgoing (${outs.length})</h3>${outs.slice(0,14).map(edgeRow).join("")}</div>`;
+  $("drawerBody").innerHTML=h;$("drawer").classList.add("open");
+}
+
+/* ====================== OBJECT DRAWER ====================== */
+function findObject(id){const f=frame();if(!f)return null;
+  const I=f.internal,X=f.external,R=I.repo;
+  const banks=[["task",I.tasks,"task_id"],["doc",I.docs,"doc_id"],["file",I.files,"object_id"],["message",I.messages,"message_id"],
+    ["meeting",I.meetings,"meeting_id"],["pr",R.pull_requests,"pr_id"],["commit",R.commits,"commit_id"],["branch",R.branches,"branch_id"],
+    ["result",I.results,"result_id"],["experiment",I.experiments,"experiment_id"],["protocol",I.protocols,"protocol_id"],
+    ["issue",I.issues,"issue_id"],
+    ["commitment",I.commitments,"commitment_id"],["dispute",I.disputes,"dispute_id"],["request",I.requests,"request_id"],
+    ["sandbox_job",I.sandbox.jobs,"job_id"],["cost_event",I.cost_events,"cost_event_id"],["ticket",I.tickets,"ticket_id"],
+    ["external_profile",X.profiles,"external_agent_id"],["external_post",X.posts,"post_id"]];
+  for(const [type,arr,key] of banks){const o=(arr||[]).find(x=>x[key]===id);if(o)return {type,obj:o};}
+  return null;}
+function openObj(id){const r=findObject(id);if(!r){drawerKV("Object "+id,{note:"not found in this frame"});return;}
+  const f=frame();const edges=(f.graphs.event.edges||[]).filter(e=>e.src===id||e.dst===id);
+  let html=`<h3>${esc(r.type)} · <code>${esc(id)}</code></h3>`;
+  if(r.obj.visible_to_agents){const all=Object.keys(f.agents);
+    html+=`<div class="section"><h3>Visibility</h3><div class="kv"><b>debug_visible</b>: yes</div>`+
+      all.map(a=>`<div class="kv"><b>visible to ${esc(a)}</b>: ${(r.obj.visible_to_agents||[]).includes(a)?'<span class="tag good">yes</span>':'<span class="tag bad">no</span>'}</div>`).join("")+
+      (r.obj.read_by?`<div class="kv"><b>read_by</b>: ${(r.obj.read_by||[]).join(', ')||'—'}</div>`:'')+
+      (r.obj.private_owner?`<div class="kv"><b>private_owner</b>: ${esc(r.obj.private_owner)}</div>`:'')+`</div>`;}
+  if(r.obj.lifecycle){html+=`<div class="section"><h3>Lifecycle</h3>${kvBlock(r.obj.lifecycle)}</div>`;}
+  if(r.obj.internal_exposure){html+=`<div class="section"><h3>Internal exposure</h3>${kvBlock(r.obj.internal_exposure)}</div>`;}
+  if(r.obj.provenance){html+=`<div class="section"><h3>Provenance</h3>${kvBlock(r.obj.provenance)}</div>`;}
+  if(r.obj.event_chain){html+=`<div class="section"><h3>Event chain</h3>${(r.obj.event_chain||[]).map(e=>`<div class="kv"><b>t${e.tick}</b> ${esc(e.event_type)} by ${esc(e.actor_id||'')}</div>`).join("")}</div>`;}
+  html+=`<div class="section"><h3>Fields</h3>`+Object.entries(r.obj).filter(([k])=>!["visible_to_agents","read_by","lifecycle","internal_exposure","provenance","event_chain","debug_visible"].includes(k)).map(([k,v])=>`<div class="kv"><b>${esc(k)}</b>: ${esc(typeof v==='object'?JSON.stringify(v):v)}</div>`).join("")+`</div>`;
+  html+=`<div class="section"><h3>Linked event-graph edges (${edges.length})</h3>${edges.map(e=>`<div class="kv">${esc(e.src)} <i class="muted">${esc(e.type)}</i> → ${esc(e.dst)}</div>`).join("")||'<div class="muted">none</div>'}</div>`;
+  $("drawerBody").innerHTML=html;$("drawer").classList.add("open");}
+/* file content viewer — shows what's actually INSIDE a workspace/company file
+   (content_summary + raw_payload), not just its metadata fields. */
+function findFile(id){const f=frame();if(!f)return null;
+  for(const fo of (f.internal&&f.internal.files||[]))if(fo.object_id===id)return fo;
+  for(const ag of Object.values(f.agents||{}))for(const fo of ((ag.workspace||{}).local_files||[]))if(fo.object_id===id)return fo;
+  for(const d of (f.internal&&f.internal.docs||[]))if(d.doc_id===id)return d;
+  return null;}
+function fileContentHTML(fo){let body="";
+  const summ=fo.content_summary||fo.summary||fo.body_summary;
+  if(summ)body+=`<div class="section"><h3>Summary</h3><div class="kv">${esc(summ)}</div></div>`;
+  const rp=(fo.raw_payload!=null)?fo.raw_payload:(fo.body!=null?fo.body:fo.content);
+  if(rp!=null){const txt=typeof rp==="string"?rp:JSON.stringify(rp,null,2);
+    body+=`<div class="section"><h3>Content</h3><pre style="white-space:pre-wrap;font-size:11px;max-height:440px;overflow:auto;background:var(--panel2);padding:8px;border-radius:6px">${esc(txt)}</pre></div>`;}
+  if(!body)body='<div class="muted">no stored content (summary/payload empty)</div>';
+  return body;}
+function openFile(id){const fo=findFile(id);if(!fo){drawerKV("File "+id,{note:"not found in this frame (may be a draft id not yet materialised)"});return;}
+  const meta={owner:fo.owner_id||fo.creator_id,type:fo.file_type||fo.doc_type,visibility:fo.visibility,version:fo.version,
+    review_status:fo.review_status||fo.status,trust_level:fo.trust_level,created_tick:fo.created_tick,last_modified_tick:fo.last_modified_tick};
+  const rp=(fo.raw_payload!=null)?fo.raw_payload:(fo.body!=null?fo.body:fo.content);
+  const bodyText=(typeof rp==="string")?rp:(rp!=null?JSON.stringify(rp,null,2):(fo.content_summary||fo.summary||""));
+  S.reader={title:(fo.title||id),meta:`${fo.file_type||fo.doc_type||'file'} · v${fo.version||1}`,text:bodyText};
+  $("drawerBody").innerHTML=`<h3>file · <code>${esc(id)}</code></h3><h2 style="margin:4px 0 6px">${esc(fo.title||'')}</h2>`+
+    `<button class="btn-accent" onclick="openReaderStashed()" style="margin-bottom:8px">▶ View file</button>`+
+    `<div class="section"><h3>Meta</h3>${kvBlock(meta)}</div>`+fileContentHTML(fo)+
+    (fo.visible_to_agents?`<div class="section"><h3>Visible to</h3><div class="pillrow">${(fo.visible_to_agents||[]).map(x=>`<span class="tag">${esc(x)}</span>`).join("")||'<span class="muted">owner only</span>'}</div></div>`:'');
+  $("drawer").classList.add("open");}
+/* product-artifact viewer — the sim's files are symbolic, so their "content" is the
+   capabilities + known gaps + change history + the patch diffs that built them. */
+function openArtifact(id){
+  const f=frame();const arts=(f.product&&f.product.artifacts)||[];
+  const a=arts.find(x=>x.artifact_id===id)||((f.product&&f.product.repo_files)||[]).find(x=>x.artifact_id===id);
+  if(!a){return openFile(id);}   // fall back to workspace/company file viewer
+  const patches=((f.product&&f.product.patches)||[]).filter(p=>(p.artifact_id||p.target_object_id)===id);
+  const meta={path:a.linked_file_path||a.title,type:a.artifact_type,status:a.status,revision:a.revision,
+    mainline_revision:a.mainline_revision,awaiting_review:a.awaiting_review,last_reviewed_tick:a.last_reviewed_tick,
+    linked_tasks:(a.linked_task_ids||[]).join(", ")||'—'};
+  S.reader={title:(a.linked_file_path||a.title||id),
+    meta:`${a.artifact_type||''} · rev ${a.revision} · status ${a.status}`, text:_artifactContent(a,patches)};
+  let h=`<h3>artifact · <code>${esc(id)}</code></h3><h2 style="margin:4px 0 6px">${esc(a.title||a.linked_file_path||'')}</h2>
+    <button class="btn-accent" onclick="openReaderStashed()" style="margin-bottom:8px">▶ View file</button>`;
+  h+=`<div class="section"><h3>Meta</h3>${kvBlock(meta)}</div>`;
+  if((a.capabilities||[]).length)h+=`<div class="section"><h3>Capabilities (${a.capabilities.length})</h3><div class="pillrow">${a.capabilities.map(c=>`<span class="tag good">${esc(c)}</span>`).join("")}</div></div>`;
+  if((a.known_gaps||[]).length)h+=`<div class="section"><h3>Known gaps (${a.known_gaps.length})</h3>${a.known_gaps.map(g=>`<div class="kv muted">• ${esc(g)}</div>`).join("")}</div>`;
+  if((a.change_summaries||[]).length)h+=`<div class="section"><h3>Change history (${a.change_summaries.length})</h3>${a.change_summaries.map((s,i)=>`<div class="kv"><b>v${i+1}</b> ${esc(s)}</div>`).join("")}</div>`;
+  h+=`<div class="section"><h3>Patches (${patches.length}) — what changed inside</h3>${patches.length?patches.map(p=>{
+      const body=p.pseudo_diff||((p.changed_sections||[]).map(s=>`[${s.section}] ${esc(s.before||'')} → ${esc(s.after||'')}`).join("\n"))||'';
+      const st=p.status||p.validation_status||'';
+      return `<div class="kv" style="border-bottom:1px solid var(--line);padding-bottom:5px"><b>t${p.created_tick!=null?p.created_tick:p.tick} · ${esc(p.patch_type||'')}</b> <span class="tag ${st==='accepted'?'good':'bad'}">${esc(st)}</span><div class="muted" style="font-size:11px">${esc(p.change_summary||p.edit_goal||'')}</div>${body?`<pre style="white-space:pre-wrap;font-size:11px;background:var(--panel2);padding:6px;border-radius:6px;max-height:220px;overflow:auto">${esc(body)}</pre>`:''}</div>`;
+    }).join(""):'<div class="muted">no patches recorded for this artifact</div>'}</div>`;
+  $("drawerBody").innerHTML=h;$("drawer").classList.add("open");}
+/* ---------- Product Terminal (human try / evaluate the product) ---------- */
+function renderProductTerminal(f,p){
+  S.product=S.product||{};const ps=S.product;
+  p.innerHTML=`
+  <div class="section"><h3>🧪 Product Terminal — try &amp; evaluate the company's product</h3>
+    <div class="muted" style="margin-bottom:8px">Runs the LIVE product at tick ${f.tick} with EXACTLY its current capabilities + limitations.
+      Your rating is recorded as a customer signal (feeds the market loop). Use Step / Run on the top bar to evolve the product, then re-run.</div>
+    <div class="row">
+      <input id="ptQuery" style="flex:1;min-width:340px" placeholder="Ask the product to do something — e.g. 'Research the best open-source vector DB for RAG and cite sources'" value="${esc(ps.query||'')}"/>
+      <button class="btn-accent" onclick="productRun()">▶ Run product</button>
+    </div>
+  </div>
+  <div id="ptOut"></div>`;
+  if(ps.report!=null)renderProductOut();
+}
+function renderProductOut(){
+  const ps=S.product||{};const prof=ps.profile||{};const out=$("ptOut");if(!out)return;
+  out.innerHTML=`
+    <div class="section"><h3>Report ${ps.llm===false?'<span class="tag warn">no-LLM stub</span>':''} <span class="muted" style="font-weight:400">· confidence ${ps.confidence!=null?ps.confidence:'—'}</span></h3>
+      <pre style="white-space:pre-wrap;font-size:12px;line-height:1.5;background:var(--panel2);padding:10px;border-radius:6px;max-height:420px;overflow:auto">${esc(ps.report||'')}</pre>
+      ${(ps.caveats||[]).length?`<div class="kv"><b>caveats</b><div>${ps.caveats.map(c=>`<div class="muted" style="font-size:11px">• ${esc(c)}</div>`).join("")}</div></div>`:''}</div>
+    <div class="section"><h3>Product profile @ t${prof.tick!=null?prof.tick:'—'} <span class="muted" style="font-weight:400">· ${esc(prof.name||'')} · ${esc(prof.stage||'')}</span></h3>
+      <div class="kv"><b>capabilities</b> <div class="pillrow">${(prof.capabilities||[]).map(c=>`<span class="tag good">${esc(c)}</span>`).join("")||'<span class="muted">minimal</span>'}</div></div>
+      <div class="kv"><b>known limitations</b><div>${(prof.known_limitations||[]).map(c=>`<div class="muted" style="font-size:11px">• ${esc(c)}</div>`).join("")||'<span class="muted">none recorded</span>'}</div></div></div>
+    <div class="section"><h3>Evaluate this product</h3>
+      <div class="row">rating: ${[1,2,3,4,5].map(n=>`<button class="${ps.rating===n?'btn-accent':''}" onclick="setRating(${n})">${n}★</button>`).join("")}</div>
+      <input id="ptComment" style="width:100%;margin-top:8px" placeholder="optional feedback — what worked, what didn't, would you pay?" value="${esc(ps.comment||'')}"/>
+      <button class="btn-accent" style="margin-top:8px" onclick="productFeedback()">Submit feedback → customer signal</button>
+      ${ps.fbMsg?`<div class="tag good" style="margin-top:6px">${esc(ps.fbMsg)}</div>`:''}</div>`;
+}
+async function productRun(){
+  const q=($("ptQuery")||{}).value||"";
+  S.product=Object.assign(S.product||{},{query:q,report:"… running the product …",profile:{},caveats:[],confidence:null,fbMsg:""});
+  renderProductOut();
+  const d=await postJSON("/api/org/product/try",{query:q});
+  S.product=Object.assign(S.product||{},{query:q,report:d.report||d.error||"(no output)",
+    profile:d.profile||{},caveats:d.caveats||[],confidence:d.confidence,llm:d.llm});
+  renderProductOut();
+}
+function setRating(n){S.product=S.product||{};S.product.comment=($("ptComment")||{}).value||S.product.comment;
+  S.product.rating=n;renderProductOut();}
+async function productFeedback(){
+  const ps=S.product||{};const comment=($("ptComment")||{}).value||ps.comment||"";
+  if(!ps.rating&&!comment){S.product.fbMsg="pick a rating or add a comment first";return renderProductOut();}
+  const d=await postJSON("/api/org/product/feedback",{rating:ps.rating||0,comment,query:ps.query||""});
+  S.product=Object.assign(S.product||{},{comment,
+    fbMsg:`✓ recorded ${d.ticket_id} (rating ${d.rating}) at t${d.tick} · human tickets: ${d.total_human_tickets}`});
+  renderProductOut();
+}
+
+/* ---------- IDE-style file reader ---------- */
+const EXT_LANG={py:"python",pyw:"python",js:"javascript",mjs:"javascript",ts:"typescript",tsx:"typescript",
+  jsx:"javascript",md:"markdown",markdown:"markdown",json:"json",yaml:"yaml",yml:"yaml",toml:"ini",ini:"ini",
+  html:"xml",xml:"xml",css:"css",scss:"scss",sh:"bash",bash:"bash",zsh:"bash",sql:"sql",java:"java",kt:"kotlin",
+  go:"go",rs:"rust",c:"c",h:"c",cpp:"cpp",cc:"cpp",hpp:"cpp",rb:"ruby",php:"php",cs:"csharp",swift:"swift",
+  txt:"plaintext",log:"plaintext"};
+function openReader(title,meta,text){
+  text=String(text==null?"":text);
+  $("readerTitle").textContent=title||"file";$("readerMeta").textContent=meta||"";
+  const n=text.split("\n").length;
+  $("readerGutter").textContent=Array.from({length:n},(_,i)=>i+1).join("\n");
+  const code=$("readerCode");
+  // syntax highlight: file extension -> language, else auto-detect (highlight.js)
+  let lang=null;const m=/\.([a-z0-9]+)$/i.exec(title||"");
+  if(m&&window.hljs&&EXT_LANG[m[1].toLowerCase()]&&hljs.getLanguage(EXT_LANG[m[1].toLowerCase()]))lang=EXT_LANG[m[1].toLowerCase()];
+  if(window.hljs&&text){let res=null;
+    try{res=lang?hljs.highlight(text,{language:lang}):hljs.highlightAuto(text);}catch(e){res=null;}
+    code.innerHTML=`<code class="hljs">${res?res.value:esc(text)}</code>`;
+    $("readerLang").textContent=((res&&res.language)||lang||"text");}
+  else{code.textContent=text||"(empty)";$("readerLang").textContent="";}
+  $("reader").classList.add("open");}
+function closeReader(){$("reader").classList.remove("open");}
+function openReaderStashed(){const r=S.reader||{};openReader(r.title,r.meta,r.text);}
+function _artifactContent(a,patches){
+  const L=[];
+  L.push(`# ${a.linked_file_path||a.title||a.artifact_id}`);
+  L.push(`# status=${a.status} · revision=${a.revision} · mainline=${a.mainline_revision==null?'-':a.mainline_revision}`);
+  L.push("");
+  if((a.capabilities||[]).length){L.push('"""');L.push("Capabilities (what this file can do):");
+    a.capabilities.forEach(c=>L.push("  - "+c));L.push('"""');L.push("");}
+  const applied=(patches||[]).filter(p=>(p.status||p.validation_status)==='accepted');
+  if(applied.length){
+    L.push("# ===== built from "+applied.length+" applied change(s), oldest first =====");L.push("");
+    applied.forEach(p=>{
+      L.push(`# --- t${p.created_tick!=null?p.created_tick:p.tick} · ${p.patch_type||'patch'} · ${p.change_summary||p.edit_goal||''}`);
+      if(p.pseudo_diff)L.push(p.pseudo_diff);
+      (p.changed_sections||[]).forEach(s=>{L.push("["+(s.section||'section')+"]");if(s.after)L.push(s.after);});
+      (p.added_fields||[]).forEach(f=>L.push("+ field: "+f));
+      (p.added_checks||[]).forEach(f=>L.push("+ check: "+f));
+      (p.changed_behavior||[]).forEach(f=>L.push("~ "+f));
+      (p.checklist_items||[]).forEach(f=>L.push("- [ ] "+f));
+      (p.workflow_sections||[]).forEach(f=>L.push("# "+f));
+      L.push("");});
+  }else{L.push("# (no applied patches yet — file is a stub / symbolic placeholder)");L.push("");}
+  if((a.known_gaps||[]).length){L.push("# TODO — known gaps:");a.known_gaps.forEach(g=>L.push("#   - "+g));}
+  return L.join("\n");}
+function drawerKV(title,o){$("drawerBody").innerHTML=`<h3>${esc(title)}</h3>${kvBlock(o)}`;$("drawer").classList.add("open");}
+function closeDrawer(){$("drawer").classList.remove("open");}
+
+/* ---------- boot ---------- */
+loadSources();
+</script>
+</body>
+</html>

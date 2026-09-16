@@ -24,6 +24,53 @@ DOC_EDITOR_SYSTEM = (
 
 MAX_EDIT_ATTEMPTS = 5
 
+# A behavioral contract is a bounded planning artifact, not a whole repository
+# file rewrite. Keeping this request explicit avoids the ``UNCAPPED_OUTPUT``
+# accounting envelope (32k per provider attempt). OpenAI reasoning models may
+# raise this to their 6k effective minimum, but the caller's requested budget
+# remains explicit and auditable.
+PROGRAMBENCH_CONTRACT_OUTPUT_TOKENS = 4096
+
+_PROGRAMBENCH_CONTRACT_COMMON_SYSTEM = (
+    "You are authoring the one evidence-bound behavioral contract for a "
+    "ProgramBench clean-room reconstruction. Return a JSON document patch with "
+    "a non-empty `change_summary` and `edits`. Do not write or audit a "
+    "README, even if retrieved public material contains a README. The contract "
+    "must preserve the supplied evidence and corpus digests verbatim; include "
+    "Markdown sections DOCUMENTED, OBSERVED, INFERRED, and UNKNOWN; include "
+    "case-level public reference findings in OBSERVED and copy the supplied "
+    "`Reference observations accepted: N cases` attestation exactly; never say "
+    "that reference cases or outputs were unobserved when observations are supplied; "
+    "state one Architecture and one repo-relative Source entrypoint. Use these exact, "
+    "standalone field forms (without Markdown heading or bold markers): "
+    "`Architecture: <one concrete architecture>` and "
+    "`Source entrypoint: <one repo-relative path>`; explain how compile.sh "
+    "will produce ./executable; and include a Verification plan using public probe "
+    "reference_only followed by differential. Do not claim hidden-test behavior "
+    "or access to reference source. JSON only."
+)
+
+PROGRAMBENCH_CONTRACT_CREATE_SYSTEM = (
+    _PROGRAMBENCH_CONTRACT_COMMON_SYSTEM
+    + " The target document is EMPTY: use exactly one edit whose `search` is "
+    "the empty string and whose `replace` is the complete new Markdown contract."
+)
+
+PROGRAMBENCH_CONTRACT_REVISION_SYSTEM = (
+    _PROGRAMBENCH_CONTRACT_COMMON_SYSTEM
+    + " The target document already contains the previous accepted contract. "
+    "Revise it for the supplied current public evidence and corpus. Every "
+    "`search` must be a non-empty exact string copied from CURRENT DOCUMENT "
+    "CONTENT and must occur exactly once. You may replace the complete existing "
+    "contract by using its entire current text as one `search`, or use bounded "
+    "exact anchors that preserve all untouched content. Never use an empty "
+    "`search` for a revision."
+)
+
+# Backward-compatible exported name for callers/tests that inspect the create
+# prompt. Runtime selection below uses the explicit create/revision variants.
+PROGRAMBENCH_CONTRACT_SYSTEM = PROGRAMBENCH_CONTRACT_CREATE_SYSTEM
+
 DOC_EDITOR_SCHEMA = {
     "patch_type": "doc_patch",
     "edit_goal": "string",
@@ -34,6 +81,14 @@ DOC_EDITOR_SCHEMA = {
     "added_limitations": ["string"],
     "added_requirements": ["string"],
     "remaining_risks": ["string"],
+    # All three are read when the patch is built, and the first two also compose
+    # the rendered document in _render_doc_change, but none was declared — so a
+    # checklist the document was supposed to grow, a workflow section it was
+    # supposed to gain, and the gaps it was supposed to close could only ever
+    # come back empty.
+    "checklist_items": ["string"],
+    "workflow_sections": ["string"],
+    "resolved_gaps": ["string"],
     "related_issue_ids": ["string"],
     "related_task_ids": ["string"],
 }
@@ -68,20 +123,38 @@ def _render_doc_change(current: str, data: dict) -> str:
 class DocEditorLLM:
     def generate_patch(self, *, actor_id: str, target_object_id: str, edit_goal: str,
                        rationale: str, world: Any, tick: int, patch_id: str,
-                       client: Optional[OrgLLMClient] = None) -> DocPatch:
+                       client: Optional[OrgLLMClient] = None,
+                       programbench_contract: bool = False) -> DocPatch:
         art = (getattr(world, "product_artifacts", {}) or {}).get(target_object_id)
         rel_tasks = [t.task_id for t in getattr(world, "tasks", {}).values()
                      if target_object_id in getattr(t, "linked_artifacts", [])]
         data = None
+        failure_reason = ""
+        edit_attempts = 0
         if client is not None and art is not None:
-            data = self._llm(client, art, edit_goal, rationale, world)
-        if data is None:
+            data, failure_reason, edit_attempts = self._llm_result(
+                client,
+                art,
+                edit_goal,
+                rationale,
+                world,
+                programbench_contract=programbench_contract,
+            )
+        elif programbench_contract:
+            failure_reason = (
+                "target_artifact_missing" if art is None else "llm_client_missing"
+            )
+        if data is None and not programbench_contract:
             data = self._template(art, edit_goal)
+        elif data is None:
+            # A failed ProgramBench generation must not become the generic
+            # README fallback merely because a retrieved surface is README.md.
+            data = {"patch_type": "doc_create", "change_summary": ""}
         cur = (getattr(art, "content", "") or "") if art else ""
         new_content = (data.get("new_content") or "").strip()
         if not new_content:
             new_content = _render_doc_change(cur, data)
-        return DocPatch(
+        patch = DocPatch(
             patch_id=patch_id, target_object_id=target_object_id, actor_id=actor_id, tick=tick,
             patch_type=data.get("patch_type", "doc_patch"),
             edit_goal=edit_goal or data.get("edit_goal", ""),
@@ -98,7 +171,51 @@ class DocEditorLLM:
             related_issue_ids=ensure_list(data.get("related_issue_ids")),
             related_task_ids=ensure_list(data.get("related_task_ids")) or rel_tasks)
 
+        if programbench_contract:
+            # Patch objects serialize their __dict__, so these bounded
+            # diagnostic codes remain checkpoint-visible without persisting
+            # provider errors. Native patches retain their historical shape.
+            patch.llm_declined = not bool(data.get("new_content"))
+            patch.decline_reason = failure_reason if patch.llm_declined else ""
+            patch.edit_attempts = int(
+                data.get("edit_attempts") or edit_attempts or 0
+            )
+            patch.generation_mode = (
+                "programbench_contract_revision"
+                if cur.strip()
+                else "programbench_contract_full_create"
+            )
+        return patch
+
     def _llm(self, client, art, edit_goal, rationale, world):
+        data, _failure_reason, _attempts = self._llm_result(
+            client, art, edit_goal, rationale, world
+        )
+        return data
+
+    @staticmethod
+    def _failure_code(error: BaseException) -> tuple[str, bool]:
+        """Return a de-sensitive code and whether editor retries must stop."""
+
+        text = str(error).casefold()
+        if "experiment_resource_exhausted" in text:
+            return "resource_exhausted", True
+        if "prompt_visibility_violation" in text:
+            return "prompt_visibility_denied", True
+        if isinstance(error, LLMError):
+            return "llm_error", False
+        return "editor_exception", False
+
+    def _llm_result(
+        self,
+        client,
+        art,
+        edit_goal,
+        rationale,
+        world,
+        *,
+        programbench_contract: bool = False,
+    ):
         """Ask for anchored edits against the WHOLE document.
 
         This used to show 1800 characters and ask for "the FULL updated
@@ -112,39 +229,85 @@ class DocEditorLLM:
         """
         gaps = "; ".join(getattr(art, "known_gaps", []) or []) or "(none recorded)"
         content = getattr(art, "content", "") or ""
+        contract_system = (
+            PROGRAMBENCH_CONTRACT_REVISION_SYSTEM
+            if programbench_contract and content.strip()
+            else PROGRAMBENCH_CONTRACT_CREATE_SYSTEM
+        )
         base = (f"Target document:\n{art.artifact_id} — {art.title}\n{art.summary or ''}\n\n"
                 f"CURRENT DOCUMENT CONTENT:\n{content or '(empty)'}\n\n"
                 f"Edit goal:\n{edit_goal}\n\nReason:\n{rationale}\n\nKnown gaps:\n{gaps}\n\n"
                 "Return the patch JSON with `edits`: exact `search` strings copied "
-                "from the document above, each with its `replace` text.")
+                "from the document above, each with its `replace` text."
+                + (
+                    "\n\nThis document is EMPTY. Return exactly one edit with "
+                    "`search` set to the empty string and the complete new "
+                    "Markdown document in `replace`."
+                    if programbench_contract and not content.strip()
+                    else (
+                        "\n\nThis is a CONTRACT REVISION. Use non-empty exact "
+                        "anchors copied from CURRENT DOCUMENT CONTENT. Replacing "
+                        "the full existing document with one exact full-document "
+                        "anchor is allowed."
+                        if programbench_contract
+                        else ""
+                    )
+                ))
         correction = ""
+        last_failure = "invalid_response"
+        attempts = 0
         for attempt in range(1, MAX_EDIT_ATTEMPTS + 1):
+            attempts = attempt
             try:
-                # No output ceiling: the edits are short, but their length is
-                # not known in advance, and a ceiling below the answer returns
-                # nothing at all rather than a shorter answer.
-                data = client.generate_json(DOC_EDITOR_SYSTEM, base + correction,
-                                            DOC_EDITOR_SCHEMA,
-                                            max_tokens=UNCAPPED_OUTPUT)
-            except (LLMError, Exception):
+                data = client.generate_json(
+                    (
+                        contract_system
+                        if programbench_contract
+                        else DOC_EDITOR_SYSTEM
+                    ),
+                    base + correction,
+                    DOC_EDITOR_SCHEMA,
+                    max_tokens=(
+                        PROGRAMBENCH_CONTRACT_OUTPUT_TOKENS
+                        if programbench_contract
+                        else UNCAPPED_OUTPUT
+                    ),
+                )
+            except Exception as error:  # noqa: BLE001 - classified, never exposed
                 data = None
+                last_failure, terminal = self._failure_code(error)
+                if terminal:
+                    break
             if not isinstance(data, dict) or not data.get("change_summary"):
                 # Nothing came back: a retry is a re-roll, not a correction, so
                 # there is nothing to tell the model.
+                if data is not None:
+                    last_failure = "invalid_response"
                 continue
             patched, problems = apply_anchored_edits(content, data.get("edits"))
+            if (
+                programbench_contract
+                and not problems
+                and not patched.strip()
+            ):
+                problems = [
+                    "the ProgramBench contract body is empty or whitespace-only"
+                ]
             if not problems and patched != content:
                 data["new_content"] = patched
                 data["edit_attempts"] = attempt
-                return data
+                return data, "", attempt
             if not problems and patched == content:
                 problems = ["the edits left the document unchanged"]
+                last_failure = "unchanged_edit"
+            else:
+                last_failure = "anchor_apply_failed"
             correction = (
                 "\n\nYour previous answer could not be applied:\n"
                 + "\n".join(f"- {problem}" for problem in problems)
                 + "\nRe-read the document above and copy each `search` from it exactly."
             )
-        return None
+        return None, last_failure, attempts
 
     def _template(self, art, edit_goal: str) -> dict:
         gaps: List[str] = list(getattr(art, "known_gaps", []) or []) if art else []
@@ -172,4 +335,11 @@ class DocEditorLLM:
         }
 
 
-__all__ = ["DocEditorLLM", "DOC_EDITOR_SYSTEM"]
+__all__ = [
+    "DocEditorLLM",
+    "DOC_EDITOR_SYSTEM",
+    "PROGRAMBENCH_CONTRACT_OUTPUT_TOKENS",
+    "PROGRAMBENCH_CONTRACT_CREATE_SYSTEM",
+    "PROGRAMBENCH_CONTRACT_REVISION_SYSTEM",
+    "PROGRAMBENCH_CONTRACT_SYSTEM",
+]

@@ -8,7 +8,6 @@ import hashlib
 import json
 import os
 import re
-import stat
 from collections.abc import Mapping
 from enum import Enum
 from pathlib import Path
@@ -143,106 +142,15 @@ def repository_digest(path: str | os.PathLike[str]) -> str:
     root = Path(path).expanduser().resolve()
     if not root.is_dir():
         raise ValueError(f"repository path is not a directory: {root}")
-    files: list[tuple[object, ...]] = []
-    for candidate in sorted(root.rglob("*")):
-        if _repo_entry_ignored(candidate, root):
-            continue
-        relative = candidate.relative_to(root).as_posix()
-        try:
-            metadata = candidate.lstat()
-        except OSError:
-            files.append((relative, "unreadable_entry"))
-            continue
-        if stat.S_ISLNK(metadata.st_mode):
-            try:
-                target = os.readlink(candidate)
-            except OSError:
-                target = "unreadable"
-            files.append((relative, "symlink", target, metadata.st_mode))
-        elif stat.S_ISREG(metadata.st_mode):
-            try:
-                digest = file_sha256(candidate)
-            except OSError:
-                files.append(
-                    (
-                        relative,
-                        "unreadable_file",
-                        metadata.st_size,
-                        metadata.st_mtime_ns,
-                        metadata.st_mode,
-                    )
-                )
-            else:
-                files.append(
-                    (
-                        relative,
-                        "file",
-                        metadata.st_size,
-                        metadata.st_mode,
-                        digest,
-                    )
-                )
-        else:
-            entry_type = "directory" if stat.S_ISDIR(metadata.st_mode) else "other"
-            files.append((relative, entry_type, metadata.st_mode))
-    return stable_fingerprint(
-        {
-            "files": files,
-            "dependency_state": _dependency_state_inputs(root),
-        }
+    # The final evaluator owns the repository-digest contract.  Reusing its
+    # execution-profile implementation avoids a second almost-identical tree
+    # walker drifting on platform I/O or repository-path policy while the
+    # record/evaluator comparison in ``records`` remains a fail-closed gate.
+    from society_core.code_landing.environment import (
+        build_workspace_execution_profile,
     )
 
-
-def _repo_entry_ignored(path: Path, root: Path) -> bool:
-    return any(
-        part
-        in {
-            ".git",
-            ".mypy_cache",
-            ".pytest_cache",
-            ".ruff_cache",
-            ".venv",
-            "__pycache__",
-            "node_modules",
-            "outputs",
-        }
-        for part in path.relative_to(root).parts
-    )
-
-
-def _dependency_state_inputs(
-    root: Path,
-) -> tuple[tuple[object, ...], ...]:
-    entries: list[tuple[object, ...]] = []
-    for name in ("node_modules", ".venv"):
-        dependency_root = root / name
-        if dependency_root.is_symlink() or not dependency_root.is_dir():
-            continue
-        for path in sorted(dependency_root.rglob("*")):
-            relative = path.relative_to(root).as_posix()
-            try:
-                metadata = path.lstat()
-            except OSError:
-                continue
-            if path.is_symlink():
-                try:
-                    target = path.readlink().as_posix()
-                except OSError:
-                    target = "unreadable"
-                entries.append((relative, "symlink", target, metadata.st_mtime_ns))
-            elif path.is_file():
-                entries.append(
-                    (
-                        relative,
-                        "file",
-                        metadata.st_size,
-                        metadata.st_mtime_ns,
-                        metadata.st_mode,
-                    )
-                )
-            elif path.is_dir():
-                entries.append((relative, "directory", metadata.st_mode))
-    return tuple(entries)
+    return build_workspace_execution_profile(root).repo_hash
 
 
 def directory_content_hash(path: str | os.PathLike[str]) -> str:

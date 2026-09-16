@@ -2,14 +2,8 @@
 from environments.org_env.config.metrics import ALL_METRICS, OrgMetrics
 from environments.org_env.config.scenarios import (
     SCENARIOS,
-    oss_time_machine,
-    oss_time_machine_formal,
+    api_price_shock,
+    default_scenario,
 )
 
-__all__ = [
-    "oss_time_machine",
-    "oss_time_machine_formal",
-    "SCENARIOS",
-    "ALL_METRICS",
-    "OrgMetrics",
-]
+__all__ = ["default_scenario", "api_price_shock", "SCENARIOS", "ALL_METRICS", "OrgMetrics"]

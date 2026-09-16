@@ -155,6 +155,33 @@ def _rules_and_what_they_cost(world: Any) -> List[Dict[str, Any]]:
     return rows
 
 
+def _programbench_phase_context(world: Any) -> Dict[str, Any] | None:
+    """Agent-visible live phase context for the explicit adapted profile only."""
+
+    if "programbench_profile_state" not in getattr(world, "__dict__", {}):
+        return None
+    from environments.org_env.programbench import programbench_agent_phase_context
+
+    return programbench_agent_phase_context(world)
+
+
+def _programbench_retrieved_surfaces(
+    world: Any, agent_id: str
+) -> List[Dict[str, Any]] | None:
+    """Targeted public retrievals available to this agent's cognition only."""
+
+    if "programbench_profile_state" not in getattr(world, "__dict__", {}):
+        return None
+    from environments.org_env.programbench import (
+        programbench_retrieved_public_surfaces,
+    )
+
+    return [
+        dict(row)
+        for row in programbench_retrieved_public_surfaces(world, agent_id)
+    ]
+
+
 class ReflectionManager:
     def __init__(self) -> None:
         self.reflections: Dict[str, AgentReflection] = {}
@@ -242,6 +269,10 @@ class ReflectionManager:
             for ep in mgr.episodes.values():
                 (open_eps if ep.status == "open" else closed_eps).append(ep.episode_type)
         protocols = _rules_and_what_they_cost(world)
+        programbench_context = _programbench_phase_context(world)
+        programbench_retrieved = _programbench_retrieved_surfaces(
+            world, agent_id
+        )
         from environments.org_env.llm.prompt_assets import agent_identity_for, render_product_context
         failures: Dict[str, Any] = {}
         try:
@@ -259,6 +290,20 @@ class ReflectionManager:
             failures = {}
         return {
             "agent_id": agent_id, "role": role,
+            **(
+                {"programbench_workflow_state": programbench_context}
+                if programbench_context is not None
+                else {}
+            ),
+            **(
+                {
+                    "programbench_targeted_public_retrievals": (
+                        programbench_retrieved
+                    )
+                }
+                if programbench_retrieved
+                else {}
+            ),
             # First, ahead of the 6876-character product context: what the gates
             # said is the thing to reason from, and it should not sit behind the
             # bulk. Only this arm has the key, so nothing below B3 is reordered.
@@ -307,6 +352,26 @@ class ReflectionManager:
         if data is None:
             data = self._template_reflect(context, world)
         ideas = data.get("improvement_ideas", [])
+
+        def _needs(flag: str) -> list:
+            """Descriptions of the ideas marked for one audience.
+
+            The flag was read with .get and the description by subscript, so an
+            idea that carried `team` without a `description` raised KeyError out
+            of reflect, up through world.step, and killed the run: one arm died
+            at t35 having spent a hundred minutes. The model is free to omit a
+            key the schema does not require, so an idea missing its text is
+            dropped rather than fatal. Non-dict entries go the same way.
+            """
+            out = []
+            for idea in ideas:
+                if not isinstance(idea, dict) or not idea.get(flag):
+                    continue
+                text = str(idea.get("description") or "").strip()
+                if text:
+                    out.append(text)
+            return out
+
         refl = AgentReflection(
             reflection_id=rid, agent_id=agent_id, tick=tick,
             source_episode_ids=[episode.episode_id] if episode is not None else [],
@@ -316,8 +381,8 @@ class ReflectionManager:
             team_assessment=data.get("team_assessment", ""),
             perceived_blockers=data.get("perceived_blockers", []),
             perceived_repeated_failures=data.get("perceived_repeated_failures", []),
-            perceived_team_needs=[i["description"] for i in ideas if i.get("team")],
-            perceived_self_needs=[i["description"] for i in ideas if i.get("self")],
+            perceived_team_needs=_needs("team"),
+            perceived_self_needs=_needs("self"),
             improvement_ideas=ideas, raw_text=data.get("raw_text", ""),
             llm_model=model, trigger_reason=reason)
         return refl
@@ -386,6 +451,11 @@ class ReflectionManager:
             for f in ("perceived_blockers", "perceived_self_needs", "perceived_team_needs",
                       "perceived_repeated_failures"):
                 res[f] = [str(x) for x in (res.get(f) or [])]
+            # Deliberately only the shape check here. Filtering by description
+            # too would route "the model wrote ideas but left them untitled"
+            # into the `not ideas` fallback below and discard a reflection whose
+            # assessments were fine. The description filter belongs at the
+            # reader, where it costs only the needs it cannot name.
             ideas = [i for i in (res.get("improvement_ideas") or []) if isinstance(i, dict)]
             res["improvement_ideas"] = ideas
             if not ideas:
@@ -396,6 +466,13 @@ class ReflectionManager:
                 i.setdefault("self", False)
                 i.setdefault("urgency", 0.6)
                 i.setdefault("risk", i.get("risk_if_unaddressed", ""))
+                # Every other key a consumer reads is defaulted here; this one was
+                # not, and the consumers read it by subscript. An idea that came
+                # back with `team` but no `description` raised KeyError out of
+                # reflect, through world.step, and ended the run -- one arm died
+                # at t35 with a hundred minutes spent. Left empty rather than
+                # invented, so a caller can tell it apart from a real answer.
+                i.setdefault("description", "")
             return res, getattr(client, "provider", "llm")
         except Exception:
             return None, None
@@ -626,7 +703,8 @@ class ReflectionManager:
             # a clear lesson if the idea names a concrete risk
             if idea.get("risk"):
                 AgentMemory._push(mem.lessons_learned,
-                                  f"{idea['description']} — else {idea['risk']}")
+                                  f"{idea.get('description', '')} — else "
+                                  f"{idea.get('risk', '')}")
         mem.last_reflection_tick = refl.tick
 
     def _write_log(self, world, refl: AgentReflection, episode) -> None:
@@ -690,9 +768,27 @@ class ReflectionManager:
     # ====================== decision-context (memory feeds future acts) == #
     def context_for_decision(self, agent_id: str, world: Any) -> Dict[str, Any]:
         mem = self._memory(world, agent_id)
+        programbench_context = _programbench_phase_context(world)
+        programbench_retrieved = _programbench_retrieved_surfaces(
+            world, agent_id
+        )
         ow = [w.to_dict() for w in self.wishes.values()
               if w.agent_id == agent_id and w.status in ("open", "interpreted")]
         return {
+            **(
+                {"programbench_workflow_state": programbench_context}
+                if programbench_context is not None
+                else {}
+            ),
+            **(
+                {
+                    "programbench_targeted_public_retrievals": (
+                        programbench_retrieved
+                    )
+                }
+                if programbench_retrieved
+                else {}
+            ),
             "recent_reflections": list(mem.reflections[-3:]),
             "lessons_learned": list(mem.lessons_learned[-3:]),
             "unresolved_needs": list(mem.unresolved_needs[-5:]),

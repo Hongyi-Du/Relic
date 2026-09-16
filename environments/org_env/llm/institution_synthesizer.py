@@ -85,10 +85,15 @@ def _traced(world: Any, why: str, out: List[Dict[str, Any]], *, read: int = 0):
 
 def _adopted_rule_texts(world: Any) -> List[str]:
     """What the organization already requires of itself, as it wrote it."""
+    from environments.org_env.backend.protocol.registry import protocol_is_live
+
     out: List[str] = []
     registry = getattr(world, "protocol_registry", None)
     for protocol in (getattr(registry, "protocols", {}) or {}).values():
-        if str(getattr(protocol, "adoption_status", "")) != "adopted":
+        if (
+            not protocol_is_live(protocol)
+            or str(getattr(protocol, "adoption_status", "")) != "adopted"
+        ):
             continue
         rule = str(getattr(protocol, "rule_summary", "") or "").strip()
         if rule:
@@ -130,12 +135,35 @@ _PATTERN_SEEDS = {
 }
 
 
+# v13 P4: when the repeated debugging cluster is about CROSS-MODULE INTERFACE breaks (not just a
+# flaky smoke), the org should institutionalize a deeper protocol than "run smoke" — a contract
+# protocol governing the schemas that keep the product's modules agreeing with each other.
+_LANTERNSCOUT_CONTRACT_SEED = {
+    "name": "Claim-Source Interface Contract Protocol",
+    "trigger_condition": ("a patch/PR changes a core interface "
+                          "(run_research / ClaimTracker.add / run_eval / write_report / smoke_check)"),
+    "required_fields": ["claim_schema", "source_schema", "research_result_schema",
+                        "run_eval_signature", "contract_test_updated"],
+    "enforcement_rule": ("any change to a contract producer/consumer must keep the "
+                         "Claim/Source/ResearchResult schema consistent and pass the contract test "
+                         "(end-to-end smoke) before merge"),
+    "required_actions": ["edit_repo_file", "run_ci", "review_pr"],
+}
 _CONTRACT_CLUSTER_KW = ("source_id", "signature", "attribute", "positional argument",
                         "contract", "run_eval", ".all", "takes")
 
 
 def _interface_contract_seed(world: Any) -> Dict[str, Any]:
     """The interface-contract seed written in THIS product's own vocabulary.
+
+    The seed is both shown to the model as the basis for the rule and used
+    verbatim when the model call fails, so a hardcoded one decides what the
+    institution ends up being about. With only the LanternScout seed available,
+    an organization building a blob store adopted, enforced 87 times, and kept
+    for 96 ticks a rule requiring "the Claim, Source and ResearchResult schemas"
+    to stay consistent — schemas its product does not contain. The shape was
+    right and the subject was another product's, so following the rule could not
+    fix what was breaking: it recorded a violation_rate_delta of exactly 0.0.
 
     Everything here comes from what the organization can see it owns, so the
     rule names the specification and modules its own members are reading.
@@ -145,6 +173,13 @@ def _interface_contract_seed(world: Any) -> Dict[str, Any]:
                for aid, a in artifacts.items()
                if getattr(a, "artifact_type", "") != "issue"}
     paths = set(path_of.values())
+    # Only where the product really is the one this rule describes. Asking
+    # whether ANY file of CONTRACT_FILES is present matched on smoke_check.py,
+    # which any product may ship — a blob store was handed the research
+    # product's contract because both happen to have a smoke.
+    if {"research_loop.py", "tools/claim_tracker.py"} <= paths:
+        return dict(_LANTERNSCOUT_CONTRACT_SEED)
+
     # A README explains how to run the suite; it does not declare the surface, and
     # citing it as the specification sends a reader to the wrong file.
     spec = sorted(p for p in paths if p.endswith((".md", ".json"))

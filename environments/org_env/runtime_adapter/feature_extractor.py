@@ -18,7 +18,8 @@ from environments.org_env.backend.actions import action_category
 # action_type -> the skill that gates its success (for skill_match / failure_risk).
 ACTION_SKILL = {
     "work_on_task": "core_coding", "debug_code": "debugging", "commit_changes": "core_coding",
-    "edit_file": "core_coding", "open_pr": "core_coding", "run_experiment": "experimental_design",
+    "edit_file": "core_coding", "edit_repo_file": "core_coding",
+    "open_pr": "core_coding", "run_experiment": "experimental_design",
     "run_cheap_pilot": "experimental_design", "run_paper_baseline": "experimental_design",
     "review_pr": "review_quality", "review_doc": "review_quality", "review_result": "review_quality",
     "request_changes": "review_quality", "request_doc_changes": "claim_wording",
@@ -189,14 +190,21 @@ class OrgFeatureExtractor:
     def _semantics(self, f, at, cat, params, perception, agent, w):
         clk = w.time.clock
         # task / work
-        if at in ("work_on_task", "pick_task", "debug_code", "commit_changes", "edit_file"):
+        if at in (
+            "work_on_task",
+            "pick_task",
+            "debug_code",
+            "commit_changes",
+            "edit_file",
+            "edit_repo_file",
+        ):
             f.progress_gain = 0.7 if at in ("work_on_task", "commit_changes") else 0.4
             tid = params.get("task_id")
             t = w.tasks.get(tid) if tid else None
             if t is not None:
                 f.task_priority = getattr(t, "priority", 3) / 5.0
                 f.deadline_urgency = min(1.0, getattr(t, "priority", 3) / 5.0)
-            if at in ("commit_changes", "edit_file"):
+            if at in ("commit_changes", "edit_file", "edit_repo_file"):
                 f.repo_health_gain = 0.3
                 f.technical_debt_risk = 0.5 if agent.skill("test_writing", 0.3) < 0.4 else 0.2
             if "demo" in (params.get("module", "") + str(params.get("title", ""))).lower():

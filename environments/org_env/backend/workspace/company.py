@@ -13,8 +13,8 @@ from environments.org_env.backend.workspace.objects import FileObject, Visibilit
 
 @dataclass
 class CompanyWorkspace:
-    workspace_id: str = "relic_org"
-    company_name: str = "Relic organization"
+    workspace_id: str = "lanternforge"
+    company_name: str = "LanternForge"
     members: Set[str] = field(default_factory=set)
     files: Dict[str, FileObject] = field(default_factory=dict)
     shared_doc_ids: List[str] = field(default_factory=list)

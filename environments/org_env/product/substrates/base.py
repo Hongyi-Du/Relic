@@ -1,11 +1,23 @@
-"""Types for the frozen OSS time-machine substrate."""
+"""Product-substrate base types (OSS Time-Machine brief §5).
+
+A *substrate* is the concrete product the company starts from. OrgEnv has two:
+
+* ``synthetic_lanternscout`` — the hand-written messy research-agent (default / debug / dev).
+* ``oss_time_machine``       — a real OSS project's early runnable release, frozen locally, with
+  future code / release notes / hidden behavior tests withheld from the agents.
+
+This module only holds light, dependency-free dataclasses + the substrate-type constants; the
+actual seeding lives in ``synthetic_lanternscout.py`` / ``oss_time_machine.py`` and is routed from
+``product/seed.py``.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any, Dict, List
 
+SYNTHETIC_LANTERNSCOUT = "synthetic_lanternscout"
 OSS_TIME_MACHINE = "oss_time_machine"
-SUBSTRATE_TYPES = (OSS_TIME_MACHINE,)
+SUBSTRATE_TYPES = (SYNTHETIC_LANTERNSCOUT, OSS_TIME_MACHINE)
 
 
 @dataclass(frozen=True)
@@ -108,6 +120,6 @@ class OSSSubstrateSpec:
 
 
 __all__ = [
-    "OSS_TIME_MACHINE", "SUBSTRATE_TYPES",
+    "SYNTHETIC_LANTERNSCOUT", "OSS_TIME_MACHINE", "SUBSTRATE_TYPES",
     "HistoricalIssue", "HiddenTestSpec", "OSSSubstrateSpec",
 ]

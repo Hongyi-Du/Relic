@@ -1,4 +1,11 @@
-"""Product artifacts manipulated by the Relic organization runtime."""
+"""Messy product substrate — the concrete artifacts the team fights over.
+
+The company is building a research-agent prototype (LanternScout) from 0→1. The
+substrate is deliberately MESSY (overpromising README, vague eval, claim tracker
+without evidence enforcement, …) so that conflict / reflection / wishes / proposals
+/ tools / protocols form around real code/doc/issue/eval/report objects rather than
+abstract talk.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -44,8 +51,10 @@ class ProductState:
     repo_id: Optional[str] = None
     open_issue_ids: List[str] = field(default_factory=list)
     artifact_ids: List[str] = field(default_factory=list)
-    # Non-secret substrate metadata only; never reference code or hidden tests.
-    substrate_type: str = "oss_time_machine"
+    # which product substrate seeded this world (OSS time-machine brief §6): synthetic_lanternscout
+    # (default / debug) | oss_time_machine (real OSS history). substrate_meta carries non-secret
+    # metadata only (dataset_id / anonymized product name) — never reference code or hidden tests.
+    substrate_type: str = "synthetic_lanternscout"
     substrate_meta: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -95,9 +104,22 @@ class ProductArtifact:
     # is kept for compat; issue_status carries open/in_progress/partially_resolved/resolved).
     issue_status: str = "open"
     linked_gap_ids: List[str] = field(default_factory=list)
+    # Appended for positional-constructor and legacy snapshot compatibility.
+    # True only for a repository path introduced during the run. Until its
+    # carrying PR merges, it exists on the working branch but not on mainline.
+    created_as_new_file: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
-        return {k: (list(v) if isinstance(v, list) else v) for k, v in self.__dict__.items()}
+        payload = {
+            k: (list(v) if isinstance(v, list) else v)
+            for k, v in self.__dict__.items()
+        }
+        # A checkpoint pickled before this field existed has no instance
+        # attribute for it.  Runtime getattr() correctly falls back to the
+        # dataclass default, but snapshots must also make that safe default
+        # explicit so the next replay is on the current schema.
+        payload.setdefault("created_as_new_file", False)
+        return payload
 
 
 __all__ = ["ProductState", "ProductArtifact", "ARTIFACT_TYPES", "ARTIFACT_STATUS", "artifact_purpose"]

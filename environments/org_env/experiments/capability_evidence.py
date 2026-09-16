@@ -372,7 +372,7 @@ def _by_capability(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     formed, the experiment tracker did not" is. A rate over an unnamed pool
     cannot distinguish those.
 
-    Classification reuses Relic's closed registry, which matches
+    Classification reuses ``society_core``'s registry unchanged, which matches
     exact slugs only and drops everything else. That is deliberately
     conservative: an open-vocabulary protocol type the LLM invented is left
     unmapped rather than argued into a bucket, so this can understate capability
@@ -380,7 +380,7 @@ def _by_capability(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     fell out, so the shortfall is visible instead of silently absorbed.
     """
     try:
-        from relic.governance.capabilities import (
+        from society_core.organizational_capabilities import (
             CAPABILITY_KIND_ORGANIZATIONAL,
             ORGANIZATIONAL_CAPABILITY_LABELS,
             classify_capability_kind,
@@ -407,7 +407,7 @@ def _by_capability(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
         bucket["weak_count"] += int(row["emergence_level"] in {"weak", "strong"})
         bucket["strong_count"] += int(row["emergence_level"] == "strong")
         bucket["protocol_ids"].append(str(row.get("protocol_id") or ""))
-    from relic.governance.capabilities import (
+    from society_core.organizational_capabilities import (
         EXPLORATORY_CAPABILITIES,
         PREREGISTERED_CAPABILITIES,
     )
@@ -517,6 +517,27 @@ def attach_independent_outcomes(
         for row in (capability_evidence.get("detector_replays") or ())
         if isinstance(row, Mapping)
     }
+    # `pev_N` is one sequence shared by every protocol -- a live registry hands
+    # out ids from a single counter, so one protocol's events can run pev_2..290
+    # and the next one's start at pev_291. Attaching an outcome below rebuilds a
+    # throwaway registry PER protocol, and seeding its counter from that
+    # protocol's own ids alone would mint an id another protocol already owns:
+    # the run then dies in validation with
+    # capability_evidence_event_ids_not_global_unique after all 336 ticks are
+    # done, losing the record of a completed run (seen on a nine-protocol arm).
+    # So the counter starts at the global maximum and carries forward across
+    # protocols.
+    next_sequence = max(
+        (
+            int(match.group(1))
+            for candidate in (capability_evidence.get("protocols") or ())
+            if isinstance(candidate, Mapping)
+            for event in (candidate.get("events") or ())
+            if isinstance(event, Mapping)
+            and (match := re.fullmatch(r"pev_(\d+)", str(event.get("event_id") or "")))
+        ),
+        default=0,
+    )
     for raw_row in capability_evidence.get("protocols") or ():
         row = dict(raw_row)
         protocol_id = str(row["protocol_id"])
@@ -543,12 +564,8 @@ def attach_independent_outcomes(
             for event in (row.get("events") or ())
             if isinstance(event, Mapping)
         ]
-        sequence_ids = [
-            int(match.group(1))
-            for event in registry.events
-            if (match := re.fullmatch(r"pev_(\d+)", event.event_id))
-        ]
-        registry._seq = max(sequence_ids, default=len(registry.events))
+        # Global, not per-protocol: see next_sequence above.
+        registry._seq = max(next_sequence, len(registry.events))
         existing_enforcement_ids = {
             str(event.data.get("enforcement_event_id") or "")
             for event in registry.events
@@ -609,6 +626,9 @@ def attach_independent_outcomes(
             linked_oracle_ids.append(oracle_id)
 
         event_rows = [_event_payload(event) for event in registry.events]
+        # Carry the counter forward so the next protocol cannot reuse an id this
+        # one just minted.
+        next_sequence = max(next_sequence, registry._seq)
         evidence = registry.emergence_evidence(protocol_id)
         row.update(
             {

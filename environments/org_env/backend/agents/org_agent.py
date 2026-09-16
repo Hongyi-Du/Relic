@@ -1,6 +1,6 @@
 """OrgEnv internal agents — full lived agents (DESIGN env_org §33).
 
-Internal company agents run the complete Relic Core pipeline (driven
+Internal company agents run the complete SocioGenesis Core pipeline (driven
 through the runtime_adapter). This holds env-side per-agent domain state +
 seeding. SKELETON: identity + domain-state container only (Stage O2 adds
 ProfileState seeding + skill/role assignment).
@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional
 
-from relic.core.domain import DomainAgentState, VitalState
+from agent_sdk.lived.domain.interfaces import DomainAgentState, VitalState
 from environments.org_env.growth.objects import effective_skill
 from environments.org_env.backend.agents.work_state import (
     ORG_VITALS,
@@ -58,7 +58,7 @@ class OrgAgent:
         # Which controller picks this seat's actions. Research-side only: the
         # organization must not be able to tell a human seat from an autonomous
         # one, so this stays out of snapshots, perception and the event log —
-        # only OrgWorld.controller_log records human-origin actions.
+        # only OrgWorld.controller_log records it.
         self.controller_type = "agent"      # "agent" | "human"
         # Internal Growth Module (§1): persistent skill (grows in self.skills) + domain
         # reputation + derived informal authority + go-to tags. Core profile stays fixed.

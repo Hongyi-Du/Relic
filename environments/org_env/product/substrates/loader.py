@@ -17,29 +17,33 @@ from environments.org_env.product.substrates.base import (
     HistoricalIssue,
     OSSSubstrateSpec,
 )
-from relic.paths import benchmark_root
 
 _SKIP_DIR_NAMES = {"__pycache__", ".git", ".hg", ".svn", ".mypy_cache", ".pytest_cache"}
 _SKIP_SUFFIXES = (".pyc", ".pyo")
 
 
 def data_root() -> str:
-    """Return the frozen ``relic-main-v1`` pack directory."""
+    """Return the public Relic benchmark root.
 
-    return str(benchmark_root() / "relic-main-v1" / "packs")
+    The upstream HCI implementation used its development-tree dataset path.
+    Release packs are deliberately relocated under the frozen
+    ``benchmarks/relic-main-v1`` tree so a fresh clone has no dependency on a
+    developer checkout.  ``RELIC_BENCHMARK_ROOT`` remains the single public
+    override through :mod:`relic.paths`.
+    """
+    from relic.paths import benchmark_root
+
+    return str(benchmark_root() / "relic-main-v1")
 
 
 def find_dataset_dir(dataset_id: str, root: Optional[str] = None) -> str:
-    """Locate a frozen pack by ID or accept an explicit absolute directory.
+    """Locate the dataset under ``<root>/{real,projects,fixtures}/<id>``.
 
-    The release benchmark stores W01-W10 directly below ``packs``. The legacy
-    subdirectory lookup remains only for user-supplied benchmark roots.
-    """
+    ``real`` and ``projects`` (committed/offline-frozen REAL OSS snapshots) take precedence over
+    ``fixtures`` (tiny synthetic dev/test fixtures) so a real id never accidentally resolves to a
+    toy. An absolute path is also accepted directly."""
     root = root or data_root()
-    direct = os.path.join(root, dataset_id)
-    if os.path.isdir(direct):
-        return direct
-    for sub in ("real", "projects", "fixtures"):
+    for sub in ("packs", "real", "projects", "fixtures"):
         cand = os.path.join(root, sub, dataset_id)
         if os.path.isdir(cand):
             return cand
@@ -47,8 +51,8 @@ def find_dataset_dir(dataset_id: str, root: Optional[str] = None) -> str:
     if os.path.isabs(dataset_id) and os.path.isdir(dataset_id):
         return dataset_id
     raise FileNotFoundError(
-        f"frozen benchmark pack {dataset_id!r} not found under {root}"
-    )
+        f"OSS time-machine dataset {dataset_id!r} not found under "
+        f"{root}/{{real,projects,fixtures}}")
 
 
 def is_fixture_dir(dataset_dir: str) -> bool:

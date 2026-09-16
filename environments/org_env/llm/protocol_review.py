@@ -96,11 +96,15 @@ def adopted_rules(world: Any) -> List[Tuple[str, str, str]]:
     the environment's own.
     """
     from environments.org_env.experiments.capability_transfer import inherited_base_id
+    from environments.org_env.backend.protocol.registry import protocol_is_live
 
     registry = getattr(world, "protocol_registry", None)
     out: List[Tuple[str, str, str]] = []
     for pid, protocol in (getattr(registry, "protocols", {}) or {}).items():
-        if str(getattr(protocol, "adoption_status", "")) != "adopted":
+        if (
+            not protocol_is_live(protocol)
+            or str(getattr(protocol, "adoption_status", "")) != "adopted"
+        ):
             continue
         # A transferred copy of a rule this codebase already gates is the same
         # rule wearing a namespace, and reviewing it here would enforce it a

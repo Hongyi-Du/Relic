@@ -15,6 +15,7 @@ import platform
 import sys
 from collections.abc import Mapping, Sequence
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 from environments.org_env.config.metrics import ALL_METRICS, OrgMetrics
@@ -426,6 +427,9 @@ def _llm_runtime_payload(
         "wire_api": str(
             getattr(client, "wire_api", None) or "not_applicable"
         ),
+        "json_transport": str(
+            getattr(client, "json_transport", None) or "not_applicable"
+        ),
         "endpoint_kind": endpoint_kind,
         "endpoint_hash": stable_fingerprint(
             str(endpoint) or endpoint_kind
@@ -525,7 +529,23 @@ def _resolve_hidden_suite_hash(
     if source is None:
         return declared
     if isinstance(source, (str, os.PathLike)) and Path(source).expanduser().is_dir():
-        computed = directory_content_hash(source)
+        hidden_root = Path(source).expanduser()
+        if (hidden_root / "programbench.json").exists():
+            # ProgramBench's identity includes opaque binary branch archives,
+            # file kinds, and sizes.  The generic text-directory hash silently
+            # skips those bytes and therefore cannot be compared with the
+            # frozen evaluator's plan/artifact identity.  Keep this import
+            # local so ordinary record construction does not load the official
+            # evaluator adapter.
+            from society_core.programbench_evaluation import (
+                programbench_hidden_suite_hash,
+            )
+
+            computed = programbench_hidden_suite_hash(
+                SimpleNamespace(hidden_tests_dir=str(hidden_root))
+            )
+        else:
+            computed = directory_content_hash(hidden_root)
     else:
         computed = stable_fingerprint(source)
     if declared is not None and declared != computed:
@@ -1183,7 +1203,7 @@ def normalize_final_evaluation(
     sources = _evaluation_sources(payload)
     artifact_hash = _verify_artifact_hash(payload)
     if "qualified_plan" in payload and payload.get("schema_version") != (
-        "relic-oss-final-evaluation-v1"
+        "orgenv_oss_final_evaluation_v1"
     ):
         raise ValueError("canonical final evaluator schema mismatch")
     _verify_plan_hash(sources)
@@ -2522,6 +2542,19 @@ def build_experiment_run_record(
         "run_id": str(getattr(world, "run_id", "")),
         "pack": str(resolved_pack),
         "condition": str(getattr(world, "experiment_condition", "B3")),
+        # Keep the execution boundary explicit even for host-controlled pilots.
+        # The evaluator environment hash binds exact runtime contents, but does
+        # not by itself reveal whether those contents ran under Docker,
+        # Apptainer, or Bubblewrap.  Mixed continuation batches need both axes
+        # in every arm rather than relying on the launcher log.
+        "experiment_mode": _first(
+            params.get("experiment_mode"),
+            os.environ.get("ORG_OSS_MODE"),
+        ),
+        "evaluator_backend": _first(
+            os.environ.get("ORG_EVALUATOR_BACKEND"),
+            params.get("evaluator_backend"),
+        ),
         "experiment_phase": _first(
             params.get("experiment_phase"),
             os.environ.get("ORG_EXPERIMENT_PHASE"),

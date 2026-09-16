@@ -10,6 +10,8 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import threading
+from contextlib import nullcontext
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Any, Callable, ClassVar, Dict, Mapping, Optional
@@ -154,6 +156,21 @@ class ExperimentResourceLedger:
         self.consumed: Dict[str, int] = {name: 0 for name in RESOURCE_NAMES}
         self.denied: Dict[str, int] = {name: 0 for name in RESOURCE_NAMES}
         self.events: list[ResourceUsageEvent] = []
+        # Some experimental arms execute agents concurrently.  Admission and
+        # event sequencing must remain one atomic decision under that mode.
+        self._lock = threading.RLock()
+
+    def __getstate__(self) -> Dict[str, Any]:
+        # Locks are process-local and not pickleable; checkpoints preserve the
+        # ledger state and recreate the lock on load.
+        with self._lock:
+            state = dict(self.__dict__)
+            state.pop("_lock", None)
+            return state
+
+    def __setstate__(self, state: Mapping[str, Any]) -> None:
+        self.__dict__.update(dict(state))
+        self._lock = threading.RLock()
 
     def reserve(
         self,
@@ -163,64 +180,79 @@ class ExperimentResourceLedger:
         agent_id: Optional[str] = None,
         detail: str = "",
     ) -> bool:
-        normalized: Dict[str, int] = {}
-        for resource, amount in requests.items():
-            if resource not in RESOURCE_NAMES:
-                raise ValueError(f"unknown experiment resource: {resource}")
-            value = int(amount)
-            if value < 0:
-                raise ValueError("resource reservation amount must be non-negative")
-            if value:
-                normalized[resource] = value
-        if not normalized:
-            return True
+        with self._lock:
+            normalized: Dict[str, int] = {}
+            for resource, amount in requests.items():
+                if resource not in RESOURCE_NAMES:
+                    raise ValueError(f"unknown experiment resource: {resource}")
+                value = int(amount)
+                if value < 0:
+                    raise ValueError("resource reservation amount must be non-negative")
+                if value:
+                    normalized[resource] = value
+            if not normalized:
+                return True
 
-        accepted = all(
-            self.budget.limit_for(resource) is None
-            or self.consumed[resource] + amount <= int(self.budget.limit_for(resource))
-            for resource, amount in normalized.items()
-        )
-        for resource, amount in normalized.items():
-            before = self.consumed[resource]
-            limit = self.budget.limit_for(resource)
-            after = before + amount if accepted else before
-            if accepted:
-                self.consumed[resource] = after
-            else:
-                self.denied[resource] += 1
-            self.events.append(
-                ResourceUsageEvent(
-                    sequence=len(self.events) + 1,
-                    resource=resource,
-                    amount=amount,
-                    accepted=accepted,
-                    cumulative_before=before,
-                    cumulative_after=after,
-                    limit=limit,
-                    tick=tick,
-                    agent_id=agent_id,
-                    detail=detail,
-                )
+            accepted = all(
+                self.budget.limit_for(resource) is None
+                or self.consumed[resource] + amount
+                <= int(self.budget.limit_for(resource))
+                for resource, amount in normalized.items()
             )
-        return accepted
+            for resource, amount in normalized.items():
+                before = self.consumed[resource]
+                limit = self.budget.limit_for(resource)
+                after = before + amount if accepted else before
+                if accepted:
+                    self.consumed[resource] = after
+                else:
+                    self.denied[resource] += 1
+                self.events.append(
+                    ResourceUsageEvent(
+                        sequence=len(self.events) + 1,
+                        resource=resource,
+                        amount=amount,
+                        accepted=accepted,
+                        cumulative_before=before,
+                        cumulative_after=after,
+                        limit=limit,
+                        tick=tick,
+                        agent_id=agent_id,
+                        detail=detail,
+                    )
+                )
+            return accepted
 
     def remaining(self, resource: str) -> Optional[int]:
-        limit = self.budget.limit_for(resource)
-        if limit is None:
-            return None
-        return max(0, limit - self.consumed.get(resource, 0))
+        with self._lock:
+            limit = self.budget.limit_for(resource)
+            if limit is None:
+                return None
+            return max(0, limit - self.consumed.get(resource, 0))
 
     def snapshot(self, *, include_events: bool = False) -> Dict[str, Any]:
-        result: Dict[str, Any] = {
-            "budget": self.budget.to_dict(),
-            "budget_fingerprint": self.budget.fingerprint,
-            "consumed": dict(self.consumed),
-            "denied": dict(self.denied),
-            "remaining": {name: self.remaining(name) for name in RESOURCE_NAMES},
-        }
-        if include_events:
-            result["events"] = [event.to_dict() for event in self.events]
-        return result
+        with self._lock:
+            result: Dict[str, Any] = {
+                "budget": self.budget.to_dict(),
+                "budget_fingerprint": self.budget.fingerprint,
+                "consumed": dict(self.consumed),
+                "denied": dict(self.denied),
+                "remaining": {
+                    name: (
+                        None
+                        if self.budget.limit_for(name) is None
+                        else max(
+                            0,
+                            int(self.budget.limit_for(name))
+                            - self.consumed.get(name, 0),
+                        )
+                    )
+                    for name in RESOURCE_NAMES
+                },
+            }
+            if include_events:
+                result["events"] = [event.to_dict() for event in self.events]
+            return result
 
 
 class PromptVisibilityAuditor:
@@ -410,7 +442,13 @@ def experiment_resource_snapshot(
 
 
 class MeteredOrgLLMClient(OrgLLMClient):
-    """Transparent LLM wrapper enforcing the company-wide frozen call budget."""
+    """Transparent LLM wrapper enforcing the company-wide frozen call budget.
+
+    Requested-token usage is the effective output ceiling admitted for each
+    provider attempt that actually starts.  It is intentionally neither actual
+    completion usage (which cannot fail closed before a request) nor a prepaid
+    envelope for retries that may never happen.
+    """
 
     def __init__(
         self,
@@ -428,12 +466,35 @@ class MeteredOrgLLMClient(OrgLLMClient):
         self.provider = inner.provider
         self.resource_denials = 0
         self.prompt_visibility_denials = 0
+        self._denial_lock = threading.Lock()
+
+    def _record_resource_denial(self) -> None:
+        with self._denial_lock:
+            self.resource_denials += 1
+
+    def _record_prompt_visibility_denial(self) -> None:
+        with self._denial_lock:
+            self.prompt_visibility_denials += 1
 
     @property
     def calls(self) -> int:
+        # Attempt-aware clients enter ``generate_*`` before admission, so their
+        # own logical-call counter already includes a resource denial.  Legacy
+        # clients are admitted before entry and still need the wrapper count.
+        outside_inner_denials = (
+            0
+            if bool(
+                getattr(
+                    getattr(self, "inner", None),
+                    "meters_actual_provider_attempts",
+                    False,
+                )
+            )
+            else self.resource_denials
+        )
         return (
             int(getattr(self.inner, "calls", 0))
-            + self.resource_denials
+            + outside_inner_denials
             + self.prompt_visibility_denials
         )
 
@@ -444,9 +505,20 @@ class MeteredOrgLLMClient(OrgLLMClient):
 
     @property
     def failures(self) -> int:
+        outside_inner_denials = (
+            0
+            if bool(
+                getattr(
+                    getattr(self, "inner", None),
+                    "meters_actual_provider_attempts",
+                    False,
+                )
+            )
+            else self.resource_denials
+        )
         return (
             int(getattr(self.inner, "failures", 0))
-            + self.resource_denials
+            + outside_inner_denials
             + self.prompt_visibility_denials
         )
 
@@ -494,14 +566,14 @@ class MeteredOrgLLMClient(OrgLLMClient):
     def response_id_digest(self, value: str) -> None:
         self.__dict__["_initial_response_id_digest"] = str(value or "")
 
-    def _reserve(
+    def _reservation(
         self,
         system_prompt: str,
         user_prompt: str,
         max_tokens: int,
         *,
         surface: str,
-    ) -> None:
+    ) -> Any:
         if self.prompt_auditor is not None:
             try:
                 self.prompt_auditor.audit(
@@ -510,7 +582,7 @@ class MeteredOrgLLMClient(OrgLLMClient):
                     surface=surface,
                 )
             except LLMError:
-                self.prompt_visibility_denials += 1
+                self._record_prompt_visibility_denial()
                 raise
         context = dict(self.context_provider() if self.context_provider else {})
         envelope = self.inner.request_resource_envelope(max_tokens)
@@ -519,24 +591,57 @@ class MeteredOrgLLMClient(OrgLLMClient):
             0,
             int(envelope["output_tokens_per_attempt"]),
         )
+        prompt_characters = len(system_prompt) + len(user_prompt)
+
+        if bool(getattr(self.inner, "meters_actual_provider_attempts", False)):
+            from environments.org_env.llm.client import (
+                provider_attempt_reservation,
+            )
+
+            def reserve_attempt(attempt_number: int) -> None:
+                requests = {
+                    LLM_CALLS: 1,
+                    LLM_REQUESTED_TOKENS: per_attempt_tokens,
+                }
+                if int(attempt_number) == 1:
+                    requests[LLM_PROMPT_CHARACTERS] = prompt_characters
+                accepted = self.ledger.reserve(
+                    requests,
+                    tick=context.get("tick"),
+                    agent_id=context.get("agent_id"),
+                    detail=(
+                        f"{surface}:actual_provider_attempt="
+                        f"{int(attempt_number)}:"
+                        f"output_tokens_per_attempt={per_attempt_tokens}"
+                    ),
+                )
+                if not accepted:
+                    self._record_resource_denial()
+                    raise LLMError("experiment_resource_exhausted:llm")
+
+            return provider_attempt_reservation(reserve_attempt)
+
+        # Mock, generic HTTP, and legacy/custom clients have no internal retry
+        # loop exposed to the meter.  Preserve their prior fail-closed envelope
+        # admission; the built-in mock and generic clients both declare one
+        # provider attempt.
         accepted = self.ledger.reserve(
             {
-                # These are provider-attempt ceilings, not logical-call counts.
-                # Reserving the retry envelope up front bounds real API cost.
                 LLM_CALLS: attempts,
                 LLM_REQUESTED_TOKENS: attempts * per_attempt_tokens,
-                LLM_PROMPT_CHARACTERS: len(system_prompt) + len(user_prompt),
+                LLM_PROMPT_CHARACTERS: prompt_characters,
             },
             tick=context.get("tick"),
             agent_id=context.get("agent_id"),
             detail=(
-                f"{surface}:attempts={attempts}:"
+                f"{surface}:reserved_attempt_envelope={attempts}:"
                 f"output_tokens_per_attempt={per_attempt_tokens}"
             ),
         )
         if not accepted:
-            self.resource_denials += 1
+            self._record_resource_denial()
             raise LLMError("experiment_resource_exhausted:llm")
+        return nullcontext()
 
     def generate_text(
         self,
@@ -546,13 +651,18 @@ class MeteredOrgLLMClient(OrgLLMClient):
         temperature: float = 0.3,
         max_tokens: int = 800,
     ) -> str:
-        self._reserve(system_prompt, user_prompt, max_tokens, surface="generate_text")
-        return self.inner.generate_text(
+        with self._reservation(
             system_prompt,
             user_prompt,
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
+            max_tokens,
+            surface="generate_text",
+        ):
+            return self.inner.generate_text(
+                system_prompt,
+                user_prompt,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
 
     def generate_json(
         self,
@@ -563,14 +673,19 @@ class MeteredOrgLLMClient(OrgLLMClient):
         temperature: float = 0.2,
         max_tokens: int = 1200,
     ) -> Dict[str, Any]:
-        self._reserve(system_prompt, user_prompt, max_tokens, surface="generate_json")
-        return self.inner.generate_json(
+        with self._reservation(
             system_prompt,
             user_prompt,
-            schema,
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
+            max_tokens,
+            surface="generate_json",
+        ):
+            return self.inner.generate_json(
+                system_prompt,
+                user_prompt,
+                schema,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
 
     def stats(self) -> Dict[str, Any]:
         result = {

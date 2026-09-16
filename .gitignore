@@ -19,6 +19,11 @@ htmlcov/
 node_modules/
 dist/
 
+# The HCI workspace serves this committed Vite build directly from FastAPI.
+# Keep this narrow: other generated distribution folders remain local-only.
+!environments/org_env/frontend/app/dist/
+!environments/org_env/frontend/app/dist/**
+
 # Runtime state (never part of the paper artifact)
 outputs/
 runs/

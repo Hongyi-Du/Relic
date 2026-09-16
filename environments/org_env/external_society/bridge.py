@@ -16,7 +16,7 @@ from __future__ import annotations
 import os
 from typing import List, Optional
 
-from relic.research.hashing import stable_hash
+from society_core.hashing import stable_hash
 
 TICKS_PER_DAY = 24
 
@@ -117,7 +117,7 @@ def product_offering_from_world(world):
     name = getattr(prod, "name", None) or "the product"
     summary = getattr(prod, "summary", "") or "an early-stage developer tool"
     # #5: market topics follow the actual product substrate — an OSS tool (e.g. gitingest, a repo->text
-    # ingestion CLI) is evaluated according to its actual developer-tool surface.
+    # ingestion CLI) is evaluated as a developer tool, not a research agent.
     topics = ("eval_infra", "agent_reliability")
     try:
         from environments.org_env.product.substrates.eval_assets import is_oss_substrate

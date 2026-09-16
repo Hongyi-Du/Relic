@@ -1,26 +1,25 @@
-"""Relic organization world state.
+"""OrgEnv world — LanternForge organization state (DESIGN env_org §33/§40).
 
 Holds internal agents + their workspaces + entities + external community + public
 records, and exposes a ``DomainState`` snapshot to the lived Core.
 
-``build`` seeds a deterministic organization around the frozen OSS workload
-selected by the scenario.
+O-Infra-1: ``build`` seeds a real initial company — 7 named members, the
+LanternTrace backlog (20 tasks from the product modules), a couple of shared
+docs, and a few external posts — with deterministic ids from the scenario seed.
 """
 from __future__ import annotations
 
+import copy
+import hashlib
 import os
 import random
 import re
 import time
 from typing import Any, Dict, List, Optional
 
-from relic.core.domain import DomainScenarioConfig, DomainState
+from agent_sdk.lived.domain.interfaces import DomainScenarioConfig, DomainState
 from environments.org_env.backend.agents import SEED_TEAM, OrgAgent
-from environments.org_env.backend.budget import (
-    BudgetSystem,
-    CompensationProfile,
-    FundingSchedule,
-)
+from environments.org_env.backend.budget import BudgetSystem, CompensationProfile, FundingSchedule
 from environments.org_env.backend.clock import AgentAvailability, TimeSystem
 from environments.org_env.backend.comm import CommunicationSystem
 from environments.org_env.backend.community import ExternalCommunity, ExternalProfile, Post
@@ -79,6 +78,106 @@ APPROVAL_DEADLOCK_TICKS = 24
 # with an adopted triage-family protocol ("every customer issue gets an owner").
 TICKET_TRIAGE_DEADLINE_TICKS = 24
 
+# Private one-shot capabilities join an already-validated adapted transaction
+# to its low-level mutation.  Plain checkpoint/user dictionaries cannot mint
+# either capability by copying the visible fields.
+_PROGRAMBENCH_CONTRACT_PATCH_CAPABILITY = object()
+_PROGRAMBENCH_MERGE_PROMOTION_CAPABILITY = object()
+_PROGRAMBENCH_PROBE_PATCH_CAPABILITY = object()
+
+
+def _authorize_programbench_contract_patch(world: Any, patch: Any) -> None:
+    patch.__dict__["_programbench_contract_patch_capability"] = (
+        _PROGRAMBENCH_CONTRACT_PATCH_CAPABILITY,
+        id(world),
+        id(patch),
+    )
+
+
+def _consume_programbench_contract_patch_capability(
+    world: Any, patch: Any
+) -> bool:
+    token = patch.__dict__.pop("_programbench_contract_patch_capability", None)
+    return token == (
+        _PROGRAMBENCH_CONTRACT_PATCH_CAPABILITY,
+        id(world),
+        id(patch),
+    )
+
+
+def _authorize_programbench_probe_patch(
+    world: Any, patch: Any, artifact: Any, agent_id: str
+) -> None:
+    content = str(getattr(patch, "new_content", ""))
+    world.__dict__["_programbench_probe_patch_capability"] = (
+        _PROGRAMBENCH_PROBE_PATCH_CAPABILITY,
+        id(world),
+        id(patch),
+        str(getattr(patch, "patch_id", "") or ""),
+        str(getattr(artifact, "artifact_id", "") or ""),
+        str(agent_id or ""),
+        str(getattr(patch, "actor_id", "") or ""),
+        hashlib.sha256(content.encode("utf-8")).hexdigest(),
+    )
+
+
+def _clear_programbench_probe_patch_capability(world: Any) -> None:
+    world.__dict__.pop("_programbench_probe_patch_capability", None)
+
+
+def _programbench_probe_patch_capability_matches(
+    world: Any, patch: Any, artifact: Any, agent_id: str
+) -> bool:
+    content = getattr(patch, "new_content", None)
+    if not isinstance(content, str):
+        return False
+    return world.__dict__.get("_programbench_probe_patch_capability") == (
+        _PROGRAMBENCH_PROBE_PATCH_CAPABILITY,
+        id(world),
+        id(patch),
+        str(getattr(patch, "patch_id", "") or ""),
+        str(getattr(artifact, "artifact_id", "") or ""),
+        str(agent_id or ""),
+        str(getattr(patch, "actor_id", "") or ""),
+        hashlib.sha256(content.encode("utf-8")).hexdigest(),
+    )
+
+
+def _consume_programbench_probe_patch_capability(
+    world: Any, patch: Any, artifact: Any, agent_id: str
+) -> bool:
+    try:
+        return _programbench_probe_patch_capability_matches(
+            world, patch, artifact, agent_id
+        )
+    finally:
+        world.__dict__.pop("_programbench_probe_patch_capability", None)
+
+
+def _authorize_programbench_merge_promotion(
+    world: Any, pr: Any, tick: int
+) -> None:
+    world.__dict__["_programbench_merge_promotion_token"] = (
+        _PROGRAMBENCH_MERGE_PROMOTION_CAPABILITY,
+        id(world),
+        id(pr),
+        str(getattr(pr, "pr_id", "") or ""),
+        int(tick),
+    )
+
+
+def _consume_programbench_merge_promotion_capability(
+    world: Any, pr: Any, tick: int
+) -> bool:
+    token = world.__dict__.pop("_programbench_merge_promotion_token", None)
+    return token == (
+        _PROGRAMBENCH_MERGE_PROMOTION_CAPABILITY,
+        id(world),
+        id(pr),
+        str(getattr(pr, "pr_id", "") or ""),
+        int(tick),
+    )
+
 def _tick_value(v, fallback: int) -> int:
     """Tick with a missing-value fallback. 0 is a legitimate tick, NOT a missing
     value — a falsy-zero fallback (``v or tick``) here made tick-0 objects read
@@ -103,6 +202,65 @@ def _temporary_team_requested(params: dict, condition_default: bool) -> bool:
     return bool(requested)
 
 
+# v4 review §2: a task gets SUBSTANTIVE progress only from an action touching an
+# artifact whose purpose matches the task's deliverable; merely-linked source/context
+# artifacts (e.g. README for the onboarding task) give at most WEAK progress.
+_TASK_DELIVERABLE_PURPOSES = {
+    "task_onboarding_doc": {"onboarding"},
+    "task_report_quality_gate": {"report_quality", "report_writer"},
+    "task_design_doc_split_spec": {"product_design", "design_note"},
+    "task_readme_capability_audit": {"readme"},
+    "task_claim_tracker_enforce_evidence": {"claim_tracker"},
+    "task_source_tracker_credibility": {"source_tracker"},
+    "task_eval_stub_define_metrics": {"eval"},
+    "task_research_loop_state_model": {"research_loop"},
+    "task_cheap_mode_boundary": {"eval", "claim_tracker"},
+}
+
+# LanternScout research-agent backlog (preflight §2): tasks tied to the messy
+# product substrate's artifacts/issues so work stays product-grounded.
+SEED_TASKS = [
+    {"task_id": "task_claim_tracker_enforce_evidence",
+     "title": "Enforce evidence links in claim tracker",
+     "description": "Extend tools/claim_tracker.py so every report claim must include source ids and uncertainty notes.",
+     "linked_issues": ["issue_2"], "linked_artifacts": ["art_tools_claim_tracker_py"], "priority": 5},
+    {"task_id": "task_source_tracker_credibility",
+     "title": "Add source credibility scoring",
+     "description": "Extend tools/source_tracker.py with credibility fields and source quality notes.",
+     "linked_issues": ["issue_3"], "linked_artifacts": ["art_tools_source_tracker_py"], "priority": 4},
+    {"task_id": "task_report_quality_gate",
+     "title": "Create report quality gate",
+     "description": "Create a checklist that blocks public reports with unsupported claims.",
+     "linked_issues": ["issue_5", "issue_6"],
+     "linked_artifacts": ["art_tools_report_writer_py", "art_README_md"], "priority": 5},
+    {"task_id": "task_eval_stub_define_metrics",
+     "title": "Define evaluation metrics",
+     "description": "Turn eval/eval_stub.py from placeholder names into an explicit evaluation protocol.",
+     "linked_issues": ["issue_4"], "linked_artifacts": ["art_eval_eval_stub_py"], "priority": 5},
+    {"task_id": "task_research_loop_state_model",
+     "title": "Define research loop state model",
+     "description": "Clarify the plan/search/source/claim/report workflow in research_loop.py.",
+     "linked_issues": ["issue_1"], "linked_artifacts": ["art_research_loop_py"], "priority": 4},
+    {"task_id": "task_readme_capability_audit",
+     "title": "Audit README claims against code",
+     "description": "Reconcile README promises with current implemented capabilities.",
+     "linked_issues": ["issue_6"], "linked_artifacts": ["art_README_md"], "priority": 4},
+    {"task_id": "task_design_doc_split_spec",
+     "title": "Split messy product design notes",
+     "description": "Separate docs/product_design.md into product vision, user workflow, evidence requirements, and implementation TODOs.",
+     "linked_issues": ["issue_1", "issue_6"], "linked_artifacts": ["art_docs_product_design_md"], "priority": 3},
+    {"task_id": "task_cheap_mode_boundary",
+     "title": "Define cheap mode safety boundary",
+     "description": "Clarify what cheap mode may skip and what it must never skip.",
+     "linked_issues": ["issue_7"],
+     "linked_artifacts": ["art_eval_eval_stub_py", "art_tools_claim_tracker_py"], "priority": 3},
+    {"task_id": "task_onboarding_doc",
+     "title": "Create customer-facing onboarding doc",
+     "description": "Explain how a user should use the research agent and what outputs are trustworthy.",
+     "linked_issues": ["issue_6"], "linked_artifacts": ["art_README_md", "art_docs_product_design_md"], "priority": 3},
+]
+
+
 class OrgWorld:
     def __init__(self, scenario: DomainScenarioConfig):
         self.scenario = scenario
@@ -110,9 +268,10 @@ class OrgWorld:
         self.interaction_profile = str(
             params.get("interaction_profile") or "organization_simulation"
         )
-        # The project workspace keeps the same organization and action space,
-        # but it is not a startup-financing or synthetic-customer experiment.
-        # These source gates prevent that unrelated state entering the world.
+        # P1/P2/P3 exercise the same organization and complete action space,
+        # but the human project workspace is not a startup-financing or
+        # synthetic-customer experiment. These source gates prevent irrelevant
+        # investor/customer state from entering the world in the first place.
         self.funding_simulation_enabled = (
             self.interaction_profile != "human_project_workspace"
         )
@@ -209,7 +368,7 @@ class OrgWorld:
         self.events: List[dict] = []
         self.messages: List[dict] = []
         self.public_records: List[dict] = []
-        # Frozen OSS workload selected by the scenario.
+        # messy product substrate (research-agent prototype the team works on)
         self.product = None
         self.product_artifacts: Dict[str, "object"] = {}
         self.patches: Dict[str, Any] = {}              # v4 §2: concrete doc/code patches
@@ -229,8 +388,10 @@ class OrgWorld:
         # O1 lived decision loop state
         self.memory: Dict[str, List[dict]] = {}
         self.action_log: List[dict] = []
-        # Research-side provenance for human-seat actions. It deliberately
-        # stays separate from organizational state, events, and action_log.
+        # Research-side provenance for actions that did NOT come from the
+        # autonomous loop (human seats). Deliberately separate from action_log /
+        # events, which stay controller-blind so the organization cannot tell
+        # who is behind a seat.
         self.controller_log: List[dict] = []
         # v4 §3: policy attractor guard + explainability trace
         from environments.org_env.policy.attractor_guard import AttractorGuard
@@ -332,15 +493,15 @@ class OrgWorld:
         self._legacy_llm_decides_actions_requested = bool(requested)
 
     def ensure_action_selection_ready(self) -> None:
-        """Fail closed when an explicit formal B0--B3 arm has no usable LLM."""
+        """Fail closed when a controlled B0--B3 arm has no usable LLM."""
         if (
-            self.experiment_mode == "formal"
+            self.experiment_mode in {"formal", "pilot"}
             and self.experiment_condition_explicit
             and self.llm_client is None
         ):
             mode = self.condition_spec.action_selection_mode
             raise RuntimeError(
-                "formal B0-B3 experiment requires an LLM client; "
+                f"{self.experiment_mode} B0-B3 experiment requires an LLM client; "
                 f"action_selection_mode={mode!r} remains condition-owned"
             )
 
@@ -379,22 +540,33 @@ class OrgWorld:
         )
         # seed default channels with all members (§16)
         self.comm.seed_default_channels(set(self.agents.keys()))
-        # Each member receives a sandbox. Experiments are workload-driven; the
-        # runtime does not inject an unrelated synthetic benchmark.
+        # one sandbox per agent + a seed dataset/benchmark
         for aid in self.agents:
             self.sandbox_system.ensure_sandbox(aid)
+        self.datasets["agentbench_lite"] = Dataset(
+            dataset_id="agentbench_lite", name="AgentBench-lite", domain="agent_eval",
+            size=500, quality=0.65, metadata_complete=False, version="v1")
+        self.benchmarks["reliability_v0"] = BenchmarkScenario(
+            scenario_id="reliability_v0", name="agent reliability v0", task_type="reliability",
+            difficulty=0.6, evaluation_metric="success_rate", source_dataset="agentbench_lite")
 
-        # Frozen OSS product substrate first (starter repo/docs/issues/eval),
+        # messy research-agent product substrate FIRST (starter repo/docs/issues/eval),
         # so the backlog can link tasks to real artifacts/issues (preflight §1/§2).
         from environments.org_env.product import seed_product
         seed_product(self, self.scenario.params.get("company_config"))
+        execution_profile = str(
+            self.scenario.params.get("execution_profile") or "native"
+        ).strip()
+        if execution_profile != "native":
+            self._attach_programbench_execution_profile(execution_profile)
         self._prewarm_product_smoke()           # v14 P0: beta is recognized as runnable at t0
 
-        # Backlog tasks are generated from the workload's agent-visible historical issues.
-        substrate_type = getattr(self.product, "substrate_type", "")
-        if substrate_type != "oss_time_machine":
-            raise RuntimeError("formal Relic world requires the OSS time-machine substrate")
-        task_specs = list(getattr(self, "_oss_seed_tasks", []) or [])
+        # backlog: tasks tied to product artifacts/issues; most start unowned (ownership must
+        # emerge, §33.3). For the OSS time-machine substrate the backlog is generated from the
+        # real historical issues (brief §6.3); the synthetic LanternScout path is unchanged.
+        substrate_type = getattr(self.product, "substrate_type", "synthetic_lanternscout")
+        task_specs = (SEED_TASKS if substrate_type == "synthetic_lanternscout"
+                      else list(getattr(self, "_oss_seed_tasks", []) or []))
         member_ids = list(self.agents.keys())
         for spec in task_specs:
             tid = spec["task_id"]
@@ -408,22 +580,22 @@ class OrgWorld:
             if owner:
                 self.board.owners[tid] = owner
 
-        # Team-visible summaries never expose reference or hidden evaluator assets.
-        _pname = getattr(self.product, "name", None) or "the product"
-        seed_docs = [
-            (
-                "doc_readme",
-                f"{_pname} README",
-                "doc",
-                f"{_pname} — OSS time-machine starter; product overview",
-            ),
-            (
-                "doc_arch",
-                f"{_pname} product overview",
-                "design_doc",
-                (getattr(self.product, "summary", "") or "early runnable OSS release")[:200],
-            ),
-        ]
+        # shared docs (team-visible) — substrate-specific so OSS runs don't reference LanternScout.
+        if substrate_type == "synthetic_lanternscout":
+            seed_docs = [
+                ("doc_readme", "LanternScout README", "doc",
+                 "LanternScout research-agent prototype — product overview (canonical: art_README_md)"),
+                ("doc_arch", "LanternScout product design draft", "design_doc",
+                 "research_loop / source_tracker / claim_tracker / report_writer / evidence_validator / eval_stub"),
+            ]
+        else:
+            _pname = (getattr(self.product, "name", None) or "the product")
+            seed_docs = [
+                ("doc_readme", f"{_pname} README", "doc",
+                 f"{_pname} — OSS time-machine starter; product overview (canonical: art_README_md)"),
+                ("doc_arch", f"{_pname} product overview", "design_doc",
+                 (getattr(self.product, "summary", "") or "early runnable OSS release")[:200]),
+            ]
         seed_doc_owner = "victor" if "victor" in self.agents else next(iter(self.agents))
         for did, title, ftype, summ in seed_docs:
             f = FileObject(object_id=did, file_type=ftype, title=title, creator_id=seed_doc_owner,
@@ -460,6 +632,87 @@ class OrgWorld:
         self._authority_t0 = {aid: dict(a.authority) for aid, a in self.agents.items()}
         return self
 
+    def _attach_programbench_execution_profile(self, profile_id: str) -> None:
+        """Attach the explicit ProgramBench scaffold after public seeding.
+
+        The default/native path never calls this method.  Detection uses only
+        the pack's public manifest contract and stores a bounded JSON-safe
+        overlay; evaluator assets and hidden results are neither loaded nor
+        copied into world state or prompts.
+        """
+
+        substrate = (
+            (self.scenario.params.get("company_config") or {}).get(
+                "product_substrate"
+            )
+            or {}
+        )
+        dataset = str(substrate.get("dataset_id") or "")
+        if not dataset:
+            raise RuntimeError(
+                "ProgramBench execution profile requires an OSS pack dataset"
+            )
+        from environments.org_env.product.substrates import loader
+        from environments.org_env.programbench import attach_programbench_profile
+
+        spec = loader.load_oss_substrate_spec(dataset)
+        attachment = attach_programbench_profile(
+            self,
+            profile_id,
+            manifest=spec.manifest,
+            agents=tuple(self.agents.values()),
+        )
+        if attachment is None:
+            raise RuntimeError("ProgramBench execution profile did not attach")
+
+        # Map the audited profile overlay onto the generic prompt compositor.
+        # These are public task-family statements, not instance answers.
+        prompt_overlay = {
+            "company_framing": (
+                "a clean-room program reconstruction organization"
+            ),
+            "product_stage": "empty or seedless clean-room implementation",
+            "discovery_narrative": (
+                "The team must explore documented public behavior and obtain "
+                "execute-only public reference observations before implementing."
+            ),
+            "work_narrative": (
+                "The team must turn public documentation, declarative probes, "
+                "source, and the compile contract into one coherent executable "
+                "workspace."
+            ),
+            "decision_narrative": (
+                "The team must separate documented, observed, inferred, and "
+                "unknown behavior; assign one integration owner; repair only "
+                "from public evidence; and freeze one verified candidate."
+            ),
+            "product_context_files_heading": (
+                "Public implementation and evidence artifacts:"
+            ),
+            "product_context_gaps_heading": "Public reconstruction gaps:",
+            "product_context_issues_heading": "Open reconstruction work:",
+        }
+        self.company_config.update(prompt_overlay)
+        self.__dict__["execution_profile"] = attachment.profile_id
+
+        # The root issue and task carry the phase contract too.  Preserve the
+        # pack-specific public description beneath it; never replace it with a
+        # benchmark-generic answer or any evaluator detail.
+        root_issue_id = "programbench_reconstruction"
+        root_issue = (self.product_artifacts or {}).get(root_issue_id)
+        if root_issue is not None:
+            existing = str(getattr(root_issue, "problem", "") or "").strip()
+            root_issue.problem = attachment.initial_brief + (
+                "\n\nPACK-SPECIFIC PUBLIC TASK\n" + existing if existing else ""
+            )
+        for task_spec in list(getattr(self, "_oss_seed_tasks", []) or []):
+            if root_issue_id not in (task_spec.get("linked_issues") or []):
+                continue
+            existing = str(task_spec.get("description") or "").strip()
+            task_spec["description"] = attachment.initial_brief + (
+                "\n\nPACK-SPECIFIC PUBLIC TASK\n" + existing if existing else ""
+            )
+
     def reconcile(self, reason: str = "") -> dict:
         """Run the StateReconciler (gap/issue status + product readiness). Idempotent;
         called end-of-tick, after a PR merge, and before a release gate (spec #1)."""
@@ -478,6 +731,8 @@ class OrgWorld:
                 continue
             blob = f"{s.name} {s.trigger_condition} {s.enforcement_rule}".lower()
             if any(k in blob for k in keywords):
+                if not self._protocol_mirror_is_live_or_absent(s):
+                    return None
                 s.use_count = int(getattr(s, "use_count", 0) or 0) + 1
                 s.last_used_tick = tick
                 if obj and obj not in s.affected_artifacts:
@@ -490,6 +745,27 @@ class OrgWorld:
                 self._mirror_protocol_event(s, "use", tick, obj)   # v8f P1a: keep registry in sync
                 return s.protocol_id
         return None
+
+    def _protocol_mirror_is_live_or_absent(self, spec) -> bool:
+        """Fail closed when an existing registry mirror is terminal/corrupt.
+
+        A ProtocolSpec without a mirror retains the native spec-only behavior.
+        Once a mirror exists, however, spec/world telemetry must not claim a
+        use or enforcement that the executable registry rejected.
+        """
+
+        reg = getattr(self, "protocol_registry", None)
+        if reg is None:
+            return True
+        mirror = self._registry_mirror_id(spec.protocol_id)
+        protocol = getattr(reg, "protocols", {}).get(mirror)
+        if protocol is None:
+            return True
+        from environments.org_env.backend.protocol.registry import (
+            protocol_is_live,
+        )
+
+        return protocol_is_live(protocol)
 
     def _mirror_protocol_event(
         self,
@@ -665,6 +941,8 @@ class OrgWorld:
             if (named is not None
                     or any(k in blob for k in keywords)
                     or (instrument and declared & instrument)):
+                if not self._protocol_mirror_is_live_or_absent(s):
+                    return None
                 s.violation_count = int(getattr(s, "violation_count", 0) or 0) + 1
                 s.enforcement_count = int(getattr(s, "enforcement_count", 0) or 0) + 1
                 if obj and obj not in s.affected_artifacts:
@@ -796,7 +1074,7 @@ class OrgWorld:
             agent_ids=set(self.agents.keys()),
             strict_edges=(
                 str(os.environ.get("ORG_OSS_MODE", "")).strip().lower()
-                == "formal"
+                in {"formal", "pilot"}
             ),
         )
         # LLM action-decision policy + validator (used only when self.llm_client set)
@@ -922,6 +1200,22 @@ class OrgWorld:
         perception -> candidates -> condition-owned WHAT selector -> execute ->
         appraise -> log / memory / event-graph / protocol-detectors. No scripted
         work sessions — every event comes from the decision loop."""
+        # Reject a malformed/legacy ProgramBench claim before action-selection
+        # readiness, tick reservation, clock advancement, or any event/resource
+        # mutation.  A world with no claim remains the exact native path.
+        if "programbench_profile_state" in self.__dict__:
+            from environments.org_env.programbench import (
+                ProfileAttachmentError,
+                validate_programbench_profile_state_for_step,
+            )
+
+            validate_programbench_profile_state_for_step(self)
+            if self.world_tick >= int(
+                self.__dict__["programbench_profile_state"]["run_horizon_ticks"]
+            ):
+                raise ProfileAttachmentError(
+                    "programbench_run_horizon_reached"
+                )
         from environments.org_env.experiments.resources import (
             ExperimentResourceExhausted,
             TICKS,
@@ -938,6 +1232,14 @@ class OrgWorld:
         tick = clk.current_tick
         self._maybe_reset_temporary_team(tick)
         self._ep_mark = len(self.events)        # episode layer: mark new-events window
+        # The opt-in ProgramBench leaderboard profile commits public evidence
+        # exactly once at the tick boundary.  The episode mark comes first so a
+        # phase-transition event belongs to this tick's auditable event window;
+        # commit still precedes all infra processing and every agent action.
+        if "programbench_profile_state" in self.__dict__:
+            from environments.org_env.programbench import begin_programbench_tick
+
+            begin_programbench_tick(self)
         self._update_milestone()                # v13: persist work-mode stage (drives shipping mode)
 
         # -- scheduled / infra processing ----------------------------------
@@ -999,7 +1301,7 @@ class OrgWorld:
                 m = self._active_meeting_for(aid, ws)
                 if m is not None:
                     # A claimed human seat may attend, but it must decide its
-                    # meeting behaviour through the HCI gateway. The normal
+                    # meeting behaviour through the human gateway.  The normal
                     # autonomous notes/summary loop must not act for it.
                     if not self.is_human_controlled(aid):
                         self._run_meeting_subaction(aid, agent, m, tick)
@@ -1014,8 +1316,9 @@ class OrgWorld:
                     self.time.rest(agent)
                 continue
             if self.is_human_controlled(aid):
-                # A human seat decides through the HCI gateway, in its own
-                # time. The autonomous loop must not even triage its inbox.
+                # A human seat decides for itself, in its own time, through the HCI
+                # gateway. Nothing automatic happens here — not even inbox triage,
+                # since a human reads their own messages.
                 continue
             self._process_inbox(aid, tick)             # v14 P3: read/ack inbox -> memory, before deciding
             perception = loop["perception"].build_perception(aid, self, tick)
@@ -1032,6 +1335,7 @@ class OrgWorld:
             for c in candidates:
                 feats = loop["features"].extract(c, perception, self)
                 feats = loop["routine"].modify_features(agent, c, feats, clk, self)
+
                 scored.append((c, feats))
             rng = random.Random(f"{self.scenario.seed}:{tick}:{aid}")
             selection_mode = self.action_selection_mode
@@ -1138,8 +1442,17 @@ class OrgWorld:
             AgentReflection, Wish, make_wish_fingerprint)
         from environments.org_env.backend.protocol.harm import rule_is_doing_harm
         cd = self.__dict__.setdefault("_policy_repair_cd", {})
+        transition_gate = None
+        if "programbench_profile_state" in self.__dict__:
+            from environments.org_env.programbench import (
+                programbench_transition_repair_allowed,
+            )
+
+            transition_gate = programbench_transition_repair_allowed
         for sid, s in list(getattr(pm, "protocol_specs", {}).items()):
             if getattr(s, "status", "") != "adopted":
+                continue
+            if transition_gate is not None and not transition_gate(self, sid):
                 continue
             viol = int(getattr(s, "violation_count", 0) or 0)
             uses = int(getattr(s, "use_count", 0) or 0)
@@ -1196,13 +1509,31 @@ class OrgWorld:
         blocking, so it costs a scoped CI run only when there is stuck work and a
         rule to blame for it.
         """
+        # This generic institutional repair bypasses the normal action adapter:
+        # it packages an issue-scoped tree and merges it directly.  That verdict
+        # is not the ProgramBench differential receipt for the complete working
+        # candidate, so the adapted profile must repair through its explicit
+        # VERIFY_REPAIR path instead.  Native worlds retain the historical path.
+        if "programbench_profile_state" in self.__dict__:
+            return None
         pm = getattr(self, "proposal_manager", None)
         if pm is None:
             return None
         from environments.org_env.backend.protocol.harm import (
             blocked_without_delivery, rule_is_doing_harm)
+        transition_gate = None
+        if "programbench_profile_state" in self.__dict__:
+            from environments.org_env.programbench import (
+                programbench_transition_repair_allowed,
+            )
+
+            transition_gate = programbench_transition_repair_allowed
         adopted = [s for s in getattr(pm, "protocol_specs", {}).values()
-                   if getattr(s, "status", "") == "adopted"]
+                   if getattr(s, "status", "") == "adopted"
+                   and (
+                       transition_gate is None
+                       or transition_gate(self, getattr(s, "protocol_id", ""))
+                   )]
         blocking = any(rule_is_doing_harm(self, s)[0]
                        and blocked_without_delivery(self, s)[0]
                        > blocked_without_delivery(self, s)[1]
@@ -1425,6 +1756,192 @@ class OrgWorld:
         art = self.product_artifacts.get(patch.target_object_id)
         if art is None:
             return False
+        claimed_programbench = "programbench_profile_state" in self.__dict__
+        exact_programbench_text = False
+        programbench_probe_target = False
+        programbench_transaction = None
+        if claimed_programbench:
+            try:
+                from environments.org_env.programbench import (
+                    programbench_profile_active,
+                    validate_programbench_profile_state_for_step,
+                )
+
+                exact_programbench_text = programbench_profile_active(self)
+                if exact_programbench_text:
+                    validate_programbench_profile_state_for_step(self)
+            except (ImportError, AttributeError, TypeError, ValueError):
+                return False
+            if not exact_programbench_text:
+                return False
+            state = self.__dict__.get("programbench_profile_state") or {}
+            contract_target = str(
+                getattr(art, "programbench_artifact_kind", "") or ""
+            ) == "behavioral_contract"
+            if contract_target and not _consume_programbench_contract_patch_capability(
+                self, patch
+            ):
+                return False
+            if str(state.get("phase") or "") == "explore":
+                from environments.org_env.backend.repo.workflow import (
+                    programbench_candidate_bearing_artifact,
+                    programbench_public_probe_artifact,
+                )
+
+                programbench_probe_target = programbench_public_probe_artifact(
+                    self, art
+                )
+                if (
+                    programbench_candidate_bearing_artifact(self, art)
+                    and not programbench_probe_target
+                ):
+                    return False
+            else:
+                from environments.org_env.backend.repo.workflow import (
+                    programbench_public_probe_artifact,
+                )
+
+                programbench_probe_target = programbench_public_probe_artifact(
+                    self, art
+                )
+            raw_content = getattr(patch, "new_content", None)
+            if not isinstance(raw_content, str):
+                # Validate before accepting/storing the patch or mutating the
+                # artifact: a malformed adapted full-text patch is a zero-state
+                # refusal, never a partially applied revision.
+                return False
+            if programbench_probe_target:
+                # Any agent may author a probe batch; see the note in
+                # backend/repo/workflow.py. Attribution is what this guard is
+                # for, so the patch must be authored by whoever presents it.
+                patch_actor = str(getattr(patch, "actor_id", "") or "")
+                if not patch_actor or patch_actor != str(aid or ""):
+                    return False
+                try:
+                    from environments.org_env.product.materialize import (
+                        preflight_programbench_probe_definition_patch,
+                    )
+
+                    preflight_programbench_probe_definition_patch(
+                        self, art, raw_content
+                    )
+                except Exception as error:  # noqa: BLE001 - preflight fails closed
+                    error_code = str(error)[:240]
+                    from environments.org_env.runtime_adapter.execution import (
+                        _programbench_probe_definition_failure,
+                    )
+
+                    if _programbench_probe_definition_failure(error_code):
+                        patch.validation_status = "rejected"
+                        patch.rejection_reason = error_code
+                        res.failure_reason = (
+                            "programbench_public_probe_patch_rejected:"
+                            + error_code
+                        )
+                    else:
+                        res.failure_reason = (
+                            "programbench_public_probe_preflight_"
+                            "infrastructure_error:"
+                            + error_code
+                        )
+                    self.__dict__.pop(
+                        "_programbench_probe_patch_capability", None
+                    )
+                    return False
+            # Repository routing is part of the adapted patch transaction, not
+            # a best-effort side effect. A saturated native branch roster must
+            # not leave accepted probe bytes outside the official integration
+            # ledger. Snapshot the bounded surfaces this method/record_patch
+            # can mutate, after consuming any one-shot contract capability.
+            try:
+                repo_system = getattr(self, "repo_system", None)
+                repo = getattr(repo_system, "repo", None)
+                programbench_transaction = {
+                    "artifact": copy.deepcopy(art.__dict__),
+                    "patch": copy.deepcopy(patch.__dict__),
+                    "patches": copy.deepcopy(getattr(self, "patches", {})),
+                    "profile": copy.deepcopy(
+                        self.__dict__.get("programbench_profile_state")
+                    ),
+                    "pending_present": "_pending_by_branch" in self.__dict__,
+                    "pending": copy.deepcopy(
+                        self.__dict__.get("_pending_by_branch")
+                    ),
+                    "repo": copy.deepcopy(repo) if repo is not None else None,
+                    "repo_seq": (
+                        copy.deepcopy(getattr(repo_system, "_seq", None))
+                        if repo_system is not None
+                        else None
+                    ),
+                    "personal_branches": {
+                        str(agent_id): copy.deepcopy(
+                            getattr(personal, "local_branch_ids", None)
+                        )
+                        for agent_id, personal in (
+                            getattr(self, "personal", {}) or {}
+                        ).items()
+                    },
+                    "result": copy.deepcopy(res.__dict__),
+                }
+            except Exception:  # noqa: BLE001 - no partial adapted transaction
+                return False
+        def rollback_programbench_patch() -> None:
+            _clear_programbench_probe_patch_capability(self)
+            snapshot = programbench_transaction
+            if not isinstance(snapshot, dict):
+                return
+            art.__dict__.clear()
+            art.__dict__.update(copy.deepcopy(snapshot["artifact"]))
+            patch.__dict__.clear()
+            patch.__dict__.update(copy.deepcopy(snapshot["patch"]))
+            patches = getattr(self, "patches", None)
+            if isinstance(patches, dict):
+                patches.clear()
+                patches.update(copy.deepcopy(snapshot["patches"]))
+            else:
+                self.patches = copy.deepcopy(snapshot["patches"])
+            profile = self.__dict__.get("programbench_profile_state")
+            if isinstance(profile, dict):
+                profile.clear()
+                profile.update(copy.deepcopy(snapshot["profile"]))
+            else:
+                self.__dict__["programbench_profile_state"] = copy.deepcopy(
+                    snapshot["profile"]
+                )
+            if snapshot["pending_present"]:
+                pending = self.__dict__.get("_pending_by_branch")
+                if isinstance(pending, dict):
+                    pending.clear()
+                    pending.update(copy.deepcopy(snapshot["pending"]))
+                else:
+                    self.__dict__["_pending_by_branch"] = copy.deepcopy(
+                        snapshot["pending"]
+                    )
+            else:
+                self.__dict__.pop("_pending_by_branch", None)
+            repo_system = getattr(self, "repo_system", None)
+            repo_before = snapshot["repo"]
+            if repo_system is not None and repo_before is not None:
+                current_repo = getattr(repo_system, "repo", None)
+                if hasattr(current_repo, "__dict__"):
+                    current_repo.__dict__.clear()
+                    current_repo.__dict__.update(
+                        copy.deepcopy(repo_before.__dict__)
+                    )
+                else:
+                    repo_system.repo = copy.deepcopy(repo_before)
+                repo_system._seq = copy.deepcopy(snapshot["repo_seq"])
+            for agent_id, branches_before in snapshot[
+                "personal_branches"
+            ].items():
+                personal = (getattr(self, "personal", {}) or {}).get(agent_id)
+                branches = getattr(personal, "local_branch_ids", None)
+                if isinstance(branches, list) and isinstance(
+                    branches_before, list
+                ):
+                    branches[:] = copy.deepcopy(branches_before)
+            res.__dict__.clear()
+            res.__dict__.update(copy.deepcopy(snapshot["result"]))
         tick = self.world_tick
         patch.validation_status = "accepted"
         patch.applied_tick = tick                  # v8 #4: record when it entered the artifact
@@ -1436,7 +1953,12 @@ class OrgWorld:
             art.change_summaries.append(patch.change_summary)
         # real file content grows here: apply the patch's full new text + record a real diff
         new_content = getattr(patch, "new_content", "") or ""
-        if new_content and new_content != (art.content or ""):
+        if exact_programbench_text:
+            new_content = raw_content
+        if (
+            (exact_programbench_text or bool(new_content))
+            and new_content != (art.content or "")
+        ):
             import difflib
             old = (art.content or "").splitlines()
             fp = art.linked_file_path or art.title
@@ -1446,6 +1968,40 @@ class OrgWorld:
             art.content = new_content
         art.awaiting_review = True
         art.status = "needs_review"
+        if programbench_probe_target:
+            # A probe revision changes the evidence input in either top-level
+            # phase.  Turn every current-corpus claim into explicit debt in
+            # the same transaction as the artifact edit.  The immutable
+            # EXPLORE->DEVELOP transition attestation remains intact, so a
+            # DEVELOP run stays monotone while reference/contract work is
+            # repeated for the new corpus.
+            state = self.__dict__.get("programbench_profile_state") or {}
+            state["accepted_behavioral_contract"] = None
+            state["public_behavior_ledger"] = None
+            state["public_probe_evidence_corpus_digest"] = None
+            state["exploration_reference_evidence_digest"] = None
+            state["latest_reference_probe_corpus_digest"] = None
+            state["latest_reference_evidence_digest"] = None
+            state["latest_reference_probe_required"] = True
+            state["public_candidate_repo_digest"] = None
+            state["public_verification_probe_corpus_digest"] = None
+            state["public_verification_candidate_repo_digest"] = None
+            state["public_verification_tested_candidate_repo_digest"] = None
+            state["public_verification_candidate_view_schema"] = None
+            state["frozen_candidate_digest"] = None
+            for signal_key in ("signals", "decision_signals"):
+                signal_map = state.get(signal_key)
+                if isinstance(signal_map, dict):
+                    signal_map.update(
+                        {
+                            "public_probe_execution_observed": False,
+                            "exploration_case_quota_satisfied": False,
+                            "behavior_ledger_complete": False,
+                            "behavioral_contract_accepted": False,
+                            "public_verification_complete": False,
+                            "candidate_digest_frozen": False,
+                        }
+                    )
         # v4 §4: only clear the gap(s) the patch actually resolved (validated against the
         # artifact's real known_gaps), instead of blindly popping the first one.
         resolved = [g for g in (getattr(patch, "resolved_gaps", None) or []) if g in art.known_gaps]
@@ -1483,7 +2039,32 @@ class OrgWorld:
         # to a branch from here: the work item it is for is known now, and working
         # it out later is what the routing layer kept getting wrong.
         from environments.org_env.backend.repo.workflow import record_patch
-        record_patch(self, aid, patch, art, tick)
+        if programbench_probe_target:
+            _authorize_programbench_probe_patch(self, patch, art, aid)
+        try:
+            branch_id = record_patch(self, aid, patch, art, tick)
+        except BaseException as error:
+            if exact_programbench_text:
+                rollback_programbench_patch()
+            _clear_programbench_probe_patch_capability(self)
+            if not isinstance(error, Exception):
+                raise
+            return False
+        finally:
+            _clear_programbench_probe_patch_capability(self)
+        if exact_programbench_text and not branch_id:
+            rollback_programbench_patch()
+            return False
+        if programbench_probe_target and not branch_id:
+            rollback_programbench_patch()
+            self.__dict__.pop("_programbench_probe_patch_capability", None)
+            return False
+        if branch_id:
+            # Delivery identity is part of the edit result.  A caller that just
+            # created a patch must be able to commit that exact branch instead
+            # of asking the repository layer to guess among several pending
+            # work items owned by the same agent.
+            res.state_delta["branch_id"] = branch_id
         return True
 
     def _link_product_artifacts(self, result, eps, aid: str) -> None:
@@ -1577,12 +2158,25 @@ class OrgWorld:
         return False
 
     def _evidence_relevance(self, t, act: str, artifact_id: str, patch_id) -> str:
-        """Classify evidence against the artifacts named by the current workload task."""
+        """How relevant is this (action, artifact) to task t: 'substantive' (it touched
+        the task's deliverable), 'weak' (only a linked source/context artifact, or a
+        weak action), or 'none' (unrelated). v4 review §2 — replaces the loose
+        'artifact_id in linked_artifacts' test so e.g. a README audit no longer
+        substantively advances the onboarding-doc task."""
+        from environments.org_env.product.objects import artifact_purpose
         linked = artifact_id in getattr(t, "linked_artifacts", [])
+        deliv = _TASK_DELIVERABLE_PURPOSES.get(t.task_id)
         weak_act = act in self._WEAK_ACTIONS and not patch_id   # an accepted patch is never weak
-        if not linked:
+        if deliv is None:                                       # unmapped task: legacy behavior
+            if not linked:
+                return "none"
+            return "weak" if weak_act else "substantive"
+        purpose_match = artifact_purpose(artifact_id) in deliv
+        if not linked and not purpose_match:
             return "none"
-        return "weak" if weak_act else "substantive"
+        if weak_act:
+            return "weak"
+        return "substantive" if purpose_match else "weak"
 
     def _emit_task_transition(self, t, prev, aid, act, artifact_id, tick) -> None:
         new = getattr(t.status, "value", str(t.status))
@@ -1634,6 +2228,37 @@ class OrgWorld:
         req = list(getattr(t, "completion_requirements", []) or [])
         met = [k for k in req if checks.get(k, True)]
         t.progress_score = round(len(met) / max(1, len(req)), 3)
+        # The adapted reconstruction root is not implemented merely because a
+        # probe, compile entrypoint, or source artifact changed.  Its explicit
+        # public-evidence phase must reach SUBMIT first.  Profile-off worlds do
+        # not import or evaluate this gate and retain the legacy calculation.
+        claimed_adapted = "programbench_profile_state" in self.__dict__
+        reconstruction_root = "programbench_reconstruction" in set(
+            getattr(t, "linked_issues", []) or []
+        )
+        try:
+            from environments.org_env.programbench import (
+                get_programbench_profile_state,
+                programbench_profile_active,
+            )
+
+            adapted_root = bool(
+                programbench_profile_active(self)
+                and reconstruction_root
+            )
+            if claimed_adapted and reconstruction_root and not adapted_root:
+                t.progress_score = min(t.progress_score, 0.875)
+                return False
+            if adapted_root:
+                # ProgramBench has no task-derived terminal state. Verified
+                # merges are profile milestones; the root remains active so
+                # probes and implementation can keep improving through t336.
+                t.progress_score = min(t.progress_score, 0.875)
+                return False
+        except (ImportError, AttributeError, TypeError, ValueError):
+            if claimed_adapted and reconstruction_root:
+                t.progress_score = min(t.progress_score, 0.875)
+                return False
         return all(checks.get(k, True) for k in req)
 
     def _record_review_evidence(self, result, aid: str) -> None:
@@ -1663,6 +2288,24 @@ class OrgWorld:
         """Apply a merged PR's patches to the mainline product artifact(s) AND credit its
         linked task(s) with merge evidence. Shared by the merge_pr handler (pass ``res`` so
         the event lands on the action result) and the deterministic sweep (no ``res``)."""
+        if "programbench_profile_state" in self.__dict__:
+            merge_capability_valid = (
+                _consume_programbench_merge_promotion_capability(self, pr, tick)
+            )
+            from environments.org_env.programbench import (
+                ProfileAttachmentError,
+                validate_programbench_profile_state_for_step,
+            )
+
+            validate_programbench_profile_state_for_step(self)
+            state = self.__dict__["programbench_profile_state"]
+            if (
+                state.get("phase") != "develop"
+                or not merge_capability_valid
+            ):
+                raise ProfileAttachmentError(
+                    "programbench_merge_promotion_not_attested"
+                )
         arts = self.product_artifacts
         sink = res.events if res is not None else self.events
         touched: list = []
@@ -1676,8 +2319,23 @@ class OrgWorld:
             art.status = "active"
             # materialization: the merge promotes the carried patch's real text to mainline
             pp = self.patches.get(patch_id)
-            promoted = getattr(pp, "new_content", "") if pp else ""
-            if promoted:
+            promoted = getattr(pp, "new_content", None) if pp else None
+            programbench_integration_patch = False
+            if "programbench_profile_state" in self.__dict__:
+                source_branch = self.repo_system.repo.branches.get(
+                    str(getattr(pr, "source_branch", "") or "")
+                )
+                programbench_integration_patch = bool(
+                    str(getattr(source_branch, "linked_task", "") or "")
+                    == "programbench_integration_candidate"
+                )
+            if programbench_integration_patch:
+                if not isinstance(promoted, str):
+                    raise ValueError(
+                        f"programbench_merge_patch_full_text_missing:{patch_id}"
+                    )
+                art.mainline_content = promoted
+            elif promoted:
                 art.mainline_content = promoted
             elif art.content:
                 art.mainline_content = art.content
@@ -1688,6 +2346,46 @@ class OrgWorld:
             sink.append({"type": "product_event", "subtype": "merged_to_mainline",
                          "artifact_id": art_id, "pr_id": pr.pr_id, "patch_id": patch_id,
                          "agent_id": merger_id, "tick": tick})
+        if "programbench_profile_state" in self.__dict__:
+            source_branch = self.repo_system.repo.branches.get(
+                str(getattr(pr, "source_branch", "") or "")
+            )
+            if (
+                str(getattr(source_branch, "linked_task", "") or "")
+                == "programbench_integration_candidate"
+            ):
+                from environments.org_env.programbench import (
+                    refresh_programbench_candidate_freeze,
+                )
+
+                frozen = refresh_programbench_candidate_freeze(self)
+                if frozen:
+                    profile_state = self.__dict__["programbench_profile_state"]
+                    milestones = profile_state.setdefault("delivery_milestones", [])
+                    milestones.append(
+                        {
+                            "tick": int(tick),
+                            "pr_id": str(getattr(pr, "pr_id", "") or ""),
+                            "mainline_digest": profile_state.get(
+                                "strict_verified_mainline_digest"
+                            ),
+                            "kind": "verified_baseline_merge",
+                        }
+                    )
+                    if len(milestones) > 32:
+                        del milestones[:-32]
+                sink.append({
+                    "type": "repo_event",
+                    "subtype": (
+                        "programbench_candidate_frozen"
+                        if frozen
+                        else "programbench_candidate_freeze_requires_current_verification"
+                    ),
+                    "pr_id": pr.pr_id,
+                    "agent_id": merger_id,
+                    "tick": tick,
+                    "auto": res is None,
+                })
         self.apply_merge_task_evidence(pr, touched, merger_id, tick)
         # v8d P0c: credit the PR's linked issues with the merge (resolved_by_pr_ids) so the
         # issue lifecycle reflects the work that closed it, not just the task.
@@ -1778,6 +2476,14 @@ class OrgWorld:
             # happens to lean.
             if prev not in COMPLETED_TASK_STATUSES and implemented \
                     and self._task_requirements_met(t, art):
+                adapted_root = bool(
+                    "programbench_profile_state" in self.__dict__
+                    and "programbench_reconstruction"
+                    in set(getattr(t, "linked_issues", []) or [])
+                )
+                if adapted_root:
+                    t.status = TaskStatus.IN_PROGRESS
+                    continue
                 t.status = TaskStatus.MERGED
                 self._emit_task_transition(t, prev, merger_id, "merge_pr",
                                            (art.artifact_id if art else primary), tick)
@@ -1787,27 +2493,50 @@ class OrgWorld:
         merge latency, advance PRs that agents left waiting so the
         patch -> commit -> PR -> review -> merge -> mainline chain actually closes.
         Agents still act first within the latency window; events are tagged ``auto``."""
+        if "programbench_profile_state" in self.__dict__:
+            try:
+                from environments.org_env.programbench import (
+                    validate_programbench_profile_state_for_step,
+                )
+
+                validate_programbench_profile_state_for_step(self)
+            except (ImportError, AttributeError, TypeError, ValueError):
+                return []
         rs = getattr(self, "repo_system", None)
         if rs is None:
             return []
         REVIEW_LATENCY, MERGE_LATENCY, PR_OPEN_LATENCY = 3, 2, 2
         tick = self.world_tick
         advanced: list = []
+        programbench_phase = None
+        if "programbench_profile_state" in self.__dict__:
+            from environments.org_env.programbench import (
+                get_programbench_profile_state,
+            )
+
+            profile_state = get_programbench_profile_state(self)
+            if profile_state is None:
+                return []
+            programbench_phase = str(profile_state.get("phase") or "")
         # v8 #3 closure backstop: a branch that has commits but was never turned into a PR
         # would otherwise sit forever (artifact stays awaiting_review, mainline_revision 0).
         # After a short latency, auto-open its PR so the merge chain can complete.
         for b in list(rs.repo.branches.values()):
             if getattr(b.status, "value", str(b.status)) != "ready_for_pr" or not b.commit_ids:
                 continue
-            # A claimed human seat chooses whether and when its work is
-            # submitted. The autonomous closure backstop must not open a PR
-            # on that person's behalf.
             if self.is_human_controlled(b.owner_id):
                 continue
             last_commit = max((int(getattr(rs.repo.commits.get(cid), "timestamp", 0) or 0)
                                for cid in b.commit_ids), default=0)
             if tick - last_commit < PR_OPEN_LATENCY:
                 continue
+            if programbench_phase is not None:
+                if (
+                    programbench_phase != "develop"
+                    or str(getattr(b, "linked_task", "") or "")
+                    != "programbench_integration_candidate"
+                ):
+                    continue
             reviewer = self._a_lead_other_than(b.owner_id)
             if reviewer is None and len(self.agents or {}) <= 1:
                 reviewer = b.owner_id      # solo roster: its own review, on the record
@@ -1873,6 +2602,22 @@ class OrgWorld:
         def _run_pr_ci(pr):
             # same integration CI as the LLM run_ci action (end-to-end contract + eval metric
             # consistency), so the AUTO merge route can't ship a bad patch with "CI passed".
+            if programbench_phase is not None:
+                from environments.org_env.backend.repo.workflow import pending_on
+
+                if pending_on(self, str(getattr(pr, "source_branch", "") or "")):
+                    # Zero-mutation refusal: RepoLiteSystem.run_ci synchronizes
+                    # commits, so it must not be entered before pending patches
+                    # have been made into a branch commit.
+                    self.events.append({
+                        "type": "repo_event",
+                        "subtype": "programbench_auto_ci_pending_commit_blocked",
+                        "pr_id": pr.pr_id,
+                        "agent_id": pr.author_id,
+                        "tick": tick,
+                        "auto": True,
+                    })
+                    return
             ci = rs.run_ci(pr_id=pr.pr_id, tick=tick)
             ci_status = getattr(ci, "status", "passed") if ci is not None else "passed"
             cc = _integration_ci(pr)
@@ -1884,6 +2629,29 @@ class OrgWorld:
             # condemn a product the check could not judge.
             from environments.org_env.product.contracts import record_integration_verdict
             ci_status = record_integration_verdict(ci, pr, cc, world=self)
+            if programbench_phase is not None and ci is not None:
+                try:
+                    from environments.org_env.product.materialize import (
+                        programbench_pr_candidate_digest,
+                    )
+
+                    pr.ci_tree_hash = programbench_pr_candidate_digest(self, pr)
+                except Exception as error:  # noqa: BLE001 - exact CI fails closed
+                    ci.status = "failed"
+                    pr.ci_passed = False
+                    pr.test_status = "failed"
+                    pr.__dict__.pop("ci_tree_hash", None)
+                    pr.ci_base_main_commit_ids = None
+                    ci_status = "failed"
+                    self.events.append({
+                        "type": "repo_event",
+                        "subtype": "programbench_auto_ci_candidate_view_invalid",
+                        "pr_id": pr.pr_id,
+                        "agent_id": pr.author_id,
+                        "tick": tick,
+                        "reason": type(error).__name__,
+                        "auto": True,
+                    })
             if not cc["ok"]:
                 self.events.append({
                     "type": "repo_event",
@@ -1951,6 +2719,11 @@ class OrgWorld:
                                 "agent_id": pr.author_id, "tick": tick, "status": ci_status, "auto": True})
 
         for pr in list(rs.repo.pull_requests.values()):
+            if (
+                programbench_phase is not None
+                and programbench_phase != "develop"
+            ):
+                continue
             st = getattr(pr.status, "value", str(pr.status))
             if st in ("merged", "closed"):
                 continue
@@ -1993,6 +2766,22 @@ class OrgWorld:
                 at = pr.approved_tick if pr.approved_tick is not None else getattr(pr, "opened_tick", 0)
                 if tick - int(at or 0) >= MERGE_LATENCY:
                     merger = self._a_lead_other_than(None) or pr.author_id
+                    if programbench_phase is not None:
+                        # The explicit handler owns the ProgramBench merge
+                        # transaction (live exact-PR attestation, rollback,
+                        # promotion, freeze, then task evidence).  The generic
+                        # deterministic sweep cannot reproduce that atomic
+                        # boundary, so it deliberately stops at green review.
+                        self.events.append({
+                            "type": "repo_event",
+                            "subtype": "programbench_auto_merge_deferred",
+                            "pr_id": pr.pr_id,
+                            "agent_id": merger,
+                            "tick": tick,
+                            "reason": "programbench_explicit_transactional_merge_required",
+                            "auto": True,
+                        })
+                        continue
                     if rs.merge_pr(pr_id=pr.pr_id, tick=tick, force=False):
                         self.events.append({"type": "repo_event", "subtype": "pr_merged",
                                             "pr_id": pr.pr_id, "agent_id": merger, "tick": tick, "auto": True})
@@ -2016,6 +2805,12 @@ class OrgWorld:
         publish internally. Agents act first within a tick; this is the backstop."""
         rs = getattr(self, "repo_system", None)
         if rs is None:
+            return []
+        if "programbench_profile_state" in self.__dict__:
+            # The official ProgramBench deliverable is the exact verified
+            # workspace/mainline executable.  The generic multi-tick product
+            # RC pipeline is not an evaluator surface and remains a strict
+            # no-op for the adapted profile (including malformed claims).
             return []
         from environments.org_env.backend.repo.release import release_gates_for, evaluate_release_gates
         tick = self.world_tick
@@ -2429,6 +3224,12 @@ class OrgWorld:
         blocked on a critical product gap past a latency, the domain owner ships the fix
         (a traceable resolving patch merged to mainline) so the gate can re-run and the RC
         can reach approved/published instead of looping forever blocked."""
+        # The generic last-mile fixer writes a synthetic patch straight onto
+        # mainline.  ProgramBench repairs must remain inside the verified
+        # candidate/differential loop; otherwise this backstop can mutate a
+        # frozen submission without any public comparison.
+        if "programbench_profile_state" in self.__dict__:
+            return []
         from environments.org_env.experiments.ablations import PRODUCT_WORKFLOW, mechanism_disabled
         if mechanism_disabled(self, PRODUCT_WORKFLOW):
             return []          # ablation: the auto repair backstop is part of the workflow
@@ -3119,15 +3920,26 @@ class OrgWorld:
                                execution_mode: str = "direct",
                                link_llm_decision: bool = False,
                                collect_growth: bool = True):
-        """Run an already-chosen action through the shared post-execution path.
+        """Run one already-chosen action through the post-execution pipeline
+        (execute → appraise → log → event graph → episode → artifacts → growth)
+        and return its ExecutionResult.
 
-        Autonomous selection in :meth:`step` and a future human-seat gateway
-        both enter here, keeping ordinary organizational state controller-blind.
-        Controller provenance is deliberately limited to ``controller_log``.
+        This is the one path by which an action enters the world, whichever
+        controller chose it: the autonomous loop in ``step()`` and a human seat
+        acting through the HCI gateway both land here, so ``events`` and
+        ``action_log`` cannot tell them apart. ``controller_type`` /
+        ``execution_mode`` are recorded only in the research-side
+        ``controller_log``.
+
+        ``link_llm_decision`` / ``collect_growth`` exist because this pipeline
+        had grown three divergent copies; each caller keeps the subset it always
+        ran rather than silently gaining steps it never had.
         """
+        from environments.org_env.experiments.ablations import EVENT_GRAPH, mechanism_disabled
         if self._loop is None:
             self._wire_loop()
         loop = self._loop
+
         result = loop["execution"].execute(agent_id, action, self)
         if link_llm_decision and self.action_decisions \
                 and self.action_decisions[-1].agent_id == agent_id \
@@ -3137,36 +3949,31 @@ class OrgWorld:
         appraised = loop["appraisal"].appraise(result, self)
         self._log_events(result, appraised)
         self._update_memory(agent_id, appraised)
-        from environments.org_env.experiments.ablations import EVENT_GRAPH, mechanism_disabled
         if not mechanism_disabled(self, EVENT_GRAPH):
             self.event_graph.ingest(result)
         eps = self.episode_manager.observe_result(result, self)
         self._link_product_artifacts(result, eps, agent_id)
         self._record_review_evidence(result, agent_id)
         if collect_growth and self.capability_learning_enabled:
-            self._growth_appraiser.collect(result, self, agent_id)
+            self._growth_appraiser.collect(result, self, agent_id)   # buffer growth signals (§2)
         if controller_type != "agent":
             self.controller_log.append({
-                "agent_id": agent_id,
-                "action_type": result.action_type,
-                "action_id": result.action_id,
-                "tick": self.world_tick,
-                "wall_time": time.time(),
-                "controller_type": controller_type,
-                "execution_mode": execution_mode,
-                "success": result.success,
+                "agent_id": agent_id, "action_type": result.action_type,
+                "action_id": result.action_id, "tick": self.world_tick,
+                "wall_time": time.time(), "controller_type": controller_type,
+                "execution_mode": execution_mode, "success": result.success,
             })
         return result
 
     def apply_action(self, agent_id: str, action_type: str, **params):
-        """Execute ONE action through the shared post-execution pipeline.
-
-        Scripted/demo chains historically omitted growth collection, so preserve
-        that behavior while routing their action through the same core path.
-        """
-        from relic.decision.contracts import ActionCandidate
-
+        """Execute ONE action through the full pipeline (execute → appraise → log →
+        event graph → episode layer) and return the ExecutionResult. Generic helper
+        for scripted/demo causal chains + tests (no per-agent logic). The caller
+        manages the clock (advance + ``update_open_episodes``)."""
+        from agent_sdk.lived.core.contracts import ActionCandidate
         cand = ActionCandidate(action_type=action_type, parameters=dict(params))
+        # Scripted/demo chains never fed the growth appraiser; keep it that way so
+        # this helper stays a pure causal-chain driver.
         return self.apply_action_candidate(agent_id, cand, collect_growth=False)
 
     def reflect_agent(self, agent_id: str, *, episode=None, reason: str = "manual"):
@@ -3197,7 +4004,7 @@ class OrgWorld:
 
     # -- human-controlled seats (HCI) --------------------------------------
     def is_human_controlled(self, agent_id: str) -> bool:
-        """Whether a human drives this seat instead of the autonomous loop."""
+        """True if a human drives this seat instead of the autonomous loop."""
         agent = self.agents.get(agent_id)
         return getattr(agent, "controller_type", "agent") == "human"
 
@@ -3205,13 +4012,15 @@ class OrgWorld:
         return [aid for aid in self.agents if self.is_human_controlled(aid)]
 
     def assign_human_seat(self, agent_id: str) -> None:
-        """Hand an existing member seat to a human without changing the seat."""
+        """Hand an existing member's seat to a human. Everything else about the
+        member — role, skills, permissions, what it can see and do — is
+        unchanged, so the same seat is comparable across controllers."""
         if agent_id not in self.agents:
             raise KeyError(f"unknown_agent:{agent_id}")
         self.agents[agent_id].controller_type = "human"
 
     def release_human_seat(self, agent_id: str) -> None:
-        """Give a claimed seat back to the autonomous loop."""
+        """Give the seat back to the autonomous loop."""
         if agent_id in self.agents:
             self.agents[agent_id].controller_type = "agent"
 
@@ -3315,7 +4124,7 @@ class OrgWorld:
         """During an active meeting a participant takes ONE meeting sub-action
         (record notes if missing, else summarize/assign) — skill-weighted, loop-
         driven, so meetings actually produce notes (daily_sync_cadence detector)."""
-        from relic.decision.contracts import ActionCandidate
+        from agent_sdk.lived.core.contracts import ActionCandidate
         loop = self._loop
         cands = []
         if m.notes_doc_id is None:
@@ -3375,9 +4184,9 @@ class OrgWorld:
         from environments.org_env.backend.meetings.system import meeting_duration
         ms = self.meeting_system
         for m in ms.due_to_start(tick):
-            # A claimed human participant must RSVP explicitly. Holding only
-            # this meeting in scheduled state leaves the rest of the
-            # organization free to continue working.
+            # A human-controlled participant must RSVP explicitly.  Holding
+            # this meeting scheduled does not pause the organization; other
+            # meetings and all ordinary work continue through this tick.
             pending_human_rsvps = [
                 pid for pid in m.participants
                 if self.is_human_controlled(pid)
@@ -3786,4 +4595,4 @@ class OrgWorld:
         }
 
 
-__all__ = ["OrgWorld", "SEED_TEAM"]
+__all__ = ["OrgWorld", "SEED_TEAM", "SEED_TASKS"]

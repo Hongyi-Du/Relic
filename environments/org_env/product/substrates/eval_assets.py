@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import importlib
 import json
 import os
 import secrets
@@ -73,20 +74,55 @@ _EVALUATOR_PYTEST_CONFIG = "tests/hidden/.evaluator_pytest.ini"
 _EVALUATOR_ASSET_VAULT: Dict[str, Dict[str, Any]] = {}
 
 
+def _programbench_evaluator_module() -> Any | None:
+    """Return the optional ProgramBench evaluator, without making it a release dependency.
+
+    ProgramBench is deliberately not part of the public Relic reproduction
+    release.  The ordinary frozen OSS packs used by the paper and the HCI
+    workspace must therefore retain their native evaluator path when its
+    private evaluator module is absent.  Do not hide errors raised *inside* an
+    installed ProgramBench module: only its complete absence is optional.
+    """
+
+    try:
+        return importlib.import_module("society_core.programbench_evaluation")
+    except ModuleNotFoundError as exc:
+        if exc.name == "society_core.programbench_evaluation":
+            return None
+        raise
+
+
+def _oss_hidden_suite_hash(spec: Any) -> str:
+    """Return the same opaque hidden-suite identity used by formal evaluation."""
+
+    from society_core.hashing import stable_hash
+
+    programbench = _programbench_evaluator_module()
+    if programbench is not None and programbench.is_programbench_spec(spec):
+        return programbench.programbench_hidden_suite_hash(spec)
+
+    from environments.org_env.product.substrates.loader import read_repo_files
+
+    return stable_hash(read_repo_files(spec.hidden_tests_dir))
+
+
 def attach_oss_eval_assets(
     world: Any, spec: Any, heldout_issues: List[Any], hidden_test_specs: List[Any]
 ) -> Dict[str, Any]:
     """Register evaluator-only state outside the serializable world."""
+    hidden_suite_hash = _oss_hidden_suite_hash(spec)
     assets = {
         "dataset_id": spec.project_id,
         "project_id": spec.project_id,
         "product_name": spec.product_name,
+        "dataset_dir": spec.dataset_dir,
         "manifest": spec.manifest,
         "reference_repo_dir": spec.reference_repo_dir,
         "hidden_tests_dir": spec.hidden_tests_dir,
         "public_tests_dir": spec.public_tests_dir,
         "heldout_issues": list(heldout_issues),
         "hidden_test_specs": list(hidden_test_specs),
+        "hidden_suite_hash": hidden_suite_hash,
     }
     token = secrets.token_hex(32)
     _EVALUATOR_ASSET_VAULT[token] = assets
@@ -97,6 +133,11 @@ def attach_oss_eval_assets(
         "dataset_id": spec.project_id,
         "project_id": spec.project_id,
         "product_name": spec.product_name,
+        # The pack root is public configuration, unlike the evaluator-only
+        # paths below it.  Keeping it lets a fresh process restore an external
+        # frozen pack whose canonical project id is not locally registered.
+        "dataset_dir": spec.dataset_dir,
+        "hidden_suite_hash": hidden_suite_hash,
     }
     return assets
 
@@ -119,20 +160,117 @@ def oss_eval_assets(world: Any) -> Optional[Dict[str, Any]]:
         raise RuntimeError("OSS evaluator vault binding has no dataset")
     from environments.org_env.product.substrates import loader
 
-    spec = loader.load_oss_substrate_spec(dataset_id)
+    dataset_dir = str(binding.get("dataset_dir") or "")
+    # Bindings written before dataset_dir was persisted can still restore a
+    # formal external pack because the controller freezes its public locator in
+    # ORG_OSS_DATASET.  The canonical project identity is checked below.
+    locator = dataset_dir or str(os.environ.get("ORG_OSS_DATASET") or "") or dataset_id
+    try:
+        spec = loader.load_oss_substrate_spec(locator)
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        raise RuntimeError("OSS evaluator vault binding dataset cannot be restored") from exc
+    if str(spec.project_id) != dataset_id:
+        raise RuntimeError("OSS evaluator vault binding resolved a different dataset")
+    if dataset_dir:
+        expected = os.path.normcase(os.path.realpath(os.path.abspath(dataset_dir)))
+        resolved = os.path.normcase(
+            os.path.realpath(os.path.abspath(str(spec.dataset_dir)))
+        )
+        if resolved != expected:
+            raise RuntimeError("OSS evaluator vault binding resolved a different pack")
+    expected_hidden_hash = str(binding.get("hidden_suite_hash") or "")
+    if expected_hidden_hash and not hmac.compare_digest(
+        _oss_hidden_suite_hash(spec), expected_hidden_hash
+    ):
+        raise RuntimeError("OSS evaluator vault binding hidden suite mismatch")
     restored = {
         "dataset_id": spec.project_id,
         "project_id": spec.project_id,
         "product_name": spec.product_name,
+        "dataset_dir": spec.dataset_dir,
         "manifest": spec.manifest,
         "reference_repo_dir": spec.reference_repo_dir,
         "hidden_tests_dir": spec.hidden_tests_dir,
         "public_tests_dir": spec.public_tests_dir,
         "heldout_issues": loader.load_heldout_issues(spec),
         "hidden_test_specs": loader.load_hidden_test_specs(spec),
+        "hidden_suite_hash": expected_hidden_hash or _oss_hidden_suite_hash(spec),
     }
     _EVALUATOR_ASSET_VAULT[token] = restored
     return restored
+
+
+def resolve_oss_evaluator_spec(
+    assets: Dict[str, Any],
+    *,
+    expected_dataset: str = "",
+) -> Any:
+    """Resolve one evaluator-vault dataset without confusing its id and locator.
+
+    ``dataset_id`` is the manifest's stable project identity, while
+    ``dataset_dir`` may be an absolute path to an externally frozen pack.  Formal
+    runners historically put that path in ``ORG_OSS_DATASET`` and the vault keeps
+    the canonical id, so comparing the two strings rejects the very pack that was
+    loaded.  Resolve the private locator, then require the project and hidden-suite
+    identities to agree.  Bindings that predate ``dataset_dir`` keep resolving by
+    the expected locator (when supplied) or by their canonical id.
+    """
+
+    from environments.org_env.product.substrates import loader
+
+    dataset_id = str(assets.get("dataset_id") or "")
+    project_id = str(assets.get("project_id") or dataset_id)
+    dataset_dir = str(assets.get("dataset_dir") or "")
+    hidden_tests_dir = str(assets.get("hidden_tests_dir") or "")
+    expected = str(expected_dataset or "")
+
+    def mismatch() -> RuntimeError:
+        return RuntimeError(
+            f"checkpoint dataset mismatch: expected {expected or dataset_id!r}, "
+            f"loaded {dataset_id!r}"
+        )
+
+    if not dataset_id or project_id != dataset_id:
+        raise mismatch()
+
+    locator = dataset_dir or expected or dataset_id
+    try:
+        resolved = loader.load_oss_substrate_spec(locator)
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        raise mismatch() from exc
+
+    def same_path(left: str, right: str) -> bool:
+        left_path = os.path.realpath(os.path.abspath(os.path.expanduser(left)))
+        right_path = os.path.realpath(os.path.abspath(os.path.expanduser(right)))
+        return os.path.normcase(left_path) == os.path.normcase(right_path)
+
+    if str(resolved.project_id) != dataset_id:
+        raise mismatch()
+    if dataset_dir and not same_path(str(resolved.dataset_dir), dataset_dir):
+        raise mismatch()
+    if hidden_tests_dir and not same_path(
+        str(resolved.hidden_tests_dir), hidden_tests_dir
+    ):
+        raise mismatch()
+
+    # A non-canonical expected value is a locator/alias, not a second identity.
+    # Resolve it independently so two packs cannot claim the same project id while
+    # pointing the controller and evaluator at different hidden suites.
+    if expected and expected not in {dataset_id, project_id}:
+        try:
+            expected_spec = loader.load_oss_substrate_spec(expected)
+        except (FileNotFoundError, OSError, ValueError) as exc:
+            raise mismatch() from exc
+        if (
+            str(expected_spec.project_id) != dataset_id
+            or not same_path(str(expected_spec.dataset_dir), str(resolved.dataset_dir))
+            or not same_path(
+                str(expected_spec.hidden_tests_dir),
+                str(resolved.hidden_tests_dir),
+            )
+        ):
+            raise mismatch()
+    return resolved
 
 
 def oss_evaluator_config(world: Any) -> Dict[str, Any]:
@@ -593,13 +731,96 @@ def run_oss_hidden_tests(
             "failed": 0,
             "pass_rate": 0.0,
         }
+
+    programbench_spec = _programbench_spec_from_world_assets(a)
+    if programbench_spec is not None:
+        programbench = _programbench_evaluator_module()
+        if programbench is None:  # Defensive: the selector only returns one when present.
+            raise RuntimeError("programbench_evaluator_unavailable")
+
+        return dict(
+            programbench.run_programbench_evaluation(
+                programbench_spec,
+                repo_dir,
+                timeout=timeout,
+                role="candidate",
+            )
+        )
     return _run_oss_hidden_tests_from_assets(a, repo_dir, timeout=timeout, world=world)
+
+
+def _programbench_spec_from_world_assets(assets: Dict[str, Any]) -> Any | None:
+    """Resolve a ProgramBench spec without changing the legacy world path.
+
+    The evaluator vault is the authoritative source for world-level private
+    assets.  A small spec view lets the shared, fail-closed selector notice both
+    an explicit ProgramBench runner and a (possibly malformed) programbench.json
+    without copying either that file or opaque branch archives into the
+    candidate checkout.  Older serialized bindings may not carry dataset_dir;
+    only after the ProgramBench selector fires do we reload their frozen spec.
+    """
+
+    from types import SimpleNamespace
+
+    programbench = _programbench_evaluator_module()
+    if programbench is None:
+        return None
+
+    spec = SimpleNamespace(
+        manifest=assets.get("manifest") or {},
+        hidden_tests_dir=str(assets.get("hidden_tests_dir") or ""),
+        dataset_dir=str(assets.get("dataset_dir") or ""),
+    )
+    if not programbench.is_programbench_spec(spec):
+        return None
+    if spec.dataset_dir:
+        return spec
+
+    dataset_id = str(assets.get("dataset_id") or "")
+    if not dataset_id:
+        raise RuntimeError("ProgramBench evaluator assets have no dataset locator")
+
+    from environments.org_env.product.substrates.loader import (
+        load_oss_substrate_spec,
+    )
+
+    resolved = load_oss_substrate_spec(dataset_id)
+    if not programbench.is_programbench_spec(resolved):
+        raise RuntimeError(
+            "ProgramBench evaluator assets do not match the resolved dataset"
+        )
+    expected_project = str(assets.get("project_id") or dataset_id)
+    if str(resolved.project_id) != expected_project:
+        raise RuntimeError("ProgramBench evaluator assets resolved a different project")
+    expected_hidden = spec.hidden_tests_dir
+    if expected_hidden and os.path.normcase(
+        os.path.realpath(resolved.hidden_tests_dir)
+    ) != os.path.normcase(os.path.realpath(expected_hidden)):
+        raise RuntimeError(
+            "ProgramBench evaluator assets resolved a different hidden suite"
+        )
+    return resolved
 
 
 def run_oss_hidden_tests_for_spec(
     spec: Any, repo_dir: str, timeout: int = 60
 ) -> Dict[str, Any]:
     """Run hidden tests from a resolved substrate spec without constructing a simulation world."""
+
+    # ProgramBench's opaque branch archives contain upstream source as well as
+    # tests.  They must only be injected by the official evaluator *after*
+    # compile.sh has produced the candidate executable; the legacy host runner
+    # copies hidden material into the checkout before executing it.
+    programbench = _programbench_evaluator_module()
+    if programbench is not None and programbench.is_programbench_spec(spec):
+        return dict(
+            programbench.run_programbench_evaluation(
+                spec,
+                repo_dir,
+                timeout=timeout,
+                role="candidate",
+            )
+        )
 
     from environments.org_env.product.substrates.loader import load_hidden_test_specs
 
@@ -648,7 +869,7 @@ def qualify_oss_hidden_tests_for_spec(
             if version not in covered_releases:
                 blocking_reasons.append(f"hidden_release_coverage_missing:{version}")
 
-    def run_frozen_copy(repo_dir: str) -> Dict[str, Any]:
+    def run_frozen_copy(repo_dir: str, *, role: str) -> Dict[str, Any]:
         with tempfile.TemporaryDirectory(prefix="oss_hidden_qualification_") as tmp:
             checkout = os.path.join(tmp, "checkout")
             shutil.copytree(
@@ -664,10 +885,20 @@ def qualify_oss_hidden_tests_for_spec(
                     "*.pyo",
                 ),
             )
+            programbench = _programbench_evaluator_module()
+            if programbench is not None and programbench.is_programbench_spec(spec):
+                return dict(
+                    programbench.run_programbench_evaluation(
+                        spec,
+                        checkout,
+                        timeout=timeout,
+                        role=role,
+                    )
+                )
             return run_oss_hidden_tests_for_spec(spec, checkout, timeout=timeout)
 
-    baseline = run_frozen_copy(spec.starter_repo_dir)
-    reference = run_frozen_copy(spec.reference_repo_dir)
+    baseline = run_frozen_copy(spec.starter_repo_dir, role="baseline")
+    reference = run_frozen_copy(spec.reference_repo_dir, role="reference")
     baseline_by_id = {
         str(row.get("test_id")): str(row.get("status") or "infra_error")
         for row in baseline.get("by_test") or []
@@ -713,6 +944,30 @@ def qualify_oss_hidden_tests_for_spec(
     }
 
 
+def _programbench_qualification_bypass(world: Any) -> bool:
+    """Return whether this explicit rollout profile skips starter/reference qualification.
+
+    The sealed final candidate evaluator is a separate path and remains enabled.
+    """
+    params = getattr(getattr(world, "scenario", None), "params", {}) or {}
+    return str(params.get("execution_profile") or "").strip() == (
+        "programbench_leaderboard_v1"
+    )
+
+
+def programbench_qualification_bypass_record(spec: Any) -> Dict[str, Any]:
+    """Bounded audit marker for the operator-authorized qualification bypass."""
+    return {
+        "dataset_id": str(getattr(spec, "project_id", "") or ""),
+        "formal_ready": False,
+        "qualification_skipped": True,
+        "skip_reason": "programbench_leaderboard_v1_operator_authorized",
+        "blocking_reasons": [],
+        "oracle_count": 0,
+        "oracles": [],
+    }
+
+
 def validate_formal_oss_world(
     world: Any,
     *,
@@ -734,11 +989,10 @@ def validate_formal_oss_world(
     if not dataset_id:
         raise RuntimeError("formal OSS world has no evaluator dataset")
     expected_dataset = str(os.environ.get("ORG_OSS_DATASET") or "")
-    if expected_dataset and expected_dataset != dataset_id:
-        raise RuntimeError(
-            f"checkpoint dataset mismatch: expected {expected_dataset!r}, "
-            f"loaded {dataset_id!r}"
-        )
+    resolved_spec = resolve_oss_evaluator_spec(
+        assets,
+        expected_dataset=expected_dataset,
+    )
     config = oss_evaluator_config(world)
     manifest = assets.get("manifest") or {}
     evaluation = manifest.get("evaluation") or {}
@@ -757,12 +1011,18 @@ def validate_formal_oss_world(
                 f"formal OSS evaluator config mismatch: {key}={config.get(key)!r}"
             )
 
-    from environments.org_env.product.substrates.loader import (
-        load_oss_substrate_spec,
-    )
+    # ProgramBench leaderboard rollouts deliberately do not execute the full
+    # starter/reference evaluator pair on world creation, checkpoint load, or
+    # finalization.  The actual sealed candidate evaluation below remains
+    # mandatory at tick 336.
+    if _programbench_qualification_bypass(world):
+        qualification = programbench_qualification_bypass_record(resolved_spec)
+        if persist_qualification:
+            world.__dict__["_oss_hidden_qualification"] = qualification
+        return qualification
 
     qualification = qualify_oss_hidden_tests_for_spec(
-        load_oss_substrate_spec(dataset_id),
+        resolved_spec,
         timeout=int(os.environ.get("ORG_OSS_QUALIFICATION_TIMEOUT", "180")),
     )
     if not qualification["formal_ready"]:
@@ -1014,6 +1274,7 @@ __all__ = [
     "oss_issue_has_hidden_test",
     "oss_evaluator_config",
     "oss_eval_enabled",
+    "resolve_oss_evaluator_spec",
     "run_oss_hidden_tests",
     "run_oss_hidden_tests_for_spec",
     "qualify_oss_hidden_tests_for_spec",

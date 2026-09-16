@@ -1,4 +1,4 @@
-"""Organization baselines for the controlled Relic experiment.
+"""Organization baselines for the controlled SocioGenesis experiment.
 
 The baseline axis is independent from the OSS substrate/control axis:
 
@@ -21,10 +21,15 @@ growth): a policy that scores candidates needs weights, and a profile is what
 those weights are made of, so the parts do not come apart here.
 
 That makes B2 minus B1 an estimate of mediated action selection, not of
-professional profiles. Reporting it as a profile effect overstates what the arm
-manipulates — the model stops choosing the action at all. Isolating the profile
-would need a further arm with B2's architecture, candidate pool and LLM call
-path, differing only in role-agnostic versus profile-conditioned weights.
+professional profiles — and the reason is simpler than the confound. B1 already
+has the profiles; they arrive as prompt-level division of labour. What B2
+changes is where a profile acts: it weights a selector that chooses the action
+instead of flavouring a prompt the model chooses from. Reporting the contrast
+as a profile effect claims something both arms share.
+
+Isolating the profile itself would need a further arm with B2's architecture,
+candidate pool and LLM call path, differing only in role-agnostic versus
+profile-conditioned weights.
 
 B2 to B3 changes ``institutionalization_enabled`` alone, so the capability
 formation contrast is single-factor and can be reported as one.
@@ -59,7 +64,19 @@ from environments.org_env.backend.agents.seed_team import SeedMember
 B0_SINGLE_AGENT_FOUNDER = "b0_single_agent_founder"
 B1_PERSISTENT_ROLE_ORG = "b1_persistent_role_org"
 B2_POLICY_CONDITIONED_ORG = "b2_policy_conditioned_org"
-B3_RELIC_ORGANIZATION = "b3_relic_organization"
+B3_FULL_SOCIOGENESIS = "b3_full_sociogenesis"
+# A B3 variant, for ProgramBench only, not part of the ladder. B3 lets the
+# profile policy choose the action and lets an adopted protocol annotate the
+# result afterwards; here an adopted protocol removes what it forbids from the
+# menu and the LLM chooses from what is left. Kept beside B3 rather than
+# replacing it so the two are a controlled pair.
+B3_PROTOCOL_MASKED = "b3_protocol_masked"
+# The other half of the pair. Masking and who chooses are independent: the mask
+# is applied while the candidate pool is built, before the policy/LLM fork, so
+# it binds both paths equally. Running B3 with masking and B3m without it would
+# be the remaining two cells; this one is the cell that separates "a bound
+# choice set helps" from "the model chooses better than the policy".
+B3_MASKED_POLICY = "b3_masked_policy"
 
 # Retired rungs. Kept resolvable so runs recorded under the previous ladder
 # still load, and so their records keep reporting the condition they actually
@@ -99,6 +116,11 @@ class OrganizationCondition:
     default_sprint_ticks: int = 168
     profile_assignment: str = PROFILE_ASSIGNMENT_ALIGNED
     role_mandates_enabled: bool = True
+    # Whether an adopted protocol removes the candidates it forbids before the
+    # agent chooses. Off everywhere but the B3 variant: with it off a protocol
+    # is a ledger entry written after the fact, which is what every ladder run
+    # so far has measured.
+    protocol_masking_enabled: bool = False
 
     def __post_init__(self) -> None:
         if self.action_selection_mode not in ACTION_SELECTION_MODES:
@@ -130,6 +152,7 @@ class OrganizationCondition:
             "default_sprint_ticks": self.default_sprint_ticks,
             "profile_assignment": self.profile_assignment,
             "role_mandates_enabled": self.role_mandates_enabled,
+            "protocol_masking_enabled": self.protocol_masking_enabled,
         }
 
 
@@ -161,14 +184,42 @@ CONDITIONS = {
         institutionalization_enabled=False,
         capability_learning_enabled=True,
     ),
-    B3_RELIC_ORGANIZATION: OrganizationCondition(
-        condition_id=B3_RELIC_ORGANIZATION,
+    B3_FULL_SOCIOGENESIS: OrganizationCondition(
+        condition_id=B3_FULL_SOCIOGENESIS,
         short_name="b3",
         roster_size=8,
         action_selection_mode=ACTION_SELECTION_PROFILE_POLICY,
         profile_conditioning_enabled=True,
         institutionalization_enabled=True,
         capability_learning_enabled=True,
+    ),
+    # Same organization as B3, differing only in where the constraint lives:
+    # the institution bounds the choice set, and the model chooses within it.
+    # Both halves are needed to read the result — masking alone would only show
+    # that a smaller menu is cheaper, and LLM choice alone would only show that
+    # the model picks differently than the policy.
+    B3_PROTOCOL_MASKED: OrganizationCondition(
+        condition_id=B3_PROTOCOL_MASKED,
+        short_name="b3m",
+        roster_size=8,
+        action_selection_mode=ACTION_SELECTION_LLM_DIRECT,
+        profile_conditioning_enabled=True,
+        institutionalization_enabled=True,
+        capability_learning_enabled=True,
+        protocol_masking_enabled=True,
+    ),
+    # B3 with the institution binding the menu, and the profile policy still
+    # choosing from it. Against B3 it isolates masking; against B3m it isolates
+    # who chooses.
+    B3_MASKED_POLICY: OrganizationCondition(
+        condition_id=B3_MASKED_POLICY,
+        short_name="b3mp",
+        roster_size=8,
+        action_selection_mode=ACTION_SELECTION_PROFILE_POLICY,
+        profile_conditioning_enabled=True,
+        institutionalization_enabled=True,
+        capability_learning_enabled=True,
+        protocol_masking_enabled=True,
     ),
 }
 
@@ -205,9 +256,13 @@ _ALIASES = {
     "b2": B2_POLICY_CONDITIONED_ORG,
     "policy": B2_POLICY_CONDITIONED_ORG,
     "policy_conditioned": B2_POLICY_CONDITIONED_ORG,
-    "b3": B3_RELIC_ORGANIZATION,
-    "full": B3_RELIC_ORGANIZATION,
-    "relic": B3_RELIC_ORGANIZATION,
+    "b3": B3_FULL_SOCIOGENESIS,
+    "full": B3_FULL_SOCIOGENESIS,
+    "sociogenesis": B3_FULL_SOCIOGENESIS,
+    "b3m": B3_PROTOCOL_MASKED,
+    "protocol_masked": B3_PROTOCOL_MASKED,
+    "b3mp": B3_MASKED_POLICY,
+    "masked_policy": B3_MASKED_POLICY,
     # Retired rungs keep their own names and resolve to what they actually were.
     "temporary": B1_TEMPORARY_SPECIALIST_TEAM,
     "temporary_team": B1_TEMPORARY_SPECIALIST_TEAM,
@@ -222,7 +277,7 @@ def resolve_condition(value: str | None) -> OrganizationCondition:
     ``b2_persistent_role_org`` was an LLM-direct organization, and reading it
     back as today's policy-conditioned B2 would misreport what was measured.
     """
-    raw = (value or B3_RELIC_ORGANIZATION).strip().lower()
+    raw = (value or B3_FULL_SOCIOGENESIS).strip().lower()
     condition_id = _ALIASES.get(raw, raw)
     if condition_id in CONDITIONS:
         return CONDITIONS[condition_id]
@@ -319,7 +374,7 @@ def organization_condition_ids() -> tuple[str, ...]:
         B0_SINGLE_AGENT_FOUNDER,
         B1_PERSISTENT_ROLE_ORG,
         B2_POLICY_CONDITIONED_ORG,
-        B3_RELIC_ORGANIZATION,
+        B3_FULL_SOCIOGENESIS,
     )
 
 
@@ -341,7 +396,7 @@ __all__ = [
     "B1_TEMPORARY_SPECIALIST_TEAM",
     "B2_PERSISTENT_ROLE_ORG",
     "B2_POLICY_CONDITIONED_ORG",
-    "B3_RELIC_ORGANIZATION",
+    "B3_FULL_SOCIOGENESIS",
     "CONDITIONS",
     "RETIRED_CONDITIONS",
     "OrganizationCondition",

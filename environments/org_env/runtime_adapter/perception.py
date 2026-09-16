@@ -283,6 +283,19 @@ class OrgPerceptionAdapter:
         pkt.open_wish_needs = ctx.get("open_wish_needs", [])
         pkt.memory_relevant_observations = [
             {"kind": "reflection", "text": t} for t in pkt.recent_reflections]
+        phase_context = ctx.get("programbench_workflow_state")
+        if isinstance(phase_context, dict):
+            pkt.memory_relevant_observations.append(
+                {"kind": "programbench_workflow_state", **phase_context}
+            )
+        retrieved = ctx.get("programbench_targeted_public_retrievals")
+        if isinstance(retrieved, list) and retrieved:
+            pkt.memory_relevant_observations.append(
+                {
+                    "kind": "programbench_targeted_public_retrievals",
+                    "surfaces": retrieved,
+                }
+            )
 
     # -- DomainAdapter-protocol compatibility shim (skeleton test) ---------
     def build_perception_from_state(self, *, agent_id: str, state: Any) -> Any:

@@ -1,0 +1,47 @@
+# Build context for Dockerfile.hci. The workspace needs the org_env code and the
+# built frontend; everything else in this repository is either large or
+# irrelevant, and the frozen OSS datasets alone are hundreds of megabytes.
+
+**/.git
+**/.venv*
+**/__pycache__
+**/*.pyc
+**/node_modules
+
+# Frozen OSS corpora and benchmark caches — the HCI image carries only its
+# documented traffic_watch_v1 demo pack.
+environments/org_env/data/
+benchmarks/*
+!benchmarks/relic-main-v1/
+benchmarks/relic-main-v1/*
+!benchmarks/relic-main-v1/packs/
+benchmarks/relic-main-v1/packs/*
+!benchmarks/relic-main-v1/packs/traffic_watch_v1/
+!benchmarks/relic-main-v1/packs/traffic_watch_v1/**
+docs/
+log/
+logs/
+runs/
+outputs/
+archive/
+repos/
+
+# Other environments and the research tooling.
+environments/nature_env/
+live_boundary/
+tests/
+tools/
+!tools/run_hci.py
+
+# Frontend sources; the committed dist/ is what gets served.
+environments/org_env/frontend/app/src/
+environments/org_env/frontend/app/node_modules/
+environments/org_env/frontend/app/*.json
+environments/org_env/frontend/app/*.ts
+environments/org_env/frontend/app/*.html
+
+# Secrets must never enter an image.
+.env
+.env.*
+!.env.example
+config/llm.local.yaml

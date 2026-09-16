@@ -119,17 +119,13 @@ class StateReconciler:
         if ps is not None:
             active = [str(g) for g in (getattr(ps, "known_systemic_issues", []) or [])]
             stage = getattr(ps, "stage", "prototype")
-            name = getattr(ps, "name", None) or "Current OSS workload"
             if active:
-                ps.summary = (
-                    f"{name} ({str(stage).replace('_', ' ')}). "
-                    f"Remaining gaps: {'; '.join(active[:4])}."
-                )
+                ps.summary = (f"LanternScout ({str(stage).replace('_', ' ')}). Core evidence/eval/"
+                              f"quality capabilities in place; remaining gaps: {'; '.join(active[:4])}.")
             else:
-                ps.summary = (
-                    f"{name} ({str(stage).replace('_', ' ')}). "
-                    "No critical gaps remain."
-                )
+                ps.summary = (f"LanternScout ({str(stage).replace('_', ' ')}). Evidence-linking, "
+                              f"evaluation, source credibility, report quality and onboarding are in "
+                              f"place; no critical gaps remaining.")
 
     def _close_stale_blockers(self, world, tick) -> None:
         """v8h P0: a rel_blocker_* issue whose gate now PASSES (and whose blocker task is done)

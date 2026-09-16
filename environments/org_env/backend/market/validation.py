@@ -234,7 +234,8 @@ def run_market_trials(world: Any, tick: int, n: int = 3,
     ``customer_trial`` external_signal_event (observed into a feedback episode)."""
     # The HCI project workspace uses the organization's real task/repo/review
     # loops. It must not fabricate customers or churn work merely because a
-    # release was published. The simulation profile retains this mechanism.
+    # release was published. The simulation profile keeps the original market
+    # mechanism for experiments.
     if getattr(world, "customer_market_enabled", True) is False:
         return []
     rel = _latest_release(world)

@@ -7,7 +7,8 @@ interface:
   * HeuristicDecisionProvider — deterministic, offline, free (default + test + replay fallback).
   * LLMDecisionProvider (stage 4) — fixed model snapshots routed by user capability tier.
 
-The product-evaluation output uses a stable purchase-intent record across providers.
+The product-evaluation output mirrors society_core's LLMIntentRecord fields so the LinkedIn forum
+and the embodied society produce comparable purchase-intent signals.
 """
 from __future__ import annotations
 

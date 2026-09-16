@@ -1,30 +1,86 @@
-"""Prompt assets — organization brief, role mandates, identity, and grounding
+"""Initial prompt assets — company brief, role mandates, agent identity, grounding
 rules, and product-substrate context. Every LLM call composes its system prompt as
 ``build_agent_system_prompt(agent, world, module) + module_instruction`` so the model
-acts as a specific member of the current organization.
+acts as a SPECIFIC agent in a SPECIFIC messy company, not a generic assistant.
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
+import json
 from typing import Any, Dict, List, Optional
 
 from environments.org_env.product.seed import DEFAULT_COMPANY_CONFIG
 
-COMPANY_BRIEF_TEMPLATE = """You are simulating one member inside {company_name}, a small software organization maintaining a frozen open-source workload.
+COMPANY_BRIEF_TEMPLATE = """You are simulating one agent inside {company_name}, {company_framing}.
 
 Company context:
 - Company: {company_name}
-- Current project: {product_name}
-- Current stage: {product_stage}
-- Product goal: {product_purpose}
-- The team can inspect the starter tree, public issues, public contracts, and declared verification commands supplied by the workload.
-- Evaluator-private assets are unavailable to the team and must never be guessed or requested.
+- Project / product codename: {product_name}
+- Current product stage: {product_stage}.
+- Product goal: {product_purpose}.
+- {discovery_narrative}
+- {work_narrative}
 
 Organizational setting:
 - A small team with differentiated roles.
-- Recurring tension between speed, correctness, maintainability, usability, and external credibility.
-- The team must decide how to repair the current OSS project, verify changes through its declared public surface, review them, and ship a defensible release.
+- Recurring tension between speed, quality, evidence, usability, and external credibility.
+- {decision_narrative}
 
 Important: You are not a generic assistant. You are one specific agent. Your decisions should reflect your role, persona, memory, current episodes, active product problems, and available actions."""
+
+
+# Only these single-line strings from ``world.company_config`` may enter the
+# shared prompt through this module.  The defaults deliberately reproduce the
+# original LanternScout prompt byte for byte.  Task-family profiles can opt in
+# to a different narrative without handing an arbitrary config mapping to the
+# formatter (or changing the native prompt).
+COMPANY_PROMPT_TEXT_LIMITS: Dict[str, int] = {
+    "company_name": 160,
+    "product_name": 160,
+    "product_purpose": 640,
+    "company_framing": 320,
+    "product_stage": 240,
+    "discovery_narrative": 640,
+    "work_narrative": 640,
+    "decision_narrative": 640,
+    "product_context_files_heading": 160,
+    "product_context_gaps_heading": 160,
+    "product_context_issues_heading": 160,
+}
+
+_COMPANY_BRIEF_DEFAULTS: Dict[str, str] = {
+    "company_name": DEFAULT_COMPANY_CONFIG["company_name"],
+    "product_name": DEFAULT_COMPANY_CONFIG["product_name"],
+    "product_purpose": DEFAULT_COMPANY_CONFIG["product_purpose"],
+    "company_framing": "an early-stage AI company building a new research agent",
+    "product_stage": "messy pre-launch prototype",
+    "discovery_narrative": (
+        "The company is still discovering the right product shape, workflow, "
+        "evaluation standard, and value proposition."
+    ),
+    "work_narrative": (
+        "The team must turn scattered starter code, rough docs, experiments, "
+        "reports, and external feedback into a coherent research-agent product."
+    ),
+    "decision_narrative": (
+        "The team must decide what the research agent should do, how to validate "
+        "outputs, what tools/workflows it needs, and what protocols are required "
+        "before claims or reports can be trusted."
+    ),
+}
+
+_PRODUCT_CONTEXT_HEADING_DEFAULTS: Dict[str, str] = {
+    "product_context_files_heading": "Existing files (with gaps):",
+    "product_context_gaps_heading": "Known product gaps:",
+    "product_context_issues_heading": "Open issues:",
+}
+
+_COMPANY_NARRATIVE_ACTIVATORS = (
+    "company_framing",
+    "discovery_narrative",
+    "work_narrative",
+    "decision_narrative",
+)
 
 GLOBAL_GROUNDING_RULES = """You must obey these rules:
 1. Use only the provided world context.
@@ -76,10 +132,66 @@ _TRAIT_HINTS = {
 }
 
 
+def _validated_prompt_values(
+    world: Any,
+    defaults: Mapping[str, str],
+    *,
+    ignored_overrides: frozenset[str] = frozenset(),
+) -> Dict[str, str]:
+    """Read an allowlisted set of prompt strings from ``company_config``.
+
+    Values are deliberately restricted to short, printable, single-line strings.
+    A malformed value fails closed instead of being coerced with ``str(...)`` or
+    silently copied into a system prompt.  Keys outside ``defaults`` are ignored,
+    so substrate metadata and evaluator plumbing can never be rendered by this
+    helper accidentally.
+    """
+
+    raw = getattr(world, "company_config", {}) or {}
+    if not isinstance(raw, Mapping):
+        raise ValueError("invalid_prompt_config:company_config_must_be_mapping")
+
+    values: Dict[str, str] = {}
+    for field, default in defaults.items():
+        value = raw[field] if field in raw and field not in ignored_overrides else default
+        if type(value) is not str:
+            raise ValueError(
+                f"invalid_prompt_config:{field}:expected_nonempty_string"
+            )
+        if not value or value != value.strip():
+            raise ValueError(
+                f"invalid_prompt_config:{field}:expected_nonempty_string"
+            )
+        if not value.isprintable():
+            raise ValueError(f"invalid_prompt_config:{field}:control_character")
+        limit = COMPANY_PROMPT_TEXT_LIMITS[field]
+        if len(value) > limit:
+            raise ValueError(f"invalid_prompt_config:{field}:too_long")
+        values[field] = value
+    return values
+
+
 def render_company_brief(world: Any) -> str:
-    cfg = dict(DEFAULT_COMPANY_CONFIG)
-    cfg.update(getattr(world, "company_config", {}) or {})
-    return COMPANY_BRIEF_TEMPLATE.format(**cfg)
+    raw = getattr(world, "company_config", {}) or {}
+    # ``product_stage`` predates configurable prompt framing: OSS substrates
+    # already populate it, while the old renderer hard-coded the native stage.
+    # Treat it as a prompt override only when a new narrative field activates
+    # the overlay, preserving profile-off/native OSS bytes.
+    stage_is_legacy_metadata = (
+        isinstance(raw, Mapping)
+        and not any(field in raw for field in _COMPANY_NARRATIVE_ACTIVATORS)
+    )
+    return COMPANY_BRIEF_TEMPLATE.format(
+        **_validated_prompt_values(
+            world,
+            _COMPANY_BRIEF_DEFAULTS,
+            ignored_overrides=(
+                frozenset({"product_stage"})
+                if stage_is_legacy_metadata
+                else frozenset()
+            ),
+        )
+    )
 
 
 def render_top_traits(profile: Dict[str, float], k: int = 6) -> str:
@@ -121,6 +233,26 @@ def render_agent_memory(world: Any, agent_id: str) -> str:
         return "- (no memory yet)"
     ctx = rm.context_for_decision(agent_id, world)
     parts = []
+    if ctx.get("programbench_workflow_state"):
+        parts.append(
+            "Current ProgramBench workflow state (public organizational evidence only):\n"
+            + json.dumps(
+                ctx["programbench_workflow_state"],
+                ensure_ascii=True,
+                separators=(",", ":"),
+                sort_keys=True,
+            )
+        )
+    if ctx.get("programbench_targeted_public_retrievals"):
+        parts.append(
+            "ProgramBench public contract surfaces this agent explicitly retrieved:\n"
+            + json.dumps(
+                ctx["programbench_targeted_public_retrievals"],
+                ensure_ascii=True,
+                separators=(",", ":"),
+                sort_keys=True,
+            )
+        )
     if ctx.get("recent_reflections"):
         parts.append("Recent reflections:\n" + "\n".join(f"  - {r}" for r in ctx["recent_reflections"]))
     if ctx.get("lessons_learned"):
@@ -138,21 +270,22 @@ def render_product_context(world: Any, max_files: int = 12,
     arts = getattr(world, "product_artifacts", {}) or {}
     if ps is None:
         return "(no product substrate)"
+    headings = _validated_prompt_values(world, _PRODUCT_CONTEXT_HEADING_DEFAULTS)
     files = [a for a in arts.values() if a.artifact_type != "issue"][:max_files]
     issues = [a for a in arts.values() if a.artifact_type == "issue" and a.status == "open"]
     if max_issues is not None:
         issues = issues[:max_issues]
     lines = [f"Project: {ps.name}", f"Stage: {ps.stage}", "",
-             "Existing files (with gaps):"]
+             headings["product_context_files_heading"]]
     for a in files:
         gap = ("; ".join(a.known_gaps)) if a.known_gaps else "ok"
         lines.append(f"- {a.linked_file_path or a.title} [{a.artifact_id}] ({a.status}): {gap}")
     lines.append("")
-    lines.append("Known product gaps:")
+    lines.append(headings["product_context_gaps_heading"])
     for g in ps.known_systemic_issues[:10]:
         lines.append(f"- {g}")
     lines.append("")
-    lines.append("Open issues:")
+    lines.append(headings["product_context_issues_heading"])
     for a in issues:
         lines.append(f"- {a.artifact_id}: {a.title} ({a.priority})")
         # The reported text — what breaks, how to reproduce, what "fixed" means.
@@ -266,7 +399,8 @@ def system_for(agent: Any, world: Any, module_name: str, module_instruction: str
 
 
 __all__ = [
-    "COMPANY_BRIEF_TEMPLATE", "GLOBAL_GROUNDING_RULES", "ROLE_MANDATES",
+    "COMPANY_BRIEF_TEMPLATE", "COMPANY_PROMPT_TEXT_LIMITS",
+    "GLOBAL_GROUNDING_RULES", "ROLE_MANDATES",
     "render_company_brief", "render_product_context", "render_agent_memory",
     "render_top_traits", "render_top_skills", "render_failure_modes", "render_communication_style",
     "render_persona_for_llm",

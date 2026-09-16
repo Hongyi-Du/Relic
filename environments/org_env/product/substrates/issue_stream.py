@@ -132,6 +132,22 @@ def _component_artifact_ids(world: Any, issue_id: str) -> list:
     return [path_to_art[p] for p in (cmap.get(comp) or []) if p in path_to_art]
 
 
+def _is_allowed_unbound_reconstruction(world: Any, entry: Dict[str, Any]) -> bool:
+    """Whether this intentionally pathless root issue may enter the backlog.
+
+    Ordinary broken component mappings remain fail-closed. Only a substrate
+    that publicly opts in, and only its root ``reconstruction`` component, may
+    ask the organization to choose and create its own implementation path.
+    """
+    product = getattr(world, "product", None)
+    meta = getattr(product, "substrate_meta", {}) or {}
+    return bool(
+        meta.get("allow_unbound_reconstruction_issue") is True
+        and str(entry.get("component") or "").strip().casefold()
+        == "reconstruction"
+    )
+
+
 def _has_post_issue_work(world: Any, issue_id: str) -> bool:
     """True iff a task/patch/PR linked to the issue (or its component) advanced AFTER the issue was
     created (brief §9.3 conditions 1+2). Scans world.events defensively across field spellings."""
@@ -331,11 +347,22 @@ def unpatched_coding_issues(world: Any) -> List[Dict[str, Any]]:
         if _oss_issue_done(world, iid):            # Fix #1: retire only on genuine resolution
             continue
         comp_arts = _component_artifact_ids(world, iid)
-        if not comp_arts:
+        unbound_reconstruction = (
+            not comp_arts and _is_allowed_unbound_reconstruction(world, entry)
+        )
+        if not comp_arts and not unbound_reconstruction:
             continue
         created = int(getattr(a, "created_at_tick", 0) or 0)
-        count, last = _oss_patch_attempts(world, iid, comp_arts, created)
-        stalled = _oss_attempts_that_changed_nothing(world, comp_arts)
+        # A deliberately pathless reconstruction has no implementation surface
+        # yet. Compile-contract, probe, test and documentation patches may all
+        # carry the root issue id for provenance, but none is an attempt at the
+        # missing source file. Until a real implementation artifact enters the
+        # component map there is nothing to cool down or declare stalled.
+        if unbound_reconstruction:
+            count, last, stalled = 0, -1, 0
+        else:
+            count, last = _oss_patch_attempts(world, iid, comp_arts, created)
+            stalled = _oss_attempts_that_changed_nothing(world, comp_arts)
         # Retire what has stopped moving, not what is taking a while. An issue is
         # dropped from the active backlog when the gate has repeated itself for a
         # stretch, or on an absolute ceiling that only unbounded churn reaches.
@@ -365,13 +392,24 @@ def unpatched_coding_issues(world: Any) -> List[Dict[str, Any]]:
         # to touch, while governance grew from a tenth of their actions to a
         # fifth. Being stuck is a reason to rank it below work that is moving,
         # not a reason to stop mentioning it.
-        out.append({"issue_id": iid, "artifact_ids": comp_arts,
-                    "title": getattr(a, "title", ""), "component": entry.get("component", ""),
-                    "severity": entry.get("severity", "medium"), "attempts": count,
-                    "source": "oss_stream", "stalled": stuck,
-                    # agent-visible behavioral acceptance (the issue's problem text incl the
-                    # acceptance hint) — concrete EDIT GOAL for the code editor. NOT the hidden test.
-                    "acceptance": (getattr(a, "problem", "") or getattr(a, "summary", "") or "")})
+        item = {
+            "issue_id": iid,
+            "artifact_ids": comp_arts,
+            "title": getattr(a, "title", ""),
+            "component": entry.get("component", ""),
+            "severity": entry.get("severity", "medium"),
+            "attempts": count,
+            "source": "oss_stream",
+            "stalled": stuck,
+            # Agent-visible behavioral acceptance (the issue's problem text
+            # including the acceptance hint), never the hidden test.
+            "acceptance": (
+                getattr(a, "problem", "") or getattr(a, "summary", "") or ""
+            ),
+        }
+        if unbound_reconstruction:
+            item["unbound_reconstruction"] = True
+        out.append(item)
     out.extend(_agent_created_coding_issues(world, tick))
     # high-severity real bugs first (visible info; no hidden-test leakage) — review fix §4,
     # and work that is still moving ahead of work that has stopped, so a hard

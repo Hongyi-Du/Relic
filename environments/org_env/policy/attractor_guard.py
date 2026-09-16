@@ -124,6 +124,16 @@ _UNCOMMITTED_SOFT_ESCAPE = {"send_async_update", "internal_search", "respond_to_
                             "defer_until_work_hours", "run_cheap_pilot", "work_on_task",
                             "update_task_status"}
 
+# Once a reviewed, green request can land, starting more product work merely
+# widens the desk-to-mainline gap. Keep repository lifecycle actions free, but
+# strongly down-weight ordinary escape hatches for an agent who can merge.
+_MERGE_READY_SOFT_ESCAPE = (
+    _UNCOMMITTED_SOFT_ESCAPE
+    | _SHIPPING_OFFTASK
+    | _EXPENSIVE_ACTIONS
+    | {"run_public_tests", "rest_offline"}
+)
+
 
 def candidate_target_artifact(c) -> Optional[str]:
     """Best-effort resolve the product-artifact id a candidate would touch."""
@@ -196,6 +206,78 @@ def _forced_edit_dead_end(world: Any, target: str) -> bool:
     return accepted == 0 and rejected >= FORCED_EDIT_REJECT_CEILING
 
 
+def _accepted_pending_code_count(
+    world: Any, pending: List[Tuple[str, str]]
+) -> int:
+    """Count accepted code patches that are still waiting for a commit.
+
+    The workflow ledger is authoritative for pending state, while the patch
+    object is authoritative for acceptance and code-vs-document identity. A
+    missing fixture or legacy patch is not guessed to be code, preserving the
+    long-standing two-patch threshold for documents.
+    """
+    from environments.org_env.product.patch_objects import CODE_PATCH_TYPES
+
+    patches = getattr(world, "patches", {}) or {}
+    count = 0
+    for patch_id, _artifact_id in pending:
+        patch = patches.get(patch_id)
+        if patch is None:
+            continue
+        status = str(getattr(patch, "validation_status", "") or "").lower()
+        patch_type = str(getattr(patch, "patch_type", "") or "").lower()
+        if status == "accepted" and patch_type in CODE_PATCH_TYPES:
+            count += 1
+    return count
+
+
+def _merge_ready_for_agent(world: Any, agent_id: str) -> bool:
+    """Whether this agent is offered a genuinely landable PR.
+
+    This mirrors the generic repo workflow authority: an author may merge their
+    own request, while founders/cofounders/reliability may land any request.
+    There is deliberately no experiment-condition or substrate check here.
+    """
+    repo = getattr(getattr(world, "repo_system", None), "repo", None)
+    if repo is None:
+        return False
+    agent = (getattr(world, "agents", {}) or {}).get(agent_id)
+    role = str(getattr(agent, "role", "") or "")
+    may_land_others = role in {"founder", "cofounder", "reliability"}
+    programbench_active = False
+    if "programbench_profile_state" in getattr(world, "__dict__", {}):
+        try:
+            from environments.org_env.programbench import programbench_profile_active
+
+            programbench_active = programbench_profile_active(world)
+        except (ImportError, AttributeError, TypeError, ValueError):
+            programbench_active = False
+    for pr in (getattr(repo, "pull_requests", {}) or {}).values():
+        raw_status = getattr(pr, "status", "")
+        status = str(getattr(raw_status, "value", raw_status) or "").lower()
+        if status != "approved" or not bool(getattr(pr, "ci_passed", False)):
+            continue
+        # A conflict needs repair rather than a hard merge attractor; masking
+        # edits in that state would make the repair path unreachable.
+        if bool(getattr(pr, "merge_conflict", False)):
+            continue
+        if programbench_active:
+            try:
+                from environments.org_env.programbench import (
+                    programbench_live_submission_block_reason,
+                )
+
+                if programbench_live_submission_block_reason(
+                    world, merge_pr=pr
+                ) is not None:
+                    continue
+            except (ImportError, AttributeError, TypeError, ValueError):
+                continue
+        if getattr(pr, "author_id", None) == agent_id or may_land_others:
+            return True
+    return False
+
+
 class AttractorGuard:
     # -- hard masks ---------------------------------------------------------
     def mask_reason(self, c, agent_id: str, world: Any, tick: int) -> Optional[str]:
@@ -203,6 +285,109 @@ class AttractorGuard:
         params = getattr(c, "parameters", None) or {}
         arts = getattr(world, "product_artifacts", {}) or {}
         tgt = candidate_target_artifact(c)
+        programbench_state = None
+        if "programbench_profile_state" in getattr(world, "__dict__", {}):
+            try:
+                from environments.org_env.programbench import (
+                    get_programbench_profile_state,
+                    programbench_profile_active,
+                )
+
+                if programbench_profile_active(world):
+                    programbench_state = get_programbench_profile_state(world)
+            except (ImportError, AttributeError, TypeError, ValueError):
+                programbench_state = None
+        if at == "write_design_note" and programbench_state is not None:
+            phase = str(programbench_state.get("phase") or "")
+            typed = bool(
+                params.get("_programbench_contract") is True
+                and params.get("programbench_artifact_kind")
+                == "behavioral_contract"
+            )
+            integration_owner = next(
+                (
+                    str(row.get("agent_id") or "")
+                    for row in programbench_state.get("role_assignments") or []
+                    if isinstance(row, dict)
+                    and row.get("work_role") == "integration_owner"
+                ),
+                "",
+            )
+            if typed and phase not in {"explore", "develop"}:
+                return "ProgramBench contract requires an active workflow state"
+            if typed and agent_id != integration_owner:
+                return "only the ProgramBench integration owner authors the contract"
+            if typed and params.get("artifact_id") != "programbench_reconstruction":
+                return "ProgramBench contract must use its stable reconstruction target"
+        if (
+            at == "run_public_tests"
+            and programbench_state is not None
+            and params.get("probe_mode") == "reference_only"
+        ):
+            designated_runners = {
+                str(row.get("agent_id") or "")
+                for row in programbench_state.get("role_assignments") or []
+                if isinstance(row, dict)
+                and row.get("work_role") in {"probe_owner", "verifier"}
+            }
+            if agent_id not in designated_runners:
+                return (
+                    "ProgramBench reference probes are reserved for the "
+                    "designated probe owner or verifier"
+                )
+
+        # Public probe/contract debt is profile-owned in both top-level states.
+        # EXPLORE cannot commit its pending probe, while DEVELOP may acquire
+        # the same debt after a probe revision even when source patches are
+        # pending.  The native pre-commit/churn attractor must not mask the only
+        # actions that can refresh the exact corpus and its typed contract.
+        # Execution and handler validators still enforce the exact trusted
+        # probe surface, owner, evidence binding, and singleton contract.
+        programbench_debt_repair_action = False
+        if (
+            programbench_state is not None
+            and str(programbench_state.get("phase") or "")
+            in {"explore", "develop"}
+        ):
+            typed_contract = bool(
+                at == "write_design_note"
+                and params.get("_programbench_contract") is True
+                and params.get("programbench_artifact_kind")
+                == "behavioral_contract"
+            )
+            trusted_probe_refine = False
+            if at == "edit_repo_file" and tgt and tgt in arts:
+                try:
+                    from environments.org_env.backend.repo.workflow import (
+                        programbench_public_probe_artifact,
+                    )
+
+                    trusted_probe_refine = programbench_public_probe_artifact(
+                        world, arts[tgt]
+                    )
+                except (ImportError, AttributeError, TypeError, ValueError):
+                    trusted_probe_refine = False
+            programbench_debt_repair_action = bool(
+                typed_contract or trusted_probe_refine
+            )
+        if programbench_debt_repair_action:
+            return None
+
+        # Delivery gates precede the forced-edit exemption. A forced blocker
+        # edit may bypass churn guards, but once accepted code is on a branch it
+        # must be committed rather than repeatedly rewritten. Documents retain
+        # the historical threshold of two pending patches.
+        from environments.org_env.backend.repo.workflow import pending_for_agent
+
+        uncommitted = pending_for_agent(world, agent_id)
+        accepted_code = _accepted_pending_code_count(world, uncommitted)
+        if accepted_code and at in _PRE_COMMIT_ESCALATED:
+            return (
+                f"{accepted_code} accepted code patch(es) pending; commit_patch / "
+                "open_pr before more product work"
+            )
+        if _merge_ready_for_agent(world, agent_id) and at in _PRE_COMMIT_ESCALATED:
+            return "an approved CI-passed PR is ready; merge_pr before more product work"
         # v11 coding layer: a forced release-blocker fix bypasses the CHURN guards —
         # fixing the blocker is exactly the work we want, even on an awaiting-review
         # file. It does NOT bypass the dead-end ceiling: an unconditional exemption is
@@ -226,8 +411,6 @@ class AttractorGuard:
         # 1b. v5 §P0-3: if you have accepted-but-uncommitted patches, FINISH the repo
         #     chain (commit_patch -> open_pr) before starting more edits/tools/docs —
         #     otherwise the LLM loops on use_tool/create_* and the workflow never advances.
-        from environments.org_env.backend.repo.workflow import pending_for_agent
-        uncommitted = pending_for_agent(world, agent_id)
         if uncommitted:
             if at in _PRE_COMMIT_BLOCKED:
                 return "you have uncommitted patches; commit_patch / open_pr before more edits or tools"
@@ -325,7 +508,42 @@ class AttractorGuard:
 
         # 6. purpose-level dedup for create-class doc actions (v4 review §1)
         purpose = _CREATE_PURPOSE.get(at)
-        if purpose and self._active_purpose_artifact(arts, purpose, tick):
+        programbench_contract = bool(
+            programbench_state is not None
+            and at == "write_design_note"
+            and params.get("_programbench_contract") is True
+            and params.get("programbench_artifact_kind") == "behavioral_contract"
+            and str(programbench_state.get("phase") or "") in {"explore", "develop"}
+            and not any(
+                str(
+                    getattr(artifact, "programbench_artifact_kind", "") or ""
+                )
+                == "behavioral_contract"
+                and int(getattr(artifact, "revision", 0) or 0) > 0
+                and str(
+                    getattr(
+                        artifact,
+                        "programbench_public_evidence_digest",
+                        "",
+                    )
+                    or ""
+                )
+                == str(
+                    programbench_state.get(
+                        "exploration_reference_evidence_digest"
+                    )
+                    or ""
+                )
+                and str(getattr(artifact, "status", "") or "")
+                not in {"deprecated", "closed"}
+                for artifact in arts.values()
+            )
+        )
+        if (
+            purpose
+            and self._active_purpose_artifact(arts, purpose, tick)
+            and not programbench_contract
+        ):
             return f"a {purpose} doc already exists; revise/review it instead of creating another"
 
         # 6b. meetings must be warranted + sparse (v8-run finding: 24 meetings, 0 decisions,
@@ -486,6 +704,8 @@ class AttractorGuard:
             from environments.org_env.backend.repo.workflow import pending_for_agent
             if pending_for_agent(world, agent_id):
                 out["uncommitted_repo_chain_penalty"] = -0.5
+        if at in _MERGE_READY_SOFT_ESCAPE and _merge_ready_for_agent(world, agent_id):
+            out["merge_ready_delivery_penalty"] = -1.2
         # ship-it: a merged fix is sitting UNSHIPPED -> a LEAD should cut/publish a release, not idle.
         # Strong down-weight (rest_offline utility can dominate at night) so create_release_candidate /
         # publish wins the decision. The deterministic pipeline is the backstop; this makes leads ship
@@ -556,8 +776,17 @@ class AttractorGuard:
         if not kept:                       # never-empty fallback, but NEVER re-admit a
             # create-class / safe-action attractor (v5 §P0-1/§P0-2) — better to idle than
             # to spam onboarding/use_tool/read_feed just to fill the pool.
-            kept = [c for c, _ in masked if c.action_type not in _NO_FALLBACK
-                    and c.action_type not in ACTION_OBJECT_COOLDOWN]
+            kept = [
+                c
+                for c, reason in masked
+                if c.action_type not in _NO_FALLBACK
+                and c.action_type not in ACTION_OBJECT_COOLDOWN
+                # Adapted-profile authorization masks are physical workflow
+                # constraints, not anti-attractor heuristics.  The generic
+                # never-empty fallback must not give them back to an agent.
+                and not str(reason or "").startswith("ProgramBench ")
+                and not str(reason or "").startswith("only the ProgramBench ")
+            ]
         return kept, masked
 
 

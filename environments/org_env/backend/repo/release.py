@@ -19,8 +19,9 @@ RELEASE_GATES = (
     "gate_smoke_test_passes",
 )
 
-# OSS time-machine ships a real third-party tool, so product-specific claim/report
-# gates do not apply — and requiring "no open high-risk issue / no critical gap"
+# OSS time-machine ships a REAL third-party tool (e.g. gitingest), so the LanternScout-specific
+# gates (claim-source credibility, eval-metric grounding, README overclaim, claim-evidence protocol,
+# report-quality checklist) do not apply — and requiring "no open high-risk issue / no critical gap"
 # would forbid ever releasing a v0.1.x product that legitimately ships WITH open historical issues.
 # A real OSS release just has to BUILD + pass CI; objective quality is judged separately by the
 # hidden behavior tests feeding product_quality -> the market. So the OSS publish gate is minimal;
@@ -256,11 +257,25 @@ def evaluate_release_gates(world: Any, rc) -> List[Dict[str, Any]]:
                     and not str(a.artifact_id).startswith("rel_blocker_")]
             add(g, not high, "" if not high else f"{len(high)} open high-risk issue(s)")
         elif g == "gate_claim_evidence_protocol_active_or_pending":
+            from environments.org_env.backend.protocol.registry import (
+                protocol_is_live,
+            )
+
             specs = getattr(world.proposal_manager, "protocol_specs", {}) or {}
             live = getattr(world.protocol_registry, "protocols", {}) or {}
-            ok = bool(specs) or any(("evidence" in p.protocol_type.lower()
-                                     or "claim" in p.protocol_type.lower()
-                                     or "review" in p.protocol_type.lower()) for p in live.values())
+            ok = any(
+                str(getattr(spec, "status", "") or "")
+                not in {"deprecated", "obsolete"}
+                for spec in specs.values()
+            ) or any(
+                protocol_is_live(protocol)
+                and (
+                    "evidence" in protocol.protocol_type.lower()
+                    or "claim" in protocol.protocol_type.lower()
+                    or "review" in protocol.protocol_type.lower()
+                )
+                for protocol in live.values()
+            )
             add(g, ok, "" if ok else "no claim-evidence/review protocol active or pending")
         elif g == "gate_smoke_test_passes":
             # grounded: export the real (mainline) tree and run `python smoke_check.py`.

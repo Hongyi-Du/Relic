@@ -1,21 +1,50 @@
-"""Product integration checks for the currently selected OSS workload."""
+"""Product Contract Graph (v13 P2) — the cross-module interface contract as a FIRST-CLASS object.
+
+v12's failure was not "no evidence protocol" but "no interface-contract governance": each
+module got locally better, yet `Claim / Source / ResearchResult / Eval / Report / Smoke` drifted
+out of agreement, so the product stopped running end-to-end (research_loop passed a dict where
+ClaimTracker.add expected text+source_ids). This module makes the producer/consumer schema
+explicit + classifiable, so an integration break is caught at CI/PR time (does the product still
+RUN end-to-end) — distinct from the release gate's quality bar (is the product good enough).
+"""
 from __future__ import annotations
 
 from typing import Any, Dict
 
 CONTRACT_VERSION = 1
 
-# Contract metadata is workload-defined. Keep a stable neutral shape for callers
-# that inspect this module; no release workload inherits another product's API.
+# canonical schema (first-class, inspectable, governable)
 PRODUCT_CONTRACT: Dict[str, Any] = {
     "version": CONTRACT_VERSION,
-    "objects": {},
-    "interfaces": {},
-    "boundaries": [],
+    "objects": {
+        "Claim": ["text", "source_ids", "evidence", "uncertainty_note"],
+        "Source": ["source_id", "title", "path", "url", "credibility_score"],
+        "ResearchResult": ["claims", "sources", "report"],
+    },
+    "interfaces": {
+        "run_research": {"inputs": ["query"], "output": "ResearchResult", "file": "research_loop.py"},
+        "ClaimTracker.add": {"inputs": ["text", "source_ids", "evidence", "uncertainty_note"],
+                             "file": "tools/claim_tracker.py"},
+        "SourceTracker.add": {"inputs": ["rec"], "output": "Source", "file": "tools/source_tracker.py"},
+        "run_eval": {"inputs": ["claims", "sources"], "output": "metrics", "file": "eval/eval_stub.py"},
+        "write_report": {"inputs": ["query", "claims", "sources"], "file": "tools/report_writer.py"},
+        "smoke_check": {"role": "end_to_end_test", "file": "smoke_check.py"},
+    },
+    # (producer_file, consumer_file, shared_object) — edits to either side must keep the contract
+    "boundaries": [
+        ["research_loop.py", "tools/claim_tracker.py", "Claim"],
+        ["research_loop.py", "eval/eval_stub.py", "Claim+Source"],
+        ["research_loop.py", "tools/report_writer.py", "Claim+Source"],
+        ["smoke_check.py", "research_loop.py", "ResearchResult"],
+        ["agent.py", "eval/eval_stub.py", "run_eval signature"],
+    ],
 }
 
-# Workload-specific contract files are inferred from its issues and manifest.
-CONTRACT_FILES: set[str] = set()
+# the files whose edits touch a contract boundary (a PR touching these must pass the contract CI)
+CONTRACT_FILES = {
+    "research_loop.py", "tools/claim_tracker.py", "tools/source_tracker.py",
+    "eval/eval_stub.py", "tools/report_writer.py", "smoke_check.py", "agent.py",
+}
 
 
 def touches_contract(file_path: str) -> bool:
@@ -23,19 +52,35 @@ def touches_contract(file_path: str) -> bool:
     return fp in CONTRACT_FILES or fp.split("/")[-1] in {f.split("/")[-1] for f in CONTRACT_FILES}
 
 
-def classify_contract_break(err: str) -> str:
-    """Return the first product file named by a smoke/build error, when present."""
-    import re
+_BOUNDARY_HINTS = [
+    # v14c: the Claim SHAPE contract (object vs dict) — agent.py expected dict-shaped claims while
+    # research_loop returned Claim objects ("claim at index 0 must be a dict"). Keep this BEFORE the
+    # generic "claim" hint so it localizes to the real producer/consumer boundary.
+    (("must be a dict", "must be dict", "is not a dict", "expected dict", "claim at index",
+      "object is not subscriptable", "not subscriptable"),
+     "agent.py <-> research_loop.py (Claim shape: object vs dict — canonicalize the Claim schema)"),
+    (("source_id", "source_ids"), "research_loop.py <-> tools/claim_tracker.py (Claim.source_ids)"),
+    (("run_eval", "positional", "takes", "argument"), "agent.py/smoke_check.py <-> eval/eval_stub.py (run_eval signature)"),
+    (("credibility", "credibility_score"), "tools/source_tracker.py <-> eval/eval_stub.py (Source.credibility_score)"),
+    (("attribute", "has no attribute", ".all"), "research_loop.py <-> tools/source_tracker.py (SourceTracker API)"),
+    (("claim", "evidence"), "research_loop.py <-> tools/report_writer.py (Claim.evidence)"),
+]
 
-    match = re.search(r"([A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*\.py)", err or "")
-    return match.group(1) if match else ""
+
+def classify_contract_break(err: str) -> str:
+    """Map a smoke/build error to the contract boundary that broke (best-effort, for routing)."""
+    e = (err or "").lower()
+    for keys, boundary in _BOUNDARY_HINTS:
+        if any(k in e for k in keys):
+            return boundary
+    return ""
 
 
 def product_local_modules(world: Any) -> set:
     """Import names the exported product tree provides itself.
 
     Read from the tree rather than listed, because a list can only ever describe
-    one product. Written down, it named one workload's files, so on every other Pack
+    one product. Written down, it named LanternScout's files, so on every OSS Pack
     the product's OWN package — blobstore, boltons, anyio — counted as absent from
     the sandbox: a tree that could not import itself was excused instead of
     refused, and would have merged.
@@ -134,6 +179,99 @@ def missing_sandbox_dependency(
     return _absent_name(match.group(1), local, declared)
 
 
+def reconstruction_build_contract_check(world: Any, pr: Any = None) -> Dict[str, Any]:
+    """Fail closed when a reconstruction build replaces its selected source.
+
+    A successful compiler exit is not evidence that the organization delivered
+    its implementation: a build script can overwrite the implementation path
+    with a tiny placeholder and then compile that different program.  Judge the
+    exact merge candidate here, before smoke execution, so both action-driven
+    CI and the world's automatic sweep enforce the same source/build identity.
+    """
+    product = getattr(world, "product", None)
+    meta = getattr(product, "substrate_meta", {}) or {}
+    if not bool(meta.get("allow_unbound_reconstruction_issue")):
+        return {"ok": True, "brief": "", "boundary": "", "kind": ""}
+
+    compile_path = str(meta.get("reconstruction_compile_path") or "").replace(
+        "\\", "/").strip("/")
+    if not compile_path:
+        return {"ok": True, "brief": "", "boundary": "", "kind": ""}
+
+    from environments.org_env.product.materialize import (
+        _file_text,
+        _is_unmerged_new_file,
+        merge_candidate_text,
+        programbench_integration_candidate_overrides,
+        programbench_pr_candidate_overrides,
+        programbench_strict_mainline_overrides,
+    )
+    from environments.org_env.runtime_adapter.execution import (
+        _build_contract_mentions_source,
+        _reconstruction_implementation_paths,
+    )
+
+    adapted = False
+    try:
+        from environments.org_env.programbench import programbench_profile_active
+
+        adapted = programbench_profile_active(world)
+    except (ImportError, AttributeError, TypeError, ValueError):
+        adapted = False
+    if adapted:
+        candidate_overrides = (
+            programbench_pr_candidate_overrides(world, pr)
+            if pr is not None
+            else programbench_integration_candidate_overrides(world)
+        )
+        overrides = programbench_strict_mainline_overrides(
+            world,
+            candidate_overrides=candidate_overrides,
+        )
+    else:
+        overrides = merge_candidate_text(world, pr) if pr is not None else {}
+    candidate_by_path: Dict[str, str] = {}
+    for artifact_id, artifact in (
+            getattr(world, "product_artifacts", {}) or {}).items():
+        path = str(getattr(artifact, "linked_file_path", "") or "").replace(
+            "\\", "/").strip("/")
+        if not path:
+            continue
+        if artifact_id in overrides:
+            candidate_by_path[path] = str(overrides[artifact_id] or "")
+            continue
+        if (pr is not None or adapted) and _is_unmerged_new_file(artifact):
+            continue
+        candidate_by_path[path] = _file_text(artifact, pr is not None)
+
+    source_paths = _reconstruction_implementation_paths(world)
+    if not source_paths:
+        # Before the organization has selected an implementation path, the
+        # ordinary compile smoke remains the only available contract.
+        return {"ok": True, "brief": "", "boundary": "", "kind": ""}
+
+    build_text = candidate_by_path.get(compile_path, "")
+    if any(_build_contract_mentions_source(build_text, path)
+           for path in source_paths):
+        return {"ok": True, "brief": "", "boundary": "", "kind": ""}
+
+    rendered_sources = ", ".join(source_paths[:4])
+    brief = (
+        f"{compile_path}: build contract must preserve and consume the selected "
+        f"implementation source ({rendered_sources}). The live build, copy, or "
+        "launch command must contain a selected repo-relative source path literally "
+        "on that same command line; assigning the path to a shell variable and later "
+        "passing only `$variable` does not satisfy this static contract"
+    )
+    return {
+        "ok": False,
+        "brief": brief,
+        "boundary": compile_path,
+        "kind": "contract_break",
+        "detail": brief,
+    }
+
+
 def _absent_name(raw: str, local: set | None, declared: set | None) -> str:
     """The name, when it is the sandbox's to provide, and "" when it is not."""
     name = str(raw).split(".")[0]
@@ -157,18 +295,41 @@ def run_contract_check(world: Any, pr: Any = None) -> Dict[str, Any]:
     product-outcome axis and inflated governance activity with enforcement against a
     defect that did not exist.
     """
+    reconstruction = reconstruction_build_contract_check(world, pr)
+    if not reconstruction.get("ok"):
+        return reconstruction
+
     from environments.org_env.product.materialize import (
         merge_candidate_text,
         pr_public_test_command,
+        programbench_integration_candidate_overrides,
+        programbench_pr_candidate_overrides,
+        programbench_strict_mainline_overrides,
         release_smoke,
         smoke_error_brief,
     )
+    adapted = False
+    try:
+        from environments.org_env.programbench import programbench_profile_active
+
+        adapted = programbench_profile_active(world)
+    except (ImportError, AttributeError, TypeError, ValueError):
+        adapted = False
     if pr is not None:
         # Judge what merging THIS pull request would produce: the mainline plus
         # the changes it carries. Judging the whole working tree instead failed a
         # request for code it does not touch, which on a pack whose steps stack
         # locks correct early work behind unfinished later work forever.
-        overrides = merge_candidate_text(world, pr)
+        overrides = (
+            programbench_pr_candidate_overrides(world, pr)
+            if adapted
+            else merge_candidate_text(world, pr)
+        )
+        if adapted:
+            overrides = programbench_strict_mainline_overrides(
+                world,
+                candidate_overrides=overrides,
+            )
         command = pr_public_test_command(world, pr)
         if overrides:
             sm = release_smoke(
@@ -180,7 +341,20 @@ def run_contract_check(world: Any, pr: Any = None) -> Dict[str, Any]:
         else:
             sm = release_smoke(world, prefer_mainline=True, command=command)
     else:
-        sm = release_smoke(world, prefer_mainline=False)   # no PR named: the working tree
+        if adapted:
+            overrides = programbench_strict_mainline_overrides(
+                world,
+                candidate_overrides=programbench_integration_candidate_overrides(
+                    world
+                ),
+            )
+            sm = release_smoke(
+                world,
+                prefer_mainline=True,
+                overrides=overrides,
+            )
+        else:
+            sm = release_smoke(world, prefer_mainline=False)   # no PR named: the working tree
     if sm.get("ok"):
         return {"ok": True, "boundary": "", "brief": "", "rc": sm.get("returncode"),
                 "kind": ""}
@@ -214,14 +388,43 @@ def run_contract_check(world: Any, pr: Any = None) -> Dict[str, Any]:
             )[-4000:]}
 
 
-def run_metric_consistency_check(world: Any) -> Dict[str, Any]:
+def run_metric_consistency_check(world: Any, pr: Any = None) -> Dict[str, Any]:
     """v14b CI: does the eval report INTERNALLY CONSISTENT metrics? A correct `run_eval` keeps
     `unsupported_claim_rate ≈ 1 - claim_evidence_coverage`. A patch that breaks this (the t232
     regression: unsupported=1.0 while coverage stayed 1.0) must fail CI HERE so it never merges —
     otherwise the contradictory metric blocks every release and mislocalizes the org to
     claim_tracker.py for weeks. Localizes the break to eval/eval_stub.py."""
-    from environments.org_env.product.materialize import release_smoke, smoke_eval_inconsistency
-    sm = release_smoke(world, prefer_mainline=False)
+    from environments.org_env.product.materialize import (
+        merge_candidate_text,
+        programbench_integration_candidate_overrides,
+        programbench_pr_candidate_overrides,
+        programbench_strict_mainline_overrides,
+        release_smoke,
+        smoke_eval_inconsistency,
+    )
+    adapted = False
+    try:
+        from environments.org_env.programbench import programbench_profile_active
+
+        adapted = programbench_profile_active(world)
+    except (ImportError, AttributeError, TypeError, ValueError):
+        adapted = False
+    if adapted:
+        candidate_overrides = (
+            programbench_pr_candidate_overrides(world, pr)
+            if pr is not None
+            else programbench_integration_candidate_overrides(world)
+        )
+        sm = release_smoke(
+            world,
+            prefer_mainline=True,
+            overrides=programbench_strict_mainline_overrides(
+                world,
+                candidate_overrides=candidate_overrides,
+            ),
+        )
+    else:
+        sm = release_smoke(world, prefer_mainline=False)
     brief = smoke_eval_inconsistency(sm)
     return {"ok": not brief, "boundary": ("eval/eval_stub.py" if brief else ""), "brief": brief}
 
@@ -422,7 +625,7 @@ def run_integration_ci(world: Any, pr: Any = None) -> Dict[str, Any]:
         return {"ok": False, "brief": cc.get("brief", ""), "boundary": cc.get("boundary", ""),
                 "kind": cc.get("kind") or "contract_break",
                 "detail": cc.get("detail", "")}
-    mc = run_metric_consistency_check(world)
+    mc = run_metric_consistency_check(world, pr)
     if not mc.get("ok"):
         return {"ok": False, "brief": mc.get("brief", ""), "boundary": mc.get("boundary", ""),
                 "kind": "metric_inconsistency"}
@@ -432,6 +635,7 @@ def run_integration_ci(world: Any, pr: Any = None) -> Dict[str, Any]:
 __all__ = ["PRODUCT_CONTRACT", "CONTRACT_FILES", "CONTRACT_VERSION",
            "touches_contract", "classify_contract_break", "run_contract_check",
            "run_metric_consistency_check", "run_integration_ci",
+           "reconstruction_build_contract_check",
            "missing_sandbox_dependency", "product_local_modules",
            "declared_dependency_names",
            "record_integration_verdict", "failure_signature", "note_gate_stall"]

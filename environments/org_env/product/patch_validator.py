@@ -118,23 +118,21 @@ class PatchValidator:
         ]
 
     def _dup_reason(self, world: Any, art, patch) -> Optional[str]:
-        """Real-content era: a patch is a duplicate only if it produces NO change to the
-        file, or reproduces a recent patch's exact resulting content. (The old text-similarity
-        dedup rejected ~60% of edits as 'semantic duplicates' even when the result differed —
-        that path is kept only for legacy symbolic patches with no new_content.)"""
+        """Reject current-content no-ops and legacy symbolic semantic duplicates.
+
+        Full-text equality with an older revision is deliberately allowed: restoring A
+        after an accepted A -> B regression is a real state transition. The old
+        text-similarity path remains only for symbolic patches without ``new_content``.
+        """
         if art is None:
             return None
         new_content = (getattr(patch, "new_content", "") or "").strip()
         if new_content:
             if new_content == (getattr(art, "content", "") or "").strip():
                 return "duplicate (no-op): patch produces no change to the file"
-            patches = getattr(world, "patches", {}) or {}
-            for pid in list(reversed(getattr(art, "patch_history_ids", []) or []))[:_DUP_LOOKBACK]:
-                pp = patches.get(pid)
-                if pp is None or getattr(pp, "patch_id", None) == patch.patch_id:
-                    continue
-                if (getattr(pp, "new_content", "") or "").strip() == new_content:
-                    return "duplicate: reproduces a recent patch's exact result"
+            # Historical equality is not a no-op.  If the current bytes are B,
+            # restoring earlier bytes A is a real A -> B -> A transition and is
+            # often the only safe repair for a newly introduced regression.
             return None
         if self._legacy_semantic_dup(world, art, patch):
             return "semantic duplicate of a recent patch on this artifact"
@@ -238,10 +236,18 @@ class PatchValidator:
                 return ValidationResult(False, no_op)
         if not patch.change_summary:
             return ValidationResult(False, "missing change_summary")
-        fake = _has_fake_capability(patch.change_summary, patch.pseudo_diff,
-                                    *patch.changed_behavior)
-        if fake:
-            return ValidationResult(False, f"invents completed capability: '{fake}'")
+        # The old symbolic patch path cannot establish that a capability is
+        # complete, so completion language is still an invalid claim there.
+        # A materialized repository edit is different: ``new_content`` is the
+        # actual file body and is subsequently checked by Python compilation,
+        # public tests, CI, and review.  Rejecting that real edit because its
+        # summary says "fully implemented" makes the prose outrank the code and
+        # can prevent a valid repair from ever reaching those evidence gates.
+        if not (getattr(patch, "new_content", "") or "").strip():
+            fake = _has_fake_capability(patch.change_summary, patch.pseudo_diff,
+                                        *patch.changed_behavior)
+            if fake:
+                return ValidationResult(False, f"invents completed capability: '{fake}'")
         dup = self._dup_reason(world, art, patch)
         if dup:
             return ValidationResult(False, dup)

@@ -44,6 +44,9 @@ class DocPatch:
     validation_status: str = "pending"            # pending / accepted / rejected
     rejection_reason: Optional[str] = None
     applied_tick: Optional[int] = None            # v8 #4: tick the patch entered the artifact
+    # Appended so replay of positional legacy constructors keeps field order.
+    creates_file: bool = False        # patch introduces a repository path
+    base_mainline_revision: int = 0   # optimistic-concurrency base for merge/replay
 
     def is_empty(self) -> bool:
         return not (self.new_content or self.changed_sections or self.removed_overclaims
@@ -80,6 +83,9 @@ class CodePatch:
     validation_status: str = "pending"
     rejection_reason: Optional[str] = None
     applied_tick: Optional[int] = None            # v8 #4: tick the patch entered the artifact
+    # Appended so replay of positional legacy constructors keeps field order.
+    creates_file: bool = False        # patch introduces a repository path
+    base_mainline_revision: int = 0   # optimistic-concurrency base for merge/replay
 
     def is_empty(self) -> bool:
         return not (self.new_content or self.pseudo_diff or self.added_fields
@@ -97,6 +103,11 @@ def _patch_to_dict(p) -> Dict[str, Any]:
     d["status"] = p.validation_status            # canonical alias of validation_status
     d["created_tick"] = p.tick                   # patch birth tick
     d.setdefault("applied_tick", getattr(p, "applied_tick", None))
+    # Old pickles do not have the Gate 1 creation fields in ``__dict__``.
+    # Persist their conservative defaults explicitly when the object is next
+    # snapshotted so replay never has to infer create semantics.
+    d.setdefault("creates_file", False)
+    d.setdefault("base_mainline_revision", 0)
     return d
 
 
