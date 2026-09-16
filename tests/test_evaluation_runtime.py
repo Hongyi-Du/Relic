@@ -8,9 +8,11 @@ import pytest
 
 from environments.org_env.backend.simulation.world import OrgWorld
 from environments.org_env.config.scenarios import oss_time_machine_formal
+from environments.org_env.experiments.records import normalize_final_evaluation
 from environments.org_env.product.substrates.final_evaluation import (
     FINAL_EVIDENCE_SCHEMA_VERSION,
     run_final_evaluation,
+    validate_final_evaluation_evidence,
 )
 from environments.org_env.product.substrates.loader import load_oss_substrate_spec
 from relic.evaluation.execution import (
@@ -193,7 +195,7 @@ def test_mini_blobstore_evaluator_plan_and_candidate() -> None:
 
 
 @pytest.mark.integration
-def test_final_evaluator_dependency_injection_uses_relic_schema(
+def test_final_evaluator_dependency_injection_uses_source_schema(
     tmp_path: Path,
 ) -> None:
     spec = load_oss_substrate_spec("mini_blobstore_v1")
@@ -226,6 +228,23 @@ def test_final_evaluator_dependency_injection_uses_relic_schema(
     )
 
     assert artifact is not None
-    assert FINAL_EVIDENCE_SCHEMA_VERSION == "relic-oss-final-evaluation-v1"
+    assert FINAL_EVIDENCE_SCHEMA_VERSION == "orgenv_oss_final_evaluation_v1"
     assert artifact.payload["schema_version"] == FINAL_EVIDENCE_SCHEMA_VERSION
     assert artifact.result["status"] == "passed"
+
+    validated = validate_final_evaluation_evidence(
+        artifact.payload,
+        dataset_id=spec.project_id,
+        plan_hash=plan.plan_hash,
+        candidate_digest=artifact.payload["candidate_repo_digest"],
+        manifest=spec.manifest,
+        manual_checks_enabled=False,
+    )
+    normalized, _ = normalize_final_evaluation(
+        validated,
+        expected_dataset_id=spec.project_id,
+        expected_plan_hash=plan.plan_hash,
+        expected_candidate_repo_digest=artifact.payload["candidate_repo_digest"],
+        dataset_manifest=spec.manifest,
+    )
+    assert normalized["artifact_hash"] == artifact.payload["artifact_hash"]

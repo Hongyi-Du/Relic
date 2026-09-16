@@ -73,6 +73,61 @@ def _smoke(args: argparse.Namespace) -> int:
     return report_exit_code(report)
 
 
+def _build_evaluator(args: argparse.Namespace) -> int:
+    from relic.evaluator_release import EvaluatorReleaseError, build_local_evaluator
+
+    try:
+        result = build_local_evaluator(
+            tag=args.tag,
+            platform=args.platform,
+            smoke=args.smoke,
+        )
+    except EvaluatorReleaseError as exc:
+        print(json.dumps({"status": "failed", "error": exc.code}), file=sys.stderr)
+        return 2
+    print(json.dumps(result, indent=2, ensure_ascii=False))
+    return 0
+
+
+def _evaluator_hashes(args: argparse.Namespace) -> int:
+    from relic.evaluator_release import (
+        EvaluatorReleaseError,
+        calculate_local_evaluator_hashes,
+    )
+
+    try:
+        result = calculate_local_evaluator_hashes(
+            dataset_id=args.dataset,
+            backend=args.backend,
+            container_image=args.container_image,
+            container_platform=args.container_platform,
+            timeout_seconds=args.timeout_seconds,
+        )
+    except EvaluatorReleaseError as exc:
+        print(json.dumps({"status": "failed", "error": exc.code}), file=sys.stderr)
+        return 2
+    print(json.dumps(result, indent=2, ensure_ascii=False))
+    return 0 if result["status"] == "passed" else 2
+
+
+def _evaluator_preflight(args: argparse.Namespace) -> int:
+    from relic.evaluator_release import preflight_local_evaluator
+
+    payload, path = preflight_local_evaluator(
+        repository_id=args.repository_id,
+        dataset_id=args.dataset,
+        backend=args.backend,
+        container_image=args.container_image,
+        container_platform=args.container_platform,
+        expected_environment_hash=args.expected_environment_hash,
+        expected_qualification_hash=args.expected_qualification_hash,
+        timeout_seconds=args.timeout_seconds,
+        output=args.output,
+    )
+    print(json.dumps({"receipt": str(path), **payload}, indent=2, ensure_ascii=False))
+    return 0 if payload["status"] == "passed" else 2
+
+
 def _run_cell(args: argparse.Namespace) -> int:
     from relic.cell_spec import compile_cell_spec
     from relic.cell_worker import CellWorkerError, run_cell
@@ -441,6 +496,61 @@ def build_parser() -> argparse.ArgumentParser:
         "--model", default=None, help="formal mode defaults to gpt-5.6-terra"
     )
     smoke_parser.set_defaults(func=_smoke)
+
+    evaluator_build = subparsers.add_parser(
+        "evaluator-build",
+        help=(
+            "build the source-derived local evaluator image; never creates a paper binding"
+        ),
+    )
+    evaluator_build.add_argument(
+        "--tag",
+        default="relic-oss-evaluator:local",
+        help="local Docker tag only (default: relic-oss-evaluator:local)",
+    )
+    evaluator_build.add_argument(
+        "--platform",
+        default="linux/amd64",
+        help="frozen evaluator platform (must be linux/amd64)",
+    )
+    evaluator_build.add_argument(
+        "--smoke",
+        action="store_true",
+        help="run a network-isolated, read-only dependency import smoke after build",
+    )
+    evaluator_build.set_defaults(func=_build_evaluator)
+
+    evaluator_hashes = subparsers.add_parser(
+        "evaluator-hashes",
+        help=(
+            "qualify one released pack locally and print diagnostic hashes, not a paper binding"
+        ),
+    )
+    evaluator_hashes.add_argument("--dataset", required=True, help="relic-main-v1 pack ID")
+    evaluator_hashes.add_argument("--backend", required=True, choices=("docker", "apptainer"))
+    evaluator_hashes.add_argument("--container-image", required=True)
+    evaluator_hashes.add_argument("--container-platform", default="linux/amd64")
+    evaluator_hashes.add_argument("--timeout-seconds", type=int, default=900)
+    evaluator_hashes.set_defaults(func=_evaluator_hashes)
+
+    evaluator_preflight = subparsers.add_parser(
+        "evaluator-preflight",
+        help=(
+            "write a local evaluator qualification receipt; it is not paper evidence"
+        ),
+    )
+    evaluator_preflight.add_argument("--repository-id", required=True)
+    evaluator_preflight.add_argument("--dataset", required=True, help="relic-main-v1 pack ID")
+    evaluator_preflight.add_argument(
+        "--backend", required=True, choices=("docker", "apptainer")
+    )
+    evaluator_preflight.add_argument("--container-image", required=True)
+    evaluator_preflight.add_argument("--container-platform", required=True)
+    evaluator_preflight.add_argument("--expected-environment-hash", required=True)
+    evaluator_preflight.add_argument("--expected-qualification-hash", required=True)
+    evaluator_preflight.add_argument("--timeout-seconds", type=int, default=300)
+    evaluator_preflight.add_argument("--output", type=Path, required=True)
+    evaluator_preflight.set_defaults(func=_evaluator_preflight)
 
     cell = subparsers.add_parser(
         "run-cell", help="legacy single-cell compatibility runner; not the paired paper executor"

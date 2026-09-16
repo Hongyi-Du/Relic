@@ -1186,7 +1186,7 @@ def normalize_final_evaluation(
     sources = _evaluation_sources(payload)
     artifact_hash = _verify_artifact_hash(payload)
     if "qualified_plan" in payload and payload.get("schema_version") != (
-        "relic-oss-final-evaluation-v1"
+        "orgenv_oss_final_evaluation_v1"
     ):
         raise ValueError("canonical final evaluator schema mismatch")
     _verify_plan_hash(sources)
