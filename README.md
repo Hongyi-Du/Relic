@@ -9,8 +9,8 @@ frozen exclusively to `SocioGenesis/hci-human-seat` at
 
 ## Local setup
 
-Python 3.12+, `uv`, and Docker Desktop with its WSL2 backend are recommended.
-Run from a Linux/WSL filesystem, not `/mnt/c`:
+Python 3.12+ and `uv` are required. The currently validated setup is native
+Linux or WSL2 from a Linux filesystem, not `/mnt/c`:
 
 ```bash
 uv sync --extra dev --frozen
@@ -31,9 +31,11 @@ uv run relic smoke --mode formal
 The formal smoke performs a network-disabled container workspace roundtrip but
 does not call a model or claim that a paper experiment succeeded.
 
-The Windows runtime path is WSL2/Docker. Native Windows experiment execution is
-not maintained. See [docs/environment.md](docs/environment.md) for the support
-matrix, `.env` variables, WSL launchers, and memory guidance.
+The current Windows runtime path is WSL2. Native Windows experiment execution is
+not maintained, and the repository-level Docker / Compose release path remains
+pending the author-supplied evaluator image and container release assets. See
+[docs/environment.md](docs/environment.md) for the support matrix, `.env`
+variables, WSL launchers, and memory guidance.
 
 ## Plan or run the canonical main study
 
@@ -192,6 +194,36 @@ diagnostics, while paper-named contract/case/confirmed-issue metrics remain
 explicitly `NA` instead of being guessed. Completing those metrics requires the
 first-author scoring ledger. The values under `artifacts/paper_results/` remain
 the PDF-transcribed historical snapshot and are never aggregate input.
+
+## Inspect a selected public trace
+
+Relic Inspector is a local, read-only organization observatory for the strict,
+digest-bound `relic-trace-v1` format. Validate a trace without opening a server,
+then start replay mode:
+
+```bash
+uv run relic replay --trace /path/to/selected-trace.json
+uv run relic inspect --trace /path/to/selected-trace.json
+```
+
+Open `http://127.0.0.1:8765`. The Inspector synchronizes the Timeline,
+event-level organization snapshot, Object Inspector, and State Diff, and never
+opens checkpoints, evaluator directories, model messages, or private agent
+memory. Native and WSL launches bind loopback by default; non-loopback binding
+requires the explicit `--allow-remote` acknowledgement because the server has
+no authentication.
+
+The current author-asset bundle does not yet include sanitized selected paper
+traces. No historical case is reconstructed or invented to fill that gap. The
+count-only `public/trace.json` checkpoint-progress sidecar written by the
+main-study cell runner uses the separate `relic-public-trace-v1` projection and
+is deliberately rejected as Inspector input. See
+[docs/inspector.md](docs/inspector.md) for the schema, privacy boundary, WSL
+launcher, and replay/live semantics.
+
+Inspector views are descriptive: observed lineage, temporal order, and state
+differences do not by themselves establish that one protocol, member, or
+mechanism caused an outcome.
 
 ## Current provider boundary
 

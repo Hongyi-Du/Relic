@@ -20,6 +20,7 @@ LAUNCHERS = {
     "run_cell": "run_cell",
     "run_main_120": "run_main_120",
     "evaluate": "evaluate",
+    "start_inspector": "start_inspector",
 }
 
 

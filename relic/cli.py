@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -203,6 +204,69 @@ def _status(args: argparse.Namespace) -> int:
     return 0
 
 
+def _replay_trace(args: argparse.Namespace) -> int:
+    from relic.replay import load_trace
+
+    try:
+        trace = load_trace(args.trace)
+    except (OSError, ValueError) as exc:
+        print(json.dumps({"status": "failed", "error": str(exc)}), file=sys.stderr)
+        return 2
+    final = trace["frames"][-1]
+    organization = final["organization"]
+    print(
+        json.dumps(
+            {
+                "schema_version": "relic-replay-summary-v1",
+                "status": "passed",
+                "run_id": trace["run_id"],
+                "trace_sha256": trace["trace_sha256"],
+                "ticks": final["tick"],
+                "frames": len(trace["frames"]),
+                "agents": len(organization["agents"]),
+                "tasks": len(organization["tasks"]),
+                "proposals": len(organization["proposals"]),
+                "protocols": len(organization["protocols"]),
+            },
+            indent=2,
+            ensure_ascii=False,
+        )
+    )
+    return 0
+
+
+def _inspect_trace(args: argparse.Namespace) -> int:
+    from relic.inspector import serve_inspector
+
+    try:
+        serve_inspector(
+            trace_path=args.trace,
+            host=args.host,
+            port=args.port,
+            mode=args.mode,
+            open_browser=args.open_browser,
+            verbose=args.verbose,
+            allow_remote=args.allow_remote,
+        )
+    except (OSError, ValueError) as exc:
+        print(json.dumps({"status": "failed", "error": str(exc)}), file=sys.stderr)
+        return 2
+    return 0
+
+
+def _add_inspector_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--host", default="127.0.0.1")
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=os.environ.get("RELIC_INSPECTOR_PORT", "8765"),
+    )
+    parser.add_argument("--mode", choices=("replay", "live"), default="replay")
+    parser.add_argument("--open-browser", action="store_true")
+    parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("--allow-remote", action="store_true")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="relic")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -279,6 +343,19 @@ def build_parser() -> argparse.ArgumentParser:
     status_location.add_argument("--output-root", type=Path)
     status.add_argument("--cell-id", default=None)
     status.set_defaults(func=_status)
+
+    replay = subparsers.add_parser(
+        "replay", help="validate and summarize one public relic-trace-v1 file"
+    )
+    replay.add_argument("--trace", type=Path, required=True)
+    replay.set_defaults(func=_replay_trace)
+
+    inspect = subparsers.add_parser(
+        "inspect", help="open the public Inspector for a relic-trace-v1 file"
+    )
+    inspect.add_argument("--trace", type=Path, required=True)
+    _add_inspector_arguments(inspect)
+    inspect.set_defaults(func=_inspect_trace)
 
     evaluate = subparsers.add_parser(
         "evaluate",

@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from relic.manifest import recommended_parallelism, visible_memory_gib
-from relic.paths import default_output_root, project_root
+from relic.paths import default_output_root
 
 REPORT_SCHEMA_VERSION = "relic-release-check-report-v1"
 
@@ -317,8 +317,15 @@ def _tooling_checks() -> list[dict[str, Any]]:
 def _optional_release_checks() -> list[dict[str, Any]]:
     credential_names = _CREDENTIAL_ENVIRONMENTS["openai"]
     credential_configured = any(bool(os.environ.get(name)) for name in credential_names)
-    inspector_root = project_root() / "inspector"
-    inspector_available = inspector_root.is_dir()
+    inspector_assets: list[str] = []
+    inspector_error: str | None = None
+    try:
+        from relic.inspector import inspector_static_root
+
+        inspector_root = inspector_static_root()
+        inspector_assets = sorted(path.name for path in inspector_root.iterdir() if path.is_file())
+    except (OSError, ValueError) as exc:
+        inspector_error = type(exc).__name__
     return [
         _check(
             "optional_model_credentials",
@@ -333,8 +340,11 @@ def _optional_release_checks() -> list[dict[str, Any]]:
         ),
         _check(
             "inspector",
-            "pass" if inspector_available else "warn",
-            "inspector_available" if inspector_available else "inspector_not_in_current_release",
+            "pass" if inspector_error is None else "fail",
+            "inspector_available" if inspector_error is None else "inspector_assets_invalid",
+            assets=inspector_assets,
+            error_type=inspector_error,
+            trace_schema="relic-trace-v1",
         ),
     ]
 

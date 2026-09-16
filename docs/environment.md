@@ -2,7 +2,8 @@
 
 Linux is the canonical Relic runtime. Windows users run the same Linux runtime
 through WSL2; the PowerShell files are launchers only and never execute Relic
-core natively. Docker Desktop on Windows must use its WSL2 backend.
+core natively. The repository Docker / Compose path is still pending release
+assets; when supplied on Windows, Docker Desktop must use its WSL2 backend.
 
 | Platform | Support level | Recommended path |
 |---|---|---|
@@ -66,6 +67,7 @@ overridden from `.env`.
 | `RELIC_OUTPUT_ROOT` | No | `<repo>/outputs` | Linux/WSL output root |
 | `RELIC_BENCHMARK_ROOT` | No | `<repo>/benchmarks` | Advanced frozen benchmark root override |
 | `RELIC_CACHE_ROOT` | No | `<output-root>/.relic-cache` | Writable cache location checked by `check-env` |
+| `RELIC_INSPECTOR_PORT` | No | `8765` | Loopback port used by the Inspector CLI and WSL wrapper |
 | `RELIC_CLAUDE_OPUS_4_6_MODEL` | Not yet usable | none | Reserved model binding for a future Anthropic adapter |
 | `APPTAINER_CACHEDIR` | Apptainer only | runtime default | Optional Apptainer cache path |
 | `APPTAINER_TMPDIR` | Apptainer only | runtime default | Optional Apptainer temporary path |
@@ -76,10 +78,10 @@ Users must not set them to redefine an experiment. `ORG_LLM_API_KEY`,
 overrides; prefer the documented OpenAI variables unless integrating a reviewed
 endpoint.
 
-The Inspector entrypoint is not part of the current main-study runtime
-milestone, so `check-env` reports it as a warning rather than pretending it is
-available. Its port and cache settings will be documented when the separate
-Inspector/HCI surface is integrated.
+`check-env` validates the packaged Inspector assets. Inspector reads only a
+strict `relic-trace-v1` file supplied with `--trace`; it never reads private
+runtime or evaluator directories. The selected paper trace set is still an
+author-asset dependency and is not fabricated from aggregate results.
 
 ## Outputs, cache, and concurrency
 
@@ -114,6 +116,8 @@ $wrapperRoot = "\\wsl.localhost\Ubuntu\home\<user>\relic\scripts\powershell"
 & "$wrapperRoot\check_wsl.ps1"
 & "$wrapperRoot\check_env.ps1" -ScriptArguments @('--scope', 'core')
 & "$wrapperRoot\smoke.ps1" -ScriptArguments @('--mode', 'mock')
+& "$wrapperRoot\start_inspector.ps1" `
+  -ScriptArguments @('--trace', '/home/<user>/selected-trace.json')
 ```
 
 On systems exposing the older UNC alias, replace `\\wsl.localhost\Ubuntu`

@@ -25,6 +25,11 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["relic", "environments"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"relic/inspector/static/index.html" = "relic/inspector/static/index.html"
+"relic/inspector/static/app.css" = "relic/inspector/static/app.css"
+"relic/inspector/static/app.js" = "relic/inspector/static/app.js"
+
 [tool.pytest.ini_options]
 addopts = "-ra"
 testpaths = ["tests"]

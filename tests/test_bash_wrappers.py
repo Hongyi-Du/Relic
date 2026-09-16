@@ -17,6 +17,7 @@ WRAPPERS = {
     "run_cell.sh": ("run-cell",),
     "run_main_120.sh": ("run-main-120",),
     "evaluate.sh": ("evaluate",),
+    "start_inspector.sh": ("inspect",),
 }
 
 

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <title>Relic Inspector</title>
+    <link rel="stylesheet" href="/app.css">
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand-lockup">
+        <span class="brand-mark" aria-hidden="true">R</span>
+        <div>
+          <strong>Relic Inspector</strong>
+          <span>Public organization observatory</span>
+        </div>
+      </div>
+      <div class="run-meta">
+        <span id="mode-badge" class="badge">loading</span>
+        <span id="run-id" class="mono">run —</span>
+        <span id="trace-status" class="status-dot">Connecting</span>
+      </div>
+    </header>
+
+    <section class="transport" aria-label="Replay controls">
+      <button id="first-frame" class="icon-button" type="button" aria-label="First frame">|‹</button>
+      <button id="previous-frame" class="icon-button" type="button" aria-label="Previous frame">‹</button>
+      <button id="play-pause" class="play-button" type="button">Play</button>
+      <button id="next-frame" class="icon-button" type="button" aria-label="Next frame">›</button>
+      <button id="last-frame" class="icon-button" type="button" aria-label="Last frame">›|</button>
+      <input id="frame-slider" type="range" min="0" max="0" value="0" aria-label="Trace frame">
+      <div class="tick-readout">
+        <span id="tick-label">Tick —</span>
+        <small id="frame-label">Frame — / —</small>
+      </div>
+    </section>
+
+    <div class="shell">
+      <nav id="primary-nav" class="primary-nav" aria-label="Inspector panels">
+        <p class="nav-heading">Observe</p>
+        <button type="button" data-panel="overview">Overview</button>
+        <button type="button" data-panel="members">Members</button>
+        <button type="button" data-panel="tasks">Tasks</button>
+        <button type="button" data-panel="timeline">Timeline</button>
+        <button type="button" data-panel="episodes">Episodes</button>
+        <p class="nav-heading">Institution</p>
+        <button type="button" data-panel="reflections">Reflections</button>
+        <button type="button" data-panel="proposals">Proposals</button>
+        <button type="button" data-panel="governance">Governance</button>
+        <button type="button" data-panel="protocols">Protocols</button>
+        <p class="nav-heading">Evidence</p>
+        <button type="button" data-panel="artifacts">Artifacts</button>
+        <button type="button" data-panel="repo">Repo / PR / CI</button>
+        <button type="button" data-panel="evidence">Evaluation</button>
+        <button type="button" data-panel="decisions">Decisions</button>
+      </nav>
+
+      <main class="workspace">
+        <section id="panel" class="panel" aria-live="polite"></section>
+        <aside id="object-inspector" class="object-inspector" aria-label="Object inspector"></aside>
+        <section id="state-diff" class="state-diff" aria-label="State difference"></section>
+      </main>
+    </div>
+
+    <div id="fatal-error" class="fatal-error" role="alert" hidden></div>
+  </body>
+</html>
