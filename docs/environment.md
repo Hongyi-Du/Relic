@@ -37,11 +37,16 @@ repository-root `.env` and reject every other variable; direct
 
 Formal execution additionally requires provider credentials and a qualified,
 network-disabled evaluator container pinned by immutable digest. The evaluator
-image has not yet been supplied, so `check-env --scope formal`, formal smoke,
-and real cells must fail closed until that image is available. The current
-formal provider route is OpenAI-compatible. The paper's Claude arm uses the
-HCI source gateway contract (`provider: openai`, `chat_completions`, and
-`prompt_only` JSON transport), not a native Anthropic SDK adapter.
+image binding has not yet been author-published, so `check-env --scope formal`,
+formal smoke, and real cells must fail closed until that binding is available.
+The current formal provider route is OpenAI-compatible. The paper's Claude arm
+uses the HCI source gateway contract (`provider: openai`, `chat_completions`,
+and `prompt_only` JSON transport), not a native Anthropic SDK adapter.
+
+For a local source-closure check only, a host with Docker can build the public
+source-derived evaluator environment with `uv run relic evaluator-build --smoke`.
+It neither pushes an image nor creates a formal-paper binding; see
+[evaluator.md](evaluator.md) before using the local qualification tools.
 
 The Apptainer backend additionally requires an active Slurm allocation
 (`SLURM_JOB_ID` plus `srun`) and the configured registry digest to already be
@@ -112,13 +117,13 @@ Celery pack also contains its public example TLS fixtures; they are frozen pack
 bytes, not release credentials, and are covered by the benchmark digest.
 
 Formal execution is a separate, unresolved release boundary. The author has
-not supplied the immutable evaluator image, and the default controller image
-does not contain a nested container runtime or mount the privileged host Docker
-socket. Consequently Docker formal checks, real cells, resume, and evaluation
-must fail closed; mock smoke and dry-run output are not evidence of paper
-reproduction. Do not add the Docker socket ad hoc and call the result supported:
-the evaluator workspace mounts and isolation policy require a separately
-reviewed integration and end-to-end acceptance test.
+not supplied the immutable evaluator image binding, and the default controller
+image does not contain a nested container runtime or mount the privileged host
+Docker socket. Consequently Docker formal checks, real cells, resume, and
+evaluation must fail closed; mock smoke and dry-run output are not evidence of
+paper reproduction. Do not add the Docker socket ad hoc and call the result
+supported: the evaluator workspace mounts and isolation policy require a
+separately reviewed integration and end-to-end acceptance test.
 
 When the authors publish the evaluator material, pass it to the source-backed
 main runner as a JSON file rather than ambient evaluator variables. It maps each

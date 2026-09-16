@@ -58,6 +58,18 @@ invent a container image digest, evaluator environment hash, or qualification
 hash; `run-main` requires an explicit published per-pack mapping before any
 formal source child or provider client can start.
 
+The public evaluator build closure is separately ported from the same HCI
+revision: `.evaluator_image/Dockerfile`, `.cursor/build_evaluators.sh`,
+`tools/print_evaluator_hashes.py`, and
+`tools/preflight_organization_evaluator.py`. In Relic these become
+`evaluator/Dockerfile`, the `relic evaluator-build`, `evaluator-hashes`, and
+`evaluator-preflight` commands, and thin `tools/` compatibility wrappers. The
+release adaptation removes source proxy/development-machine assumptions and
+does not port the source ProgramBench-specific images or assets. Local image
+IDs and local qualification hashes are deliberately marked non-paper; the
+source main runner still rejects a local `sha256:...` image ID as an evaluator
+binding.
+
 Historical raw runs, private model transcripts, private memories,
 developer-machine paths, credentials, ProgramBench reproduction assets,
 NatureEnv, and obsolete SocioGenesis components are outside the release scope.
