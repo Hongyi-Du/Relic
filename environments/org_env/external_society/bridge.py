@@ -146,6 +146,8 @@ def drive_post_release_market(world, tick: int) -> List[str]:
     the internal cadence (`published_internal`), and the market was previously wired only to
     the rarely-chosen agent action, so trials stayed 0 / customers milestone unreachable.
     """
+    if getattr(world, "customer_market_enabled", True) is False:
+        return []
     from environments.org_env.experiments.ablations import EXTERNAL_BRIDGE, mechanism_disabled
     if mechanism_disabled(world, EXTERNAL_BRIDGE):
         return []

@@ -11,11 +11,16 @@ from __future__ import annotations
 import os
 import random
 import re
+import time
 from typing import Any, Dict, List, Optional
 
 from relic.core.domain import DomainScenarioConfig, DomainState
 from environments.org_env.backend.agents import SEED_TEAM, OrgAgent
-from environments.org_env.backend.budget import BudgetSystem, CompensationProfile
+from environments.org_env.backend.budget import (
+    BudgetSystem,
+    CompensationProfile,
+    FundingSchedule,
+)
 from environments.org_env.backend.clock import AgentAvailability, TimeSystem
 from environments.org_env.backend.comm import CommunicationSystem
 from environments.org_env.backend.community import ExternalCommunity, ExternalProfile, Post
@@ -102,6 +107,18 @@ class OrgWorld:
     def __init__(self, scenario: DomainScenarioConfig):
         self.scenario = scenario
         params = scenario.params
+        self.interaction_profile = str(
+            params.get("interaction_profile") or "organization_simulation"
+        )
+        # The project workspace keeps the same organization and action space,
+        # but it is not a startup-financing or synthetic-customer experiment.
+        # These source gates prevent that unrelated state entering the world.
+        self.funding_simulation_enabled = (
+            self.interaction_profile != "human_project_workspace"
+        )
+        self.customer_market_enabled = (
+            self.interaction_profile != "human_project_workspace"
+        )
         self.experiment_condition_explicit = bool(
             params.get(
                 "experiment_condition_explicit",
@@ -170,7 +187,10 @@ class OrgWorld:
         self.datasets: Dict[str, Dataset] = {}
         self.benchmarks: Dict[str, BenchmarkScenario] = {}
         self.search_system = SearchSystem(self, corpus_version=scenario.corpus_version)
-        self.budget_system = BudgetSystem()
+        self.budget_system = BudgetSystem(
+            funding=(None if self.funding_simulation_enabled
+                     else FundingSchedule(tranches=[]))
+        )
         self.protocol_registry = ProtocolRegistry()
         self.time = TimeSystem()
         # internal entities
@@ -209,6 +229,9 @@ class OrgWorld:
         # O1 lived decision loop state
         self.memory: Dict[str, List[dict]] = {}
         self.action_log: List[dict] = []
+        # Research-side provenance for human-seat actions. It deliberately
+        # stays separate from organizational state, events, and action_log.
+        self.controller_log: List[dict] = []
         # v4 §3: policy attractor guard + explainability trace
         from environments.org_env.policy.attractor_guard import AttractorGuard
         self._attractor_guard = AttractorGuard()
@@ -926,7 +949,6 @@ class OrgWorld:
                                       base_cost=self.budget_system.budget.daily_base_burn,
                                       resource_type="service", tick=tick)
         from environments.org_env.experiments.ablations import (
-            EVENT_GRAPH,
             EXTERNAL_BRIDGE,
             mechanism_disabled,
         )
@@ -976,7 +998,11 @@ class OrgWorld:
             if ws is not None and ws.is_busy(tick):
                 m = self._active_meeting_for(aid, ws)
                 if m is not None:
-                    self._run_meeting_subaction(aid, agent, m, tick)
+                    # A claimed human seat may attend, but it must decide its
+                    # meeting behaviour through the HCI gateway. The normal
+                    # autonomous notes/summary loop must not act for it.
+                    if not self.is_human_controlled(aid):
+                        self._run_meeting_subaction(aid, agent, m, tick)
                 else:
                     self._maybe_reactive_aux_speech_while_busy(aid, agent, tick)
                 continue
@@ -986,6 +1012,10 @@ class OrgWorld:
                 if clk.phase_of_day == "night_sleep" or (self.time.availability.get(aid)
                                                          and self.time.availability[aid].current_availability_status == "resting"):
                     self.time.rest(agent)
+                continue
+            if self.is_human_controlled(aid):
+                # A human seat decides through the HCI gateway, in its own
+                # time. The autonomous loop must not even triage its inbox.
                 continue
             self._process_inbox(aid, tick)             # v14 P3: read/ack inbox -> memory, before deciding
             perception = loop["perception"].build_perception(aid, self, tick)
@@ -1033,21 +1063,7 @@ class OrgWorld:
             if selected is None:
                 continue
             note_delivery_choice(self, availability, selected.action_type)
-            result = loop["execution"].execute(aid, selected, self)
-            if self.action_decisions and self.action_decisions[-1].agent_id == aid \
-                    and self.action_decisions[-1].validation_status == "accepted" \
-                    and self.action_decisions[-1].executed_event_id is None:
-                self.action_decisions[-1].executed_event_id = result.action_id
-            appraised = loop["appraisal"].appraise(result, self)
-            self._log_events(result, appraised)
-            self._update_memory(aid, appraised)
-            if not mechanism_disabled(self, EVENT_GRAPH):
-                self.event_graph.ingest(result)
-            eps = self.episode_manager.observe_result(result, self)
-            self._link_product_artifacts(result, eps, aid)
-            self._record_review_evidence(result, aid)
-            if self.capability_learning_enabled:
-                self._growth_appraiser.collect(result, self, aid)   # buffer growth signals (§2)
+            self.apply_action_candidate(aid, selected, link_llm_decision=True)
 
         # -- overdue promises -> violation + trust hit (O1.7 §27) ----------
         self._check_commitments(tick)
@@ -1782,6 +1798,11 @@ class OrgWorld:
         # After a short latency, auto-open its PR so the merge chain can complete.
         for b in list(rs.repo.branches.values()):
             if getattr(b.status, "value", str(b.status)) != "ready_for_pr" or not b.commit_ids:
+                continue
+            # A claimed human seat chooses whether and when its work is
+            # submitted. The autonomous closure backstop must not open a PR
+            # on that person's behalf.
+            if self.is_human_controlled(b.owner_id):
                 continue
             last_commit = max((int(getattr(rs.repo.commits.get(cid), "timestamp", 0) or 0)
                                for cid in b.commit_ids), default=0)
@@ -3093,17 +3114,27 @@ class OrgWorld:
             if (raw.get("type"), raw.get("subtype")) in self._EPISODE_WORLD_EVENTS:
                 self.episode_manager.observe_world_event(raw, self)
 
-    def apply_action(self, agent_id: str, action_type: str, **params):
-        """Execute ONE action through the full pipeline (execute → appraise → log →
-        event graph → episode layer) and return the ExecutionResult. Generic helper
-        for scripted/demo causal chains + tests (no per-agent logic). The caller
-        manages the clock (advance + ``update_open_episodes``)."""
+    def apply_action_candidate(self, agent_id: str, action: Any, *,
+                               controller_type: str = "agent",
+                               execution_mode: str = "direct",
+                               link_llm_decision: bool = False,
+                               collect_growth: bool = True):
+        """Run an already-chosen action through the shared post-execution path.
+
+        Autonomous selection in :meth:`step` and a future human-seat gateway
+        both enter here, keeping ordinary organizational state controller-blind.
+        Controller provenance is deliberately limited to ``controller_log``.
+        """
         if self._loop is None:
             self._wire_loop()
-        from relic.decision.contracts import ActionCandidate
-        cand = ActionCandidate(action_type=action_type, parameters=dict(params))
-        result = self._loop["execution"].execute(agent_id, cand, self)
-        appraised = self._loop["appraisal"].appraise(result, self)
+        loop = self._loop
+        result = loop["execution"].execute(agent_id, action, self)
+        if link_llm_decision and self.action_decisions \
+                and self.action_decisions[-1].agent_id == agent_id \
+                and self.action_decisions[-1].validation_status == "accepted" \
+                and self.action_decisions[-1].executed_event_id is None:
+            self.action_decisions[-1].executed_event_id = result.action_id
+        appraised = loop["appraisal"].appraise(result, self)
         self._log_events(result, appraised)
         self._update_memory(agent_id, appraised)
         from environments.org_env.experiments.ablations import EVENT_GRAPH, mechanism_disabled
@@ -3112,7 +3143,31 @@ class OrgWorld:
         eps = self.episode_manager.observe_result(result, self)
         self._link_product_artifacts(result, eps, agent_id)
         self._record_review_evidence(result, agent_id)
+        if collect_growth and self.capability_learning_enabled:
+            self._growth_appraiser.collect(result, self, agent_id)
+        if controller_type != "agent":
+            self.controller_log.append({
+                "agent_id": agent_id,
+                "action_type": result.action_type,
+                "action_id": result.action_id,
+                "tick": self.world_tick,
+                "wall_time": time.time(),
+                "controller_type": controller_type,
+                "execution_mode": execution_mode,
+                "success": result.success,
+            })
         return result
+
+    def apply_action(self, agent_id: str, action_type: str, **params):
+        """Execute ONE action through the shared post-execution pipeline.
+
+        Scripted/demo chains historically omitted growth collection, so preserve
+        that behavior while routing their action through the same core path.
+        """
+        from relic.decision.contracts import ActionCandidate
+
+        cand = ActionCandidate(action_type=action_type, parameters=dict(params))
+        return self.apply_action_candidate(agent_id, cand, collect_growth=False)
 
     def reflect_agent(self, agent_id: str, *, episode=None, reason: str = "manual"):
         """Trigger one agent reflection through the full pipeline (reflection ->
@@ -3139,6 +3194,26 @@ class OrgWorld:
             from environments.org_env.experiments.ablations import EVENT_GRAPH, mechanism_disabled
             if self.event_graph is not None and not mechanism_disabled(self, EVENT_GRAPH):
                 self.event_graph.add_edge(c.agent_id, "violated", c.commitment_id)
+
+    # -- human-controlled seats (HCI) --------------------------------------
+    def is_human_controlled(self, agent_id: str) -> bool:
+        """Whether a human drives this seat instead of the autonomous loop."""
+        agent = self.agents.get(agent_id)
+        return getattr(agent, "controller_type", "agent") == "human"
+
+    def human_seat_ids(self) -> List[str]:
+        return [aid for aid in self.agents if self.is_human_controlled(aid)]
+
+    def assign_human_seat(self, agent_id: str) -> None:
+        """Hand an existing member seat to a human without changing the seat."""
+        if agent_id not in self.agents:
+            raise KeyError(f"unknown_agent:{agent_id}")
+        self.agents[agent_id].controller_type = "human"
+
+    def release_human_seat(self, agent_id: str) -> None:
+        """Give a claimed seat back to the autonomous loop."""
+        if agent_id in self.agents:
+            self.agents[agent_id].controller_type = "agent"
 
     # -- §13.2 can the agent act this tick? --------------------------------
     def can_agent_act(self, agent, clk) -> bool:
@@ -3300,6 +3375,17 @@ class OrgWorld:
         from environments.org_env.backend.meetings.system import meeting_duration
         ms = self.meeting_system
         for m in ms.due_to_start(tick):
+            # A claimed human participant must RSVP explicitly. Holding only
+            # this meeting in scheduled state leaves the rest of the
+            # organization free to continue working.
+            pending_human_rsvps = [
+                pid for pid in m.participants
+                if self.is_human_controlled(pid)
+                and pid not in m.attendees
+                and pid not in m.skipped_by
+            ]
+            if pending_human_rsvps:
+                continue
             ms.start_meeting(m.meeting_id, tick)
             dur = meeting_duration(m.meeting_type)
             for pid in m.participants:
@@ -3310,17 +3396,22 @@ class OrgWorld:
                 if av and av.current_availability_status in ("offline", "asleep", "forced_rest"):
                     ms.skip_meeting(pid, m.meeting_id)
                     continue
-                ms.attend(pid, m.meeting_id)
+                if pid in m.skipped_by:
+                    continue
+                was_already_attending = pid in m.attendees
+                if not was_already_attending:
+                    ms.attend(pid, m.meeting_id)
                 ws = getattr(agent, "work_state", None)
                 if ws is not None:
                     ws.next_available_tick = max(ws.next_available_tick, tick + dur)
                     ws.daily_meeting_count += 1
                     ws.current_meeting_id = m.meeting_id     # in-meeting -> sub-actions allowed
                 self.time.log_work(agent, action_type="attend_meeting", is_deep_work=False, duration=dur)
-                self.action_log.append({"agent_id": pid, "action_type": "attend_meeting",
-                                        "tick": tick, "success": True})
-                self.events.append({"type": "meeting_event", "subtype": "attended",
-                                    "meeting_id": m.meeting_id, "agent_id": pid, "tick": tick})
+                if not was_already_attending:
+                    self.action_log.append({"agent_id": pid, "action_type": "attend_meeting",
+                                            "tick": tick, "success": True})
+                    self.events.append({"type": "meeting_event", "subtype": "attended",
+                                        "meeting_id": m.meeting_id, "agent_id": pid, "tick": tick})
                 self.appraised_log.append({"type": "meeting_event", "agent_id": pid,
                                            "tick": tick, "salience": 0.6})
         for m in ms.due_to_close(tick):
@@ -3507,6 +3598,8 @@ class OrgWorld:
         """spec #5: at each tranche checkpoint, evaluate internal milestones and record an
         explicit funding decision (grant_full / grant_partial / delay), updating treasury +
         runway. Unconditional tranches grant in full; conditional ones depend on milestones."""
+        if getattr(self, "funding_simulation_enabled", True) is False:
+            return []
         bs = self.budget_system
         met, status, score_by = self._evaluate_milestones()
         bs.funding.milestone_status = status

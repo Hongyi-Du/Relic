@@ -232,6 +232,11 @@ def run_market_trials(world: Any, tick: int, n: int = 3,
     new CustomerTrials (also stored on ``world.trials``); writes one CustomerTicket per
     trial and a ``cust_issue`` product artifact for each churned user, and appends a
     ``customer_trial`` external_signal_event (observed into a feedback episode)."""
+    # The HCI project workspace uses the organization's real task/repo/review
+    # loops. It must not fabricate customers or churn work merely because a
+    # release was published. The simulation profile retains this mechanism.
+    if getattr(world, "customer_market_enabled", True) is False:
+        return []
     rel = _latest_release(world)
     if rel is None:
         return []                  # no published product -> no market yet

@@ -55,6 +55,11 @@ class OrgAgent:
         self.personal_workspace_id = f"pw_{agent_id}"
         self.sandbox_id = f"sandbox_{agent_id}"
         self.current_status = "available"
+        # Which controller picks this seat's actions. Research-side only: the
+        # organization must not be able to tell a human seat from an autonomous
+        # one, so this stays out of snapshots, perception and the event log —
+        # only OrgWorld.controller_log records human-origin actions.
+        self.controller_type = "agent"      # "agent" | "human"
         # Internal Growth Module (§1): persistent skill (grows in self.skills) + domain
         # reputation + derived informal authority + go-to tags. Core profile stays fixed.
         from environments.org_env.growth.objects import new_authority, new_reputation
