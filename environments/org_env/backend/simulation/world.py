@@ -14,7 +14,7 @@ import re
 from typing import Any, Dict, List, Optional
 
 from relic.core.domain import DomainScenarioConfig, DomainState
-from environments.org_env.backend.agents import SEED_TEAM, OrgAgent
+from environments.org_env.backend.agents import SEED_TEAM, SEED_TEAM_BY_ID, OrgAgent
 from environments.org_env.backend.budget import BudgetSystem, CompensationProfile
 from environments.org_env.backend.clock import AgentAvailability, TimeSystem
 from environments.org_env.backend.comm import CommunicationSystem
@@ -324,11 +324,50 @@ class OrgWorld:
     # -- O-Infra-1 seeding --------------------------------------------------
     def build(self) -> "OrgWorld":
         n = int(self.scenario.params.get("num_internal_agents", len(SEED_TEAM)))
+        roster_source = SEED_TEAM
+        requested_ids = self.scenario.params.get("internal_agent_ids")
+        noncanonical_roster_variant = str(
+            self.scenario.params.get("noncanonical_roster_variant", "") or ""
+        ).strip()
+        cooperbench_two_person_b3 = bool(
+            noncanonical_roster_variant == "cooperbench_two_person_b3"
+            and self.condition_spec.condition_id == "b3_full_sociogenesis"
+            and n == 2
+        )
+        if noncanonical_roster_variant and not cooperbench_two_person_b3:
+            raise ValueError(
+                "unsupported noncanonical_roster_variant:"
+                f"{noncanonical_roster_variant}"
+            )
+        if requested_ids is not None:
+            if self.experiment_condition_explicit and not cooperbench_two_person_b3:
+                raise ValueError(
+                    "custom internal_agent_ids are not allowed for explicit "
+                    "B0-B3 ladder conditions"
+                )
+            if isinstance(requested_ids, (str, bytes)):
+                raise ValueError("internal_agent_ids must be a sequence")
+            normalized_ids = tuple(str(item).strip() for item in requested_ids)
+            if (
+                not normalized_ids
+                or len(set(normalized_ids)) != len(normalized_ids)
+                or len(normalized_ids) != n
+            ):
+                raise ValueError(
+                    "internal_agent_ids must contain exactly num_internal_agents "
+                    "unique ids"
+                )
+            unknown = [item for item in normalized_ids if item not in SEED_TEAM_BY_ID]
+            if unknown:
+                raise ValueError(f"unknown internal_agent_ids: {unknown}")
+            roster_source = [SEED_TEAM_BY_ID[item] for item in normalized_ids]
         team = roster_for_condition(
             self.condition_spec,
-            SEED_TEAM,
+            roster_source,
             requested_size=n,
-            condition_explicit=self.experiment_condition_explicit,
+            condition_explicit=(
+                self.experiment_condition_explicit and not cooperbench_two_person_b3
+            ),
             seed=self.scenario.seed,
         )
         for member in team:
@@ -950,7 +989,8 @@ class OrgWorld:
             # org keeps iterating instead of stalling once the seeded issue stream is exhausted.
             self._reconcile_issue_backlog(tick)
             self._reconcile_failing_test_backlog(tick)
-            self._renew_backlog_if_idle(tick)
+            if not self.__dict__.get("_cooperbench_disable_backlog_renewal", False):
+                self._renew_backlog_if_idle(tick)
         # O1.6: complete due background jobs; begin-of-day partial reset; run the
         # meeting lifecycle (start due meetings -> block participants -> close).
         self._process_background_jobs(tick)
@@ -968,12 +1008,27 @@ class OrgWorld:
         loop = self._loop
         for aid, agent in self.agents.items():
             ws = getattr(agent, "work_state", None)
+            cooper_delivery_focus = bool(
+                self.__dict__.get("_cooperbench_delivery_focus", False)
+            )
             if ws is not None:                       # aux-speech slots reset each tick
                 ws.aux_speech_slots_remaining = ws.default_aux_speech_slots
             # busy on a blocking/background activity: no new primary this tick. If
             # busy *because in an active meeting*, only meeting sub-actions are
             # allowed (record notes / decisions / action items) — §13.
             if ws is not None and ws.is_busy(tick):
+                if cooper_delivery_focus:
+                    self.__dict__.setdefault(
+                        "_cooperbench_perception_trace", []
+                    ).append({
+                        "tick": tick,
+                        "agent_id": aid,
+                        "skip_reason": "busy",
+                        "activity_id": ws.current_activity_id,
+                        "next_available_tick": getattr(
+                            ws, "next_available_tick", None
+                        ),
+                    })
                 m = self._active_meeting_for(aid, ws)
                 if m is not None:
                     self._run_meeting_subaction(aid, agent, m, tick)
@@ -982,7 +1037,16 @@ class OrgWorld:
                 continue
             if ws is not None and ws.current_activity_id is not None and not ws.is_busy(tick):
                 ws.clear_activity()                  # activity finished -> free
-            if not self.can_agent_act(agent, clk):
+            action_block_reason = self._agent_action_block_reason(agent, clk)
+            if action_block_reason is not None:
+                if cooper_delivery_focus:
+                    self.__dict__.setdefault(
+                        "_cooperbench_perception_trace", []
+                    ).append({
+                        "tick": tick,
+                        "agent_id": aid,
+                        "skip_reason": action_block_reason,
+                    })
                 if clk.phase_of_day == "night_sleep" or (self.time.availability.get(aid)
                                                          and self.time.availability[aid].current_availability_status == "resting"):
                     self.time.rest(agent)
@@ -990,7 +1054,33 @@ class OrgWorld:
             self._process_inbox(aid, tick)             # v14 P3: read/ack inbox -> memory, before deciding
             perception = loop["perception"].build_perception(aid, self, tick)
             candidates = loop["mapper"].to_core_candidates(perception, self)
+            cooper_trace = None
+            if cooper_delivery_focus:
+                from dataclasses import asdict, is_dataclass
+                cooper_trace = {
+                    "tick": tick,
+                    "agent_id": aid,
+                    "perception": (
+                        asdict(perception)
+                        if is_dataclass(perception)
+                        else dict(vars(perception))
+                    ),
+                    "mapped_candidates": [
+                        {"action_type": c.action_type, "parameters": c.parameters}
+                        for c in candidates
+                    ],
+                }
             candidates = self._constrain_candidates(agent, candidates, clk)
+            if cooper_trace is not None:
+                cooper_trace["eligible_candidates"] = [
+                    {"action_type": c.action_type, "parameters": c.parameters}
+                    for c in candidates
+                ]
+                if not candidates:
+                    cooper_trace["skip_reason"] = "no_eligible_candidates"
+                self.__dict__.setdefault(
+                    "_cooperbench_perception_trace", []
+                ).append(cooper_trace)
             # Recorded before the choice and kept even when no action follows: a
             # decision point where commit_patch was on the menu and nothing was
             # executed is evidence about the chooser, and it is the point a
@@ -1015,6 +1105,9 @@ class OrgWorld:
                 finally:
                     self._experiment_resource_actor = None
                 if selected is None:
+                    if cooper_trace is not None:
+                        cooper_trace["selection_mode"] = selection_mode
+                        cooper_trace["skip_reason"] = "action_selection_rejected"
                     continue
             elif selection_mode in (
                 ACTION_SELECTION_PROFILE_POLICY,
@@ -1075,7 +1168,14 @@ class OrgWorld:
         #    there do reflections become wishes, and wishes proposals, and
         #    proposals rules that outlive the moment. See
         #    ReflectionManager.reflect.
-        self.reflection_batch_manager.maybe_run_batch(self, tick, self.llm_client)
+        # Cooper's source adapter keeps generic lifecycle work off for its
+        # delivery-only profiles, while the explicit B3 two-person treatment
+        # retains the ordinary B3 reflection path.
+        if (
+            not self.__dict__.get("_cooperbench_delivery_focus", False)
+            or self.__dict__.get("_cooperbench_main_b3_lifecycle", False)
+        ):
+            self.reflection_batch_manager.maybe_run_batch(self, tick, self.llm_client)
 
         # -- cognitive layer: wishes -> proposals; repeated patterns -> institutions;
         #    consensus approval -> tool/protocol adoption (all manager/validator-gated).
@@ -1216,11 +1316,21 @@ class OrgWorld:
             self.institutionalization_enabled
             and not mechanism_disabled(self, INSTITUTIONALIZATION)
         )
+        suppress_generic_cognition = bool(
+            self.__dict__.get("_cooperbench_delivery_focus", False)
+            and not self.__dict__.get("_cooperbench_main_b3_lifecycle", False)
+        )
         if institutionalization_enabled:
             self._flag_harmful_protocols(tick)   # self-correction: over-strict rules -> policy-repair wish
             self._repackage_stuck_deliverables(tick)  # the delivery half: land work the gate walled off
         # wishes -> proposals: sparse + half-day cadence + capped (§10).
-        if institutionalization_enabled and self.auto_propose and tick > 0 and tick % 6 == 0:
+        if (
+            institutionalization_enabled
+            and not suppress_generic_cognition
+            and self.auto_propose
+            and tick > 0
+            and tick % 6 == 0
+        ):
             open_props = sum(1 for p in pm.proposals.values()
                              if p.status in ("draft", "under_review"))
             made = 0
@@ -1236,7 +1346,13 @@ class OrgWorld:
                 if p is not None and p.status != "rejected":
                     made += 1
                     open_props += 1
-        if institutionalization_enabled and tick > 0 and tick % 24 == 0 and self._cog is not None:
+        if (
+            institutionalization_enabled
+            and not suppress_generic_cognition
+            and tick > 0
+            and tick % 24 == 0
+            and self._cog is not None
+        ):
             synth = self._cog["institution"]
             # The catalogue first, then what the members have actually been asking
             # for. The catalogue is four entries deep and each fires once, so on
@@ -1406,6 +1522,10 @@ class OrgWorld:
         """v4 §5.3: the ONLY place an existing product artifact's revision is bumped —
         a validated concrete patch (revision + patch history + change summary + causal
         links + awaiting_review). Returns True if applied."""
+        from environments.org_env.cooperbench.source_views import actor_desks_enabled
+        if actor_desks_enabled(self):
+            from environments.org_env.cooperbench.actor_workspace import apply_actor_product_patch
+            return apply_actor_product_patch(self, patch, res, aid)
         art = self.product_artifacts.get(patch.target_object_id)
         if art is None:
             return False
@@ -1562,11 +1682,36 @@ class OrgWorld:
 
     def _evidence_relevance(self, t, act: str, artifact_id: str, patch_id) -> str:
         """Classify evidence against the artifacts named by the current workload task."""
+        feature_assignment = self._cooperbench_task_assignment(t)
+        if feature_assignment is not None and patch_id:
+            # Shared source paths are context for both features, not proof that
+            # both owners implemented them. Use the accepted patch's explicit
+            # owner/issue attribution, never its artifact's broad task links.
+            feature_id, owner = feature_assignment
+            patch = self.patches.get(patch_id)
+            status = getattr(patch, "validation_status", "")
+            if (
+                patch is None
+                or getattr(patch, "actor_id", None) != owner
+                or feature_id not in (getattr(patch, "related_issue_ids", []) or [])
+                or getattr(patch, "target_object_id", None) != artifact_id
+                or getattr(status, "value", status)
+                not in {"accepted", "applied", "merged"}
+            ):
+                return "none"
         linked = artifact_id in getattr(t, "linked_artifacts", [])
         weak_act = act in self._WEAK_ACTIONS and not patch_id   # an accepted patch is never weak
         if not linked:
             return "none"
         return "weak" if weak_act else "substantive"
+
+    def _cooperbench_task_assignment(self, t):
+        """Only the pair's explicit feature tasks have owner-scoped delivery."""
+        state = self.__dict__.get("_cooperbench_sdl_state") or {}
+        for feature_id, owner in (state.get("feature_owners") or {}).items():
+            if t.task_id == f"task_oss_{feature_id}":
+                return feature_id, owner
+        return None
 
     def _emit_task_transition(self, t, prev, aid, act, artifact_id, tick) -> None:
         new = getattr(t.status, "value", str(t.status))
@@ -1616,6 +1761,21 @@ class OrgWorld:
             "multi_evidence": len(actions) >= 2,
         }
         req = list(getattr(t, "completion_requirements", []) or [])
+        feature_assignment = self._cooperbench_task_assignment(t)
+        if feature_assignment is not None:
+            from environments.org_env.cooperbench.lifecycle import feature_delivery_coverage
+
+            feature_id, owner = feature_assignment
+            # Recheck actual provenance even for resumed evidence that predates
+            # owner-scoped progress. Effort + a peer's shared-file revision is
+            # not this feature's implementation. This is not an evaluator gate.
+            coverage = feature_delivery_coverage(self).get(feature_id, {})
+            checks["cooper_feature_implemented"] = (
+                getattr(t, "owner_id", None) == owner
+                and bool(coverage.get("complete"))
+            )
+            if "cooper_feature_implemented" not in req:
+                req.append("cooper_feature_implemented")
         met = [k for k in req if checks.get(k, True)]
         t.progress_score = round(len(met) / max(1, len(req)), 3)
         return all(checks.get(k, True) for k in req)
@@ -1660,8 +1820,16 @@ class OrgWorld:
             art.status = "active"
             # materialization: the merge promotes the carried patch's real text to mainline
             pp = self.patches.get(patch_id)
-            promoted = getattr(pp, "new_content", "") if pp else ""
-            if promoted:
+            promoted = getattr(pp, "new_content", None) if pp else None
+            from environments.org_env.cooperbench.source_views import source_views_enabled
+            if source_views_enabled(self):
+                if not isinstance(promoted, str):
+                    from environments.org_env.cooperbench.source_views import SourceViewError
+                    raise SourceViewError("merge_patch_full_text_missing")
+                # Empty committed text is still exact text. Never promote a
+                # later uncommitted desk as a fallback for this public head.
+                art.mainline_content = promoted
+            elif promoted:
                 art.mainline_content = promoted
             elif art.content:
                 art.mainline_content = art.content
@@ -1726,11 +1894,16 @@ class OrgWorld:
         task_ids = list(getattr(pr, "linked_task_ids", []) or [])
         if not task_ids and getattr(pr, "linked_task", None):
             task_ids = [pr.linked_task]
-        for a in artifact_ids:
-            art = arts.get(a)
-            for tid in (getattr(art, "linked_task_ids", []) or []) if art else []:
-                if tid not in task_ids:
-                    task_ids.append(tid)
+        # In Cooper's two-feature treatment, independent features can name
+        # one source artifact.  Its merged PR is evidence only for the task
+        # carried by the commit provenance; artifact expansion would complete
+        # the peer's successor task before that member edits it.
+        if not self.__dict__.get("_cooperbench_delivery_focus", False):
+            for a in artifact_ids:
+                art = arts.get(a)
+                for tid in (getattr(art, "linked_task_ids", []) or []) if art else []:
+                    if tid not in task_ids:
+                        task_ids.append(tid)
         reviewers = list(getattr(pr, "approved_by", []) or [])
         primary = artifact_ids[0] if artifact_ids else None
         for tid in task_ids:
@@ -1771,6 +1944,13 @@ class OrgWorld:
         merge latency, advance PRs that agents left waiting so the
         patch -> commit -> PR -> review -> merge -> mainline chain actually closes.
         Agents still act first within the latency window; events are tagged ``auto``."""
+        if self.__dict__.get("_cooperbench_delivery_focus", False):
+            # CooperBench measures a two-person organization, so PR creation,
+            # public validation, peer review, and merge must all be attributable
+            # to its two members. The generic synthetic closure path would both
+            # bypass the Cooper action gates and turn tick progress into false
+            # evidence of organizational delivery.
+            return []
         rs = getattr(self, "repo_system", None)
         if rs is None:
             return []
@@ -3141,28 +3321,44 @@ class OrgWorld:
                 self.event_graph.add_edge(c.agent_id, "violated", c.commitment_id)
 
     # -- §13.2 can the agent act this tick? --------------------------------
-    def can_agent_act(self, agent, clk) -> bool:
+    def _agent_action_block_reason(self, agent, clk) -> str | None:
         av = self.time.availability.get(agent.id)
         ws = getattr(agent, "work_state", None)
         if ws is not None and ws.is_busy(clk.current_tick):
-            return False                              # mid blocking/background activity
+            return "busy"                            # mid blocking/background activity
+        from environments.org_env.cooperbench.work_schedule import (
+            compressed_schedule_enabled,
+            model_call_budget_exhausted,
+        )
+        compressed_schedule = compressed_schedule_enabled(self)
+        if compressed_schedule and model_call_budget_exhausted(self, agent.id):
+            return "model_call_budget_exhausted"
         # Being mid-action is scheduling, so it still blocks above; everything
         # below is the lived-body layer and goes away with the ablation.
         if not self.time.rhythm_enabled:
-            return True
+            return None
         if agent.vitals.get("attention", 1.0) <= 0.04:
-            return False
+            return "attention_exhausted"
         if av and av.current_availability_status in ("asleep", "offline", "forced_rest", "resting"):
-            return False
+            return f"availability_{av.current_availability_status}"
+        if compressed_schedule:
+            # Cooper action budgets already bound the pair. Simulated
+            # nights/weekends must not reduce one persona to a fraction of the
+            # other's decision opportunities. Busy, attention and explicit
+            # recovery/availability state remain enforced above.
+            return None
         if clk.phase_of_day == "night_sleep":
-            return bool(av and av.after_hours_responsiveness > 0.7)   # rare night owls
+            return None if av and av.after_hours_responsiveness > 0.7 else "night_sleep_unavailable"
         if clk.is_weekend:
-            return bool(av and av.weekend_work_tendency >= 0.5)
+            return None if av and av.weekend_work_tendency >= 0.5 else "weekend_unavailable"
         if clk.is_after_hours or clk.is_late_night:
-            return bool(av and av.after_hours_responsiveness >= 0.4)
+            return None if av and av.after_hours_responsiveness >= 0.4 else "after_hours_unavailable"
         if clk.phase_of_day == "lunch_low_activity":
-            return False
-        return True   # normal work hours
+            return "lunch_low_activity"
+        return None   # normal work hours
+
+    def can_agent_act(self, agent, clk) -> bool:
+        return self._agent_action_block_reason(agent, clk) is None
 
     # -- O1.6 scheduling passes -------------------------------------------
     def _constrain_candidates(self, agent, candidates, clk):
@@ -3188,6 +3384,8 @@ class OrgWorld:
         )
         product_workflow_disabled = mechanism_disabled(self, PRODUCT_WORKFLOW)
         ws = getattr(agent, "work_state", None)
+        from environments.org_env.cooperbench.work_schedule import compressed_schedule_enabled
+        compressed_schedule = compressed_schedule_enabled(self)
         out = []
         for c in candidates:
             if institutionalization_disabled and (
@@ -3202,9 +3400,10 @@ class OrgWorld:
             spec = DURATION_REGISTRY.get(c.action_type)
             if spec.is_auxiliary_speech and ws is not None and ws.aux_speech_slots_remaining <= 0:
                 continue
-            if not spec.can_execute_after_hours and (clk.is_after_hours or clk.is_late_night):
+            if (not compressed_schedule and not spec.can_execute_after_hours
+                    and (clk.is_after_hours or clk.is_late_night)):
                 continue
-            if not spec.can_execute_weekend and clk.is_weekend:
+            if not compressed_schedule and not spec.can_execute_weekend and clk.is_weekend:
                 continue
             out.append(c)
         return out
@@ -3406,6 +3605,14 @@ class OrgWorld:
             return
         for message in sorted(visible, key=lambda m: int(getattr(m, "created_tick", 0) or 0)):
             text = str(getattr(message, "text_summary", "") or "").strip()
+            if self.__dict__.get("_cooperbench_delivery_focus", False):
+                if aid not in message.read_by:
+                    continue
+                text = str(
+                    message.full_text
+                    if message.full_text is not None
+                    else message.text_summary
+                ).strip()
             if not text:
                 continue
             sender = str(getattr(message, "sender_id", "") or "someone")

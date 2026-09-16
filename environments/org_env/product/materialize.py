@@ -155,6 +155,12 @@ def _formal_product_executor():
             backend=str(values["backend"]),
             container_image=str(values["container_image"]),
             container_platform=str(values["container_platform"]),
+            clear_container_entrypoint=(
+                str(
+                    os.environ.get("RELIC_EVALUATOR_CLEAR_ENTRYPOINT") or ""
+                ).strip()
+                == "1"
+            ),
             network_enabled=False,
             memory_limit_mb=2048,
             cpu_limit=2.0,
@@ -231,16 +237,28 @@ def _execute_smoke_command(
     timeout: int,
     environment: Dict[str, str],
     executor: Any,
+    image_workspace: str | None = None,
 ) -> tuple[int | None, str, str, str | None]:
     if executor is not None:
-        visibility_error = _workspace_visibility_error(executor, repo_dir)
-        if visibility_error:
-            return None, "", "", visibility_error
-        outcome = executor.run(
-            root=Path(repo_dir),
-            argv=_container_command(command),
-            timeout_seconds=float(timeout),
-        )
+        if image_workspace:
+            runner = getattr(executor, "run_in_image_workspace", None)
+            if runner is None:
+                return None, "", "", "executor_image_workspace_unsupported"
+            outcome = runner(
+                root=Path(repo_dir),
+                argv=_container_command(command),
+                timeout_seconds=float(timeout),
+                image_workspace=image_workspace,
+            )
+        else:
+            visibility_error = _workspace_visibility_error(executor, repo_dir)
+            if visibility_error:
+                return None, "", "", visibility_error
+            outcome = executor.run(
+                root=Path(repo_dir),
+                argv=_container_command(command),
+                timeout_seconds=float(timeout),
+            )
         error = (
             outcome.blocked_reason
             if outcome.status in {"blocked", "timeout", "infra_error"}
@@ -288,6 +306,7 @@ def run_product_smoke(
     env: Dict[str, str] = None,
     command: Optional[List[str]] = None,
     executor: Any = None,
+    image_workspace: str | None = None,
 ) -> Dict[str, Any]:
     """Run the product's declared smoke command inside the exported repo.
 
@@ -309,6 +328,7 @@ def run_product_smoke(
         timeout=timeout,
         environment=run_env,
         executor=formal_executor,
+        image_workspace=image_workspace,
     )
     if launch_error:
         return {"ok": False, "error": launch_error}
@@ -511,6 +531,9 @@ def run_public_tests(world: Any, timeout: int = 120) -> Dict[str, Any]:
     dest = os.path.join(_product_smoke_root(), "public_tests_" + key[:12])
     export_product_repo(world, dest, prefer_mainline=False)
     executor = _formal_product_executor()
+    image_workspace = str(
+        getattr(world, "__dict__", {}).get("_cooperbench_image_workspace") or ""
+    ).strip() or None
     readiness_error = public_test_sandbox_readiness(world, dest, executor)
     if readiness_error:
         result = {"ok": False, "available": True, "returncode": None,
@@ -524,6 +547,7 @@ def run_public_tests(world: Any, timeout: int = 120) -> Dict[str, Any]:
         timeout=timeout,
         environment=environment,
         executor=executor,
+        image_workspace=image_workspace,
     )
     if launch_error:
         result = {"ok": False, "available": True, "returncode": None,
@@ -1015,11 +1039,18 @@ def release_smoke(
                                   for k, v in sorted(overrides.items()))).encode()
         ).hexdigest()
     smoke_command = list(command) if command is not None else _declared_smoke_command(world)
+    image_workspace = str(
+        getattr(world, "__dict__", {}).get("_cooperbench_image_workspace") or ""
+    ).strip() or None
     if smoke_command:
         # The same candidate may be judged against different issue-level tests;
         # a result cached for issue A cannot answer issue B.
         key = hashlib.sha1(
             (key + "|command:" + json.dumps(smoke_command, separators=(",", ":"))).encode()
+        ).hexdigest()
+    if image_workspace:
+        key = hashlib.sha1(
+            (key + "|image_workspace:" + image_workspace).encode()
         ).hexdigest()
     cached = cache.get(key)
     if cached is not None:
@@ -1033,6 +1064,7 @@ def release_smoke(
         dest,
         timeout=timeout,
         command=smoke_command,
+        image_workspace=image_workspace,
     )
     res["repo_dir"] = os.path.abspath(dest)
     if _cacheable_smoke_result(res):

@@ -84,6 +84,54 @@ def test_docker_command_has_the_formal_isolation_boundary(tmp_path: Path) -> Non
     assert command[command.index("--platform") + 1] == "linux/amd64"
 
 
+def test_docker_executor_can_clear_a_task_image_entrypoint(tmp_path: Path) -> None:
+    executor = DockerCommandExecutor(
+        policy=ExecutionPolicy(
+            trust_level="untrusted",
+            backend="docker",
+            container_image=_PINNED_IMAGE,
+            clear_container_entrypoint=True,
+        ),
+        docker_binary="docker-test",
+    )
+
+    command = executor.build_command(
+        root=tmp_path.resolve(),
+        argv=("python", "-c", "print('ok')"),
+    )
+
+    index = command.index("--entrypoint")
+    assert command[index + 1] == ""
+    assert command[index + 2] == _PINNED_IMAGE
+    assert command[-3:] == ("python", "-c", "print('ok')")
+
+
+def test_docker_executor_stages_candidate_in_image_workspace(tmp_path: Path) -> None:
+    executor = DockerCommandExecutor(
+        policy=ExecutionPolicy(
+            trust_level="untrusted",
+            backend="docker",
+            container_image=_PINNED_IMAGE,
+            clear_container_entrypoint=True,
+        ),
+        docker_binary="docker-test",
+    )
+
+    command = executor.build_command(
+        root=tmp_path.resolve(),
+        argv=("python", "-m", "pytest", "-q"),
+        image_workspace="/workspace/repo",
+    )
+
+    assert "type=volume,target=/workspace/repo" in command
+    assert f"{tmp_path.resolve()}:/candidate:ro" in command
+    assert f"{tmp_path.resolve()}:/workspace:rw" not in command
+    assert command[command.index("--workdir") + 1] == "/workspace/repo"
+    stage = command[command.index("/bin/bash") + 2]
+    assert "git ls-files -z" in stage
+    assert "cmp -s" in stage
+
+
 def test_started_container_output_cannot_spoof_a_daemon_failure() -> None:
     failure = CommandOutcome(
         status="failed",

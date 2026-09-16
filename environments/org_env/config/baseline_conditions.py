@@ -60,6 +60,11 @@ B0_SINGLE_AGENT_FOUNDER = "b0_single_agent_founder"
 B1_PERSISTENT_ROLE_ORG = "b1_persistent_role_org"
 B2_POLICY_CONDITIONED_ORG = "b2_policy_conditioned_org"
 B3_RELIC_ORGANIZATION = "b3_relic_organization"
+# CooperBench's authoritative external adapter was recorded against this
+# source identifier. It is deliberately a second B3 identity with the same
+# mechanism settings, rather than an alias that would rewrite its receipts.
+# The paper's canonical Relic B3 remains the entry above.
+B3_FULL_SOCIOGENESIS = "b3_full_sociogenesis"
 
 # Retired rungs. Kept resolvable so runs recorded under the previous ladder
 # still load, and so their records keep reporting the condition they actually
@@ -163,6 +168,17 @@ CONDITIONS = {
     ),
     B3_RELIC_ORGANIZATION: OrganizationCondition(
         condition_id=B3_RELIC_ORGANIZATION,
+        short_name="b3",
+        roster_size=8,
+        action_selection_mode=ACTION_SELECTION_PROFILE_POLICY,
+        profile_conditioning_enabled=True,
+        institutionalization_enabled=True,
+        capability_learning_enabled=True,
+    ),
+    # Source-compatible B3-2 condition. It is not part of the main-study
+    # manifest.
+    B3_FULL_SOCIOGENESIS: OrganizationCondition(
+        condition_id=B3_FULL_SOCIOGENESIS,
         short_name="b3",
         roster_size=8,
         action_selection_mode=ACTION_SELECTION_PROFILE_POLICY,
@@ -341,6 +357,7 @@ __all__ = [
     "B1_TEMPORARY_SPECIALIST_TEAM",
     "B2_PERSISTENT_ROLE_ORG",
     "B2_POLICY_CONDITIONED_ORG",
+    "B3_FULL_SOCIOGENESIS",
     "B3_RELIC_ORGANIZATION",
     "CONDITIONS",
     "RETIRED_CONDITIONS",

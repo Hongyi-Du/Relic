@@ -1,0 +1,10 @@
+# Bounded provider-backed engineering smoke for one CooperBench feature pair.
+# A clean provider endpoint is still required before reporting benchmark data.
+orgenv_ticks: 168
+orgenv_seed: 6101
+orgenv_provider: openai
+orgenv_reasoning_effort: low
+orgenv_rendezvous_timeout_seconds: 120
+orgenv_worker_timeout_seconds: 7200
+orgenv_max_surface_files: 16384
+orgenv_max_surface_bytes: 1073741824

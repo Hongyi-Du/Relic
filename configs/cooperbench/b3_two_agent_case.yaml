@@ -1,0 +1,13 @@
+# Full-horizon single-case engineering run.  A gateway which injects prompt
+# context still makes the result unsuitable for scientific benchmark claims.
+orgenv_ticks: 1000
+orgenv_seed: 6101
+orgenv_provider: openai
+orgenv_reasoning_effort: high
+orgenv_rendezvous_timeout_seconds: 120
+orgenv_worker_timeout_seconds: 86400
+# Complete physical public baseline, never a task-ranked truncation. Runtime
+# non-text assets use a hash-checked disk backend above 32 MiB rather than
+# being base64-expanded into checkpoints; individual files remain <=16 MiB.
+orgenv_max_surface_files: 16384
+orgenv_max_surface_bytes: 1073741824

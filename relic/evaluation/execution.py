@@ -21,7 +21,7 @@ import time
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, replace
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from time import monotonic
 from typing import Literal, Protocol
 
@@ -31,12 +31,44 @@ ExecutionStatus = Literal["passed", "failed", "blocked", "timeout", "infra_error
 ExecutionBackend = Literal["local", "docker", "apptainer"]
 
 
+_IMAGE_WORKSPACE_STAGE_SCRIPT = r"""
+set -euo pipefail
+candidate="$1"
+workspace="$2"
+shift 2
+test -d "$candidate"
+test -d "$workspace/.git"
+test -n "$(find "$candidate" -type f -print -quit)"
+cd "$workspace"
+mkdir -p .relic-runtime-tmp
+export TMPDIR="$workspace/.relic-runtime-tmp"
+export GOTMPDIR="$TMPDIR"
+while IFS= read -r -d '' relative; do
+    if [ ! -e "$candidate/$relative" ] && [ ! -L "$candidate/$relative" ]; then
+        rm -rf -- "$relative"
+    fi
+done < <(git ls-files -z)
+while IFS= read -r -d '' source; do
+    relative="${source#"$candidate"/}"
+    target="$workspace/$relative"
+    if [ ! -f "$target" ] || ! cmp -s -- "$source" "$target"; then
+        mkdir -p -- "$(dirname "$target")"
+        cp -f -- "$source" "$target"
+    fi
+done < <(find "$candidate" -type f -print0)
+exec "$@"
+""".strip()
+
+
 @dataclass(frozen=True)
 class ExecutionPolicy:
     trust_level: Literal["trusted", "untrusted"] = "untrusted"
     backend: ExecutionBackend = "docker"
     container_image: str | None = None
     container_platform: str | None = None
+    # CooperBench task images can install a benchmark runner as ENTRYPOINT.
+    # This opt-in lets the verified repository command run directly instead.
+    clear_container_entrypoint: bool = False
     docker_host: str | None = None
     network_enabled: bool = False
     memory_limit_mb: int = 2048
@@ -80,6 +112,8 @@ class ExecutionPolicy:
                 _validate_local_docker_host(self.docker_host)
             if self.backend == "apptainer" and self.docker_host is not None:
                 raise ValueError("docker_host_requires_docker_backend")
+            if self.backend != "docker" and self.clear_container_entrypoint:
+                raise ValueError("clear_container_entrypoint_requires_docker_backend")
             if self.container_platform is not None and not re.fullmatch(
                 r"[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*"
                 r"(?:/[a-z0-9][a-z0-9._-]*)?",
@@ -91,6 +125,8 @@ class ExecutionPolicy:
                 raise ValueError("docker_host_requires_docker_backend")
             if self.container_platform is not None:
                 raise ValueError("container_platform_requires_docker_backend")
+            if self.clear_container_entrypoint:
+                raise ValueError("clear_container_entrypoint_requires_docker_backend")
         if self.memory_limit_mb <= 0:
             raise ValueError("memory_limit_mb_must_be_positive")
         if self.cpu_limit <= 0:
@@ -211,9 +247,30 @@ class DockerCommandExecutor:
         container_name: str | None = None,
         read_only_mounts: tuple[tuple[Path, str], ...] = (),
         workspace_read_only: bool = False,
+        image_workspace: str | None = None,
     ) -> tuple[str, ...]:
         assert self.policy.container_image is not None
+        if image_workspace is not None:
+            _validate_docker_container_path(image_workspace)
+            if (
+                image_workspace == "/candidate"
+                or image_workspace.startswith("/candidate/")
+                or "/candidate".startswith(image_workspace + "/")
+            ):
+                raise ValueError("image_workspace_conflicts_with_candidate_mount")
         network = "bridge" if self.policy.network_enabled else "none"
+        workspace_root = image_workspace or "/workspace"
+        command_argv = argv
+        if image_workspace is not None:
+            command_argv = (
+                "/bin/bash",
+                "-ceu",
+                _IMAGE_WORKSPACE_STAGE_SCRIPT,
+                "relic-image-workspace",
+                "/candidate",
+                image_workspace,
+                *argv,
+            )
         return (
             self.docker_binary,
             "run",
@@ -247,22 +304,34 @@ class DockerCommandExecutor:
             "--tmpfs",
             "/tmp:rw,noexec,nosuid,size=256m",
             "--workdir",
-            "/workspace",
+            workspace_root,
             "--env",
             "HOME=/tmp/home",
             "--env",
             "PYTHONNOUSERSITE=1",
             "--env",
-            "PYTHONPATH=/workspace:/workspace/src",
-            "-v",
-            (f"{root.resolve()}:/workspace:{'ro' if workspace_read_only else 'rw'}"),
+            f"PYTHONPATH={workspace_root}:{workspace_root}/src",
+            *(
+                (
+                    "--mount",
+                    f"type=volume,target={image_workspace}",
+                    "-v",
+                    f"{root.resolve()}:/candidate:ro",
+                )
+                if image_workspace is not None
+                else (
+                    "-v",
+                    f"{root.resolve()}:/workspace:{'ro' if workspace_read_only else 'rw'}",
+                )
+            ),
             *(
                 token
                 for host_root, container_root in read_only_mounts
                 for token in ("-v", f"{host_root.resolve()}:{container_root}:ro")
             ),
+            *( ("--entrypoint", "") if self.policy.clear_container_entrypoint else () ),
             self.policy.container_image,
-            *argv,
+            *command_argv,
         )
 
     def run(
@@ -277,6 +346,39 @@ class DockerCommandExecutor:
             argv=argv,
             timeout_seconds=timeout_seconds,
             read_only_mounts=(),
+        )
+
+    def run_in_image_workspace(
+        self,
+        *,
+        root: Path,
+        argv: tuple[str, ...],
+        timeout_seconds: float,
+        image_workspace: str,
+        read_only_mounts: tuple[tuple[Path, str], ...] = (),
+    ) -> CommandOutcome:
+        """Stage candidate bytes into an image-provided repository workspace."""
+
+        if not root.is_dir() or root.is_symlink():
+            raise ValueError("invalid_image_workspace_candidate")
+        _validate_docker_container_path(image_workspace)
+        for host_root, container_root in read_only_mounts:
+            if not host_root.is_dir() or host_root.is_symlink():
+                raise ValueError("invalid_read_only_mount_source")
+            _validate_docker_container_path(container_root)
+            if (
+                container_root == "/candidate"
+                or container_root.startswith("/candidate/")
+                or container_root == image_workspace
+                or container_root.startswith(image_workspace + "/")
+            ):
+                raise ValueError("read_only_mount_shadows_image_workspace")
+        return self._run_with_mounts(
+            root=root,
+            argv=argv,
+            timeout_seconds=timeout_seconds,
+            read_only_mounts=read_only_mounts,
+            image_workspace=image_workspace,
         )
 
     def run_with_read_only_evaluator(
@@ -304,6 +406,7 @@ class DockerCommandExecutor:
         timeout_seconds: float,
         read_only_mounts: tuple[tuple[Path, str], ...],
         workspace_read_only: bool = False,
+        image_workspace: str | None = None,
     ) -> CommandOutcome:
         if shutil.which(self.docker_binary) is None:
             return CommandOutcome(
@@ -337,6 +440,7 @@ class DockerCommandExecutor:
                     container_name=container_name,
                     read_only_mounts=read_only_mounts,
                     workspace_read_only=workspace_read_only,
+                    image_workspace=image_workspace,
                 ),
                 cwd=root.resolve(),
                 environment=environment,
@@ -598,6 +702,15 @@ def _validate_evaluator_asset_root(root: Path, evaluator_root: Path) -> None:
         raise ValueError("evaluator_asset_root_missing")
     if evaluator == workspace or evaluator.is_relative_to(workspace):
         raise ValueError("evaluator_assets_must_be_outside_workspace")
+
+
+def _validate_docker_container_path(container_root: str) -> None:
+    if (
+        not re.fullmatch(r"/[A-Za-z0-9_./-]+", container_root)
+        or ".." in PurePosixPath(container_root).parts
+        or container_root == "/"
+    ):
+        raise ValueError("invalid_docker_container_path")
 
 
 def _read_container_id(cidfile: Path) -> str | None:

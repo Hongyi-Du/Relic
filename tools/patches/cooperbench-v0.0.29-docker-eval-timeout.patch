@@ -1,0 +1,67 @@
+diff --git a/src/cooperbench/eval/backends/docker.py b/src/cooperbench/eval/backends/docker.py
+index 81f30ca..c595240 100644
+--- a/src/cooperbench/eval/backends/docker.py
++++ b/src/cooperbench/eval/backends/docker.py
+@@ -49,3 +49,11 @@ class DockerSandbox:
+-        # Use ThreadPoolExecutor to enforce timeout on exec_run
+-        with ThreadPoolExecutor(max_workers=1) as executor:
+-            future = executor.submit(_run_exec)
++        # ``ThreadPoolExecutor.__exit__`` waits for running work, so returning
++        # from a timeout inside a ``with`` block would still wait forever for
++        # the same hung Docker exec.  Stop that container and leave the blocked
++        # SDK call without waiting for its worker thread.
++        executor = ThreadPoolExecutor(max_workers=1)
++        future = executor.submit(_run_exec)
++        timed_out = False
++        try:
++            exit_code, output = future.result(timeout=self._timeout)
++        except FuturesTimeoutError:
++            timed_out = True
+@@ -53,3 +61,6 @@ class DockerSandbox:
+-                exit_code, output = future.result(timeout=self._timeout)
+-            except FuturesTimeoutError:
+-                return DockerExecResult(-1, f"Command timed out after {self._timeout} seconds".encode())
++                self._container.kill()
++            except docker.errors.APIError:
++                pass
++            return DockerExecResult(-1, f"Command timed out after {self._timeout} seconds".encode())
++        finally:
++            executor.shutdown(wait=not timed_out, cancel_futures=timed_out)
+diff --git a/tests/eval/test_docker_backend.py b/tests/eval/test_docker_backend.py
+new file mode 100644
+index 0000000..a7957e0
+--- /dev/null
++++ b/tests/eval/test_docker_backend.py
+@@ -0,0 +1,32 @@
++import threading
++import time
++
++from cooperbench.eval.backends.docker import DockerSandbox
++
++
++class _BlockingContainer:
++    def __init__(self):
++        self.released = threading.Event()
++        self.killed = False
++
++    def exec_run(self, **_kwargs):
++        self.released.wait(1)
++        return 0, b"late"
++
++    def kill(self):
++        self.killed = True
++        self.released.set()
++
++
++def test_docker_exec_timeout_does_not_wait_for_the_blocked_worker():
++    container = _BlockingContainer()
++    sandbox = DockerSandbox(container, "/workspace", timeout=0.01)
++
++    started = time.monotonic()
++    result = sandbox.exec("bash", "-c", "hang")
++    elapsed = time.monotonic() - started
++
++    assert elapsed < 0.2
++    assert result.returncode == -1
++    assert result.stdout_read() == "Command timed out after 0.01 seconds"
++    assert container.killed is True
