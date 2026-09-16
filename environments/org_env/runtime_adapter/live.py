@@ -12,7 +12,7 @@ import os
 import time
 from typing import Any, Dict, List, Mapping, Optional
 
-from agent_sdk.lived.domain.interfaces import DomainScenarioConfig
+from relic.core.domain import DomainScenarioConfig
 from environments.org_env.backend.simulation.world import OrgWorld
 from environments.org_env.runtime_adapter.snapshot import org_lived_full_snapshot
 
@@ -142,20 +142,15 @@ class OrgInspectorSession:
         execution_profile = (
             os.environ.get("ORG_EXECUTION_PROFILE", "native") or "native"
         ).strip()
-        if execution_profile not in {
-            "native",
-            "programbench_leaderboard_v1",
-        }:
-            raise RuntimeError(
-                f"unknown ORG_EXECUTION_PROFILE={execution_profile!r}"
-            )
         if execution_profile != "native":
-            params["execution_profile"] = execution_profile
+            raise RuntimeError(
+                "unsupported_execution_profile_in_relic_release"
+            )
         corpus = "v0"
-        # A selected live pack is an explicit session binding.  Do not fall
-        # back to ORG_PRODUCT_SUBSTRATE here: that would silently turn a
-        # selected project into whichever global process configuration happens
-        # to be present.
+        # A selected HCI pack is an explicit session binding. Do not replace it
+        # with process-global defaults: the pack is part of the HCI session
+        # identity. Ordinary sessions retain the canonical main runner's
+        # frozen-native substrate route below.
         if self.product_substrate is not None:
             substrate = dict(self.product_substrate)
             if substrate.get("type") != "oss_time_machine":
@@ -169,26 +164,23 @@ class OrgInspectorSession:
         else:
             _substrate = (os.environ.get("ORG_PRODUCT_SUBSTRATE", "") or "").strip()
             _mode = (os.environ.get("ORG_OSS_MODE", "dev") or "dev").strip()
-        # brief review §9: a FORMAL main experiment must not silently run on the synthetic substrate.
+            # Formal paper cells must use the frozen OSS substrate. The public
+            # release intentionally exposes only this native execution route.
             if _mode == "formal" and _substrate != "oss_time_machine":
                 raise RuntimeError(
-                    "ORG_OSS_MODE=formal requires ORG_PRODUCT_SUBSTRATE=oss_time_machine (a formal main "
-                    "experiment must use a real OSS substrate, not synthetic LanternScout).")
-        # opt-in OSS time-machine substrate (brief §6.2): ORG_PRODUCT_SUBSTRATE=oss_time_machine
-        # (+ optional ORG_OSS_DATASET). Default is the synthetic LanternScout substrate (unchanged).
+                    "ORG_OSS_MODE=formal requires ORG_PRODUCT_SUBSTRATE=oss_time_machine"
+                )
+            # Relic deliberately excludes the source's synthetic/Nature-adjacent
+            # default company. Even mock replays therefore bind one frozen public
+            # benchmark pack rather than constructing a different hidden world.
+            if not _substrate:
+                _substrate = "oss_time_machine"
             if _substrate == "oss_time_machine":
-            # default to the REAL gitingest snapshot; fixtures are dev-only and rejected in formal mode
-                _ds = os.environ.get("ORG_OSS_DATASET", "gitingest_v015_to_v030")
+                _ds = os.environ.get("ORG_OSS_DATASET", "mini_blobstore_v1")
                 params["experiment_mode"] = _mode
                 params["company_config"] = {"product_substrate": {
                     "type": "oss_time_machine",
                     "dataset_id": _ds,
-                # The locator and the identity are not the same string. A
-                # dataset resolves from either a pack id or an absolute path,
-                # and the DAG passes a path because one repository is
-                # materialised outside the pack tree — but the run record's
-                # `pack` is cross-checked against the manifest's project_id, so
-                # a path there fails every record. Carry the identity alongside.
                     "repository_id": os.environ.get("ORG_OSS_REPOSITORY_ID", "") or "",
                     "anonymize": (os.environ.get("ORG_OSS_ANONYMIZE", "0") in ("1", "true", "True")),
                     "control": os.environ.get("ORG_OSS_CONTROL", "none") or "none",
@@ -198,9 +190,8 @@ class OrgInspectorSession:
                                   params=params)
         self.world = OrgWorld(sc).build()
         # A selected HCI pack is the running project, not a label placed over
-        # the synthetic default company.  Keep the generic LanternForge name
-        # for ordinary worlds, but make live pack-backed sessions identify the
-        # project that was actually loaded.
+        # the generic default company. Make the projected workspace identify
+        # the project that was actually loaded.
         selected_product = str(self.selected_pack.get("product_name") or "").strip()
         if selected_product:
             self.world.company.company_name = selected_product
@@ -299,18 +290,6 @@ class OrgInspectorSession:
     # -- controls ----------------------------------------------------------
     def step(self, n: int = 1) -> Dict[str, Any]:
         steps = max(1, int(n))
-        if "programbench_profile_state" in getattr(self.world, "__dict__", {}):
-            from environments.org_env.programbench import (
-                ProfileAttachmentError,
-                validate_programbench_profile_state_for_step,
-            )
-
-            validate_programbench_profile_state_for_step(self.world)
-            state = self.world.__dict__["programbench_profile_state"]
-            if self.world.world_tick + steps > int(state["run_horizon_ticks"]):
-                raise ProfileAttachmentError(
-                    "programbench_step_would_cross_run_horizon"
-                )
         self.is_running = True
         try:
             for _ in range(steps):
@@ -359,92 +338,10 @@ class OrgInspectorSession:
         re-capture an initial frame so the inspector shows the resumed state immediately."""
         from environments.org_env.runtime_adapter.checkpoint import load_world_checkpoint
         want_llm = self.load_llm if reattach_llm is None else reattach_llm
-        current_params = getattr(getattr(self.world, "scenario", None), "params", {}) or {}
-        expected_profile = str(
-            current_params.get("execution_profile")
-            or self.world.__dict__.get("execution_profile")
-            or os.environ.get("ORG_EXECUTION_PROFILE")
-            or "native"
-        )
-
-        def validate_profile_before_attach(world, metadata) -> None:
-            claimed = "programbench_profile_state" in getattr(world, "__dict__", {})
-            if expected_profile == "native":
-                if claimed:
-                    raise ValueError("checkpoint_execution_profile_mismatch")
-                return
-            if expected_profile != "programbench_leaderboard_v1":
-                raise ValueError("checkpoint_execution_profile_invalid")
-            if not claimed:
-                raise ValueError("checkpoint_execution_profile_mismatch")
-            from environments.org_env.programbench import (
-                PROFILE_STATE_SCHEMA_VERSION,
-                programbench_profile_active,
-                validate_programbench_profile_state_for_step,
-            )
-
-            raw_state = world.__dict__.get("programbench_profile_state")
-            if (
-                not isinstance(raw_state, dict)
-                or raw_state.get("schema_version")
-                != PROFILE_STATE_SCHEMA_VERSION
-                or not programbench_profile_active(world)
-            ):
-                # Validate the detached candidate before replacing any session
-                # object, clock, resource ledger, LLM binding or frame buffer.
-                raise ValueError("programbench_legacy_checkpoint_requires_fresh_t0")
-            validate_programbench_profile_state_for_step(world)
-            candidate_params = (
-                getattr(getattr(world, "scenario", None), "params", {}) or {}
-            )
-            tick = getattr(world, "world_tick", None)
-            boundary = raw_state.get("phase_boundary_tick")
-            horizon = raw_state.get("run_horizon_ticks")
-            attachment_tick = raw_state.get("attachment_tick")
-            if (
-                candidate_params.get("execution_profile") != expected_profile
-                or world.__dict__.get("execution_profile") != expected_profile
-                or horizon != 336
-                or attachment_tick != 0
-                or isinstance(tick, bool)
-                or not isinstance(tick, int)
-                or not 0 <= tick <= horizon
-                or metadata.get("tick") != tick
-                or raw_state.get("phase") not in {"explore", "develop"}
-                or isinstance(boundary, bool)
-                or not isinstance(boundary, int)
-                or not 0 <= boundary <= tick
-            ):
-                raise ValueError("programbench_checkpoint_state_invalid")
-            target = (
-                expected_target_tick
-                if expected_target_tick is not None
-                else metadata.get("target_tick")
-            )
-            if target != horizon or metadata.get("target_tick") != horizon:
-                raise ValueError("checkpoint_target_tick_mismatch")
-            if remaining_ticks is not None:
-                if (
-                    isinstance(remaining_ticks, bool)
-                    or not isinstance(remaining_ticks, int)
-                    or remaining_ticks < 0
-                    or tick + remaining_ticks != horizon
-                ):
-                    raise ValueError("checkpoint_remaining_ticks_mismatch")
         world, info = load_world_checkpoint(
             path,
             load_llm=want_llm,
             expected_target_tick=expected_target_tick,
-            # Native inspector sessions historically allow loading a world
-            # produced with a different constructor seed and then adopt the
-            # checkpoint seed below.  ProgramBench continuations are a formal
-            # same-run identity and must match the requested seed exactly.
-            expected_seed=(
-                self.seed
-                if expected_profile == "programbench_leaderboard_v1"
-                else None
-            ),
-            world_pre_attach_validator=validate_profile_before_attach,
         )
         from environments.org_env.product.substrates.eval_assets import (
             validate_formal_oss_world,

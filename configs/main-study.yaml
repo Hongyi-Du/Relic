@@ -15,6 +15,22 @@ sprint_ticks: 168
 work_rhythm_enabled: false
 approval_mode: semi_auto
 
+# The official reproduction entrypoint expands this matrix into 30 paired
+# B0--B3 source batches and delegates each batch to the hci baseline runner.
+# These ceilings are copied verbatim from the source-runner regular-batch
+# guidance; they are not a Relic-local per-cell scheduler policy.
+source_runner:
+  schema_version: relic-source-runner-v1
+  baseline_runner: tools/run_org_baselines.py
+  execution_profile: native
+  mechanism_ablations: [work_rhythm]
+  resource_ceilings:
+    max_llm_calls: 6000
+    max_llm_requested_tokens: 20000000
+    max_llm_prompt_characters: 100000000
+    max_primary_actions: 2688
+    max_ticks: 336
+
 resource_policy:
   matched_budget: false
   measure_realized_provider_tokens: true

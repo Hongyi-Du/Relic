@@ -25,8 +25,40 @@ design, model and workload identities, seeds, metrics, denominators, aggregate
 results, and scientific claims. The Relic two-repository release handoff is
 authoritative for repository scope and release acceptance.
 
-Code imported from the development repository is reviewed and adapted for this
-release. Historical raw runs, private model transcripts, private memories,
+The controlled source closure for the official paired reproduction path is:
+
+- `tools/run_org_baselines.py`;
+- `tools/org_inspector_replay.py`;
+- `environments/org_env/runtime_adapter/live.py`;
+- `environments/org_env/runtime_adapter/snapshot.py`; and
+- `environments/org_env/runtime_adapter/replay_delta.py`.
+
+Those files retain the source runner's four-arm fresh-process isolation,
+paired-seed ordering, identity-bound checkpoint resume, LLM blackout/provider
+circuit gates, and formal run-record gate. `relic.source_runner` is only a
+thin 30-batch expansion of the paper's 120 cells; it delegates each batch back
+to `tools/run_org_baselines.py` and does not use the legacy `cell_worker` as a
+replacement executor.
+
+The release adaptations are deliberately narrow: source imports of
+`society_core` point to the equivalent public `relic.research` utilities; the
+source B3 identity is `b3_full_sociogenesis` (with the earlier
+`b3_relic_organization` accepted only for reading old local artefacts); the
+excluded ProgramBench profile fails closed; and the target evaluator's
+`RELIC_EVALUATOR_*` names are bridged from the source runner's frozen
+`ORG_EVALUATOR_*` binding. The documented `OPENAI_*` and Relic default-header
+variables are temporarily bridged into the source runner's allow-listed
+`ORG_LLM_*` child environment without being serialized. The HCI-only persona graph builder is optional: the
+source snapshot's existing graph representation is used when that frontend
+module is absent. Because the release excludes the source synthetic default,
+live/mock sessions bind the public frozen `mini_blobstore_v1` OSS pack instead.
+
+Formal evaluator bindings remain an author-asset dependency. Relic does not
+invent a container image digest, evaluator environment hash, or qualification
+hash; `run-main` requires an explicit published per-pack mapping before any
+formal source child or provider client can start.
+
+Historical raw runs, private model transcripts, private memories,
 developer-machine paths, credentials, ProgramBench reproduction assets,
 NatureEnv, and obsolete SocioGenesis components are outside the release scope.
 
