@@ -2,17 +2,16 @@
 
 Linux is the canonical Relic runtime. Windows users run the same Linux runtime
 through WSL2; the PowerShell files are launchers only and never execute Relic
-core natively. The repository Docker / Compose path is still pending release
-assets; when supplied on Windows, Docker Desktop must use its WSL2 backend.
+core natively. Docker Desktop on Windows must use its WSL2 backend.
 
 | Platform | Support level | Recommended path |
 |---|---|---|
 | Linux | Full | Native Bash / Python |
 | Windows 11 + WSL2 | Full | WSL2 + Bash / Python |
 | Windows-native PowerShell | Launcher only | PowerShell invokes WSL2 |
-| Docker on Linux | Pending release acceptance | Docker / Compose after image delivery |
-| Docker Desktop on Windows | Pending release acceptance | WSL2 backend after image delivery |
-| macOS | Not yet validated | Docker path planned |
+| Docker on Linux | Core release path | Docker / Compose for check, mock smoke, dry-run planning, and Inspector |
+| Docker Desktop on Windows | Core release path | WSL2 backend; same container scope as Linux |
+| macOS | Not yet validated | Docker may work but is not a claimed release platform |
 
 The repository should live in the WSL Linux filesystem, for example
 `~/relic`, rather than under `/mnt/c`. This avoids permission, symlink, line
@@ -46,6 +45,72 @@ cannot run until a reviewed Anthropic adapter is added.
 The Apptainer backend additionally requires an active Slurm allocation
 (`SLURM_JOB_ID` plus `srun`) and the configured registry digest to already be
 present in `apptainer cache list -v`. Environment checks never pull images.
+
+## Docker / Compose environment
+
+The release image uses:
+
+- Python 3.12 on Debian 12 (Bookworm) slim;
+- `uv` 0.12.15 and the frozen `uv.lock` runtime dependency set;
+- Debian's `git` and CA certificate packages;
+- no Node runtime, because the Inspector ships prebuilt static assets;
+- no GPU requirement.
+
+The only currently supported model provider is OpenAI. The paper's Claude arm
+remains configured for design fidelity but is not executable without a reviewed
+Anthropic adapter.
+
+The image uses a non-root account. Compose further selects the host UID/GID,
+makes the root filesystem read-only, drops Linux capabilities, enables
+`no-new-privileges`, supplies a bounded temporary filesystem, and mounts only
+these repository-local paths. Provider/evaluator variables are passed only to
+the research service; the Inspector service does not receive them.
+
+| Host path | Container path | Access | Purpose |
+|---|---|---|---|
+| `outputs/` | `/data/outputs` | read/write | manifests, cells, receipts, and exports |
+| `cache/` | `/data/cache` | read/write | disposable user cache |
+| `traces/` | `/data/traces` | read-only | explicit Inspector input |
+
+Prepare them before the first run, then use the canonical CLI through Compose:
+
+```bash
+cp .env.example .env
+mkdir -p outputs cache traces
+docker compose build relic
+docker compose run --rm relic check-env --scope core
+docker compose run --rm relic smoke --mode mock
+docker compose run --rm relic run-main \
+  --model gpt-5.6-terra \
+  --output-root /data/outputs/main-study \
+  --manifest /data/outputs/main-study/run_manifest.json \
+  --max-parallel 1 --dry-run
+```
+
+Set `RELIC_UID` and `RELIC_GID` in `.env` if the host values printed by
+`id -u` and `id -g` are not 1000. API keys are injected only at runtime via the
+environment. They are not needed for any command above and are never copied
+into the image.
+
+Formal execution is a separate, unresolved release boundary. The author has
+not supplied the immutable evaluator image, and the default controller image
+does not contain a nested container runtime or mount the privileged host Docker
+socket. Consequently Docker formal checks, real cells, resume, and evaluation
+must fail closed; mock smoke and dry-run output are not evidence of paper
+reproduction. Do not add the Docker socket ad hoc and call the result supported:
+the evaluator workspace mounts and isolation policy require a separately
+reviewed integration and end-to-end acceptance test.
+
+For Inspector use, place an author-supplied sanitized `relic-trace-v1` JSON file
+in `traces/`, set `RELIC_TRACE_FILE` in `.env`, and run:
+
+```bash
+docker compose --profile inspector up relic-inspector
+```
+
+The published host port is loopback-only. The trace directory is read-only,
+arbitrary DNS Host headers remain rejected, and no selected paper trace is
+bundled in the current author assets.
 
 ## Environment variables
 
@@ -102,7 +167,11 @@ Budget approximately 16 GiB of visible RAM per active cell:
 
 On Windows, check both `.wslconfig` and Docker Desktop limits before selecting
 four or more workers. The scheduler defaults to one and warns when requested
-parallelism exceeds the memory-based recommendation.
+parallelism exceeds the memory-based recommendation. The controller currently
+runs multiple cell subprocesses inside one container rather than one Compose
+container per cell, but the same conservative 16 GiB per active cell budget
+applies. Docker examples default to one worker; do not scale the Compose
+service as a substitute for the canonical scheduler.
 
 ## Windows / WSL2
 

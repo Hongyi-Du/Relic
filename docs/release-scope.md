@@ -9,7 +9,7 @@ release branch contains:
 - the paper's canonical transfer experiment;
 - machine-readable aggregate values reported by the paper;
 - the public Inspector and strict `relic-trace-v1` validation contract;
-- validated native Linux and WSL2 setup paths; and
+- validated native Linux, WSL2, and core Docker / Compose setup paths; and
 - release-focused tests.
 
 The handoff defines the following planned long-lived extension branches with
@@ -21,8 +21,10 @@ deliberately narrow roles:
 
 Only `main` is present in the current local/remote ref snapshot. The extension
 branches are therefore release topology still to be published, not deliverables
-claimed by this checkout. Likewise, root Docker / Compose assets and the formal
-evaluator image remain pending release inputs.
+claimed by this checkout. Root Docker / Compose assets cover core environment
+checks, mock smoke, dry-run planning, mounted outputs, and the Inspector. The
+formal evaluator image and reviewed nested evaluator integration remain pending
+release inputs, so Docker formal execution continues to fail closed.
 
 ProgramBench may be named only as a paper-reported aggregate result. Its tasks,
 adapter, harness, scripts, and reproduction artifacts are not included in this

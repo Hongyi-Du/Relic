@@ -32,10 +32,63 @@ The formal smoke performs a network-disabled container workspace roundtrip but
 does not call a model or claim that a paper experiment succeeded.
 
 The current Windows runtime path is WSL2. Native Windows experiment execution is
-not maintained, and the repository-level Docker / Compose release path remains
-pending the author-supplied evaluator image and container release assets. See
+not maintained. Docker / Compose supports the release core, mock smoke,
+main-study dry-run planning, mounted outputs, and the Inspector. Formal cells
+and evaluation remain fail-closed until the authors publish the digest-pinned
+evaluator image and its reviewed controller-container integration. See
 [docs/environment.md](docs/environment.md) for the support matrix, `.env`
-variables, WSL launchers, and memory guidance.
+variables, WSL launchers, container boundary, and memory guidance.
+
+## Docker quickstart
+
+The image runs the same `relic` Python CLI as the native path. It does not bake
+in credentials, local configuration, outputs, caches, historical results, or
+selected traces. Create the bind-mount directories as your host user before the
+first Compose run so output ownership is predictable:
+
+```bash
+cp .env.example .env
+mkdir -p outputs cache traces
+docker compose build relic
+docker compose run --rm relic check-env --scope core
+docker compose run --rm relic smoke --mode mock
+```
+
+If your Linux or WSL user is not UID/GID 1000, set `RELIC_UID` and `RELIC_GID`
+in `.env` to the values printed by `id -u` and `id -g`. The container uses a
+read-only root filesystem and writes only to the mounted `outputs/` and
+`cache/` directories.
+
+Generate the canonical single-model 120-cell manifest without provider or
+evaluator calls:
+
+```bash
+docker compose run --rm relic run-main \
+  --model gpt-5.6-terra \
+  --output-root /data/outputs/main-study \
+  --manifest /data/outputs/main-study/run_manifest.json \
+  --max-parallel 1 \
+  --dry-run
+```
+
+The formal CLI remains available as the canonical entrypoint, but a real
+`run-cell`, resumed run, or `evaluate` must not be presented as working in this
+image yet. The required evaluator image has not been supplied, and the default
+Compose services intentionally do not mount the host Docker socket. Formal
+checks therefore fail before any provider request.
+
+To use the Inspector, place an author-supplied, sanitized `relic-trace-v1` file
+under `traces/`, set `RELIC_TRACE_FILE` in `.env` to its filename, then run:
+
+```bash
+docker compose --profile inspector up relic-inspector
+```
+
+Open `http://127.0.0.1:8765`. Compose publishes only the host loopback address;
+`--allow-remote` acknowledges the necessary container-internal `0.0.0.0` bind.
+The server still rejects arbitrary DNS Host headers. No selected paper trace is
+bundled, and the count-only
+`relic-public-trace-v1` cell sidecar is not valid Inspector input.
 
 ## Plan or run the canonical main study
 
@@ -211,7 +264,8 @@ event-level organization snapshot, Object Inspector, and State Diff, and never
 opens checkpoints, evaluator directories, model messages, or private agent
 memory. Native and WSL launches bind loopback by default; non-loopback binding
 requires the explicit `--allow-remote` acknowledgement because the server has
-no authentication.
+no authentication. Remote mode accepts literal IP Host headers and rejects
+arbitrary DNS names to retain the DNS-rebinding boundary.
 
 The current author-asset bundle does not yet include sanitized selected paper
 traces. No historical case is reconstructed or invented to fill that gap. The

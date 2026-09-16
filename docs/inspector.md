@@ -114,5 +114,7 @@ Native and WSL launches bind `127.0.0.1` by default. The fixed HTTP surface is
 `/`, `/index.html`, `/app.css`, `/app.js`, `/api/health`, and `/api/trace`, with
 no CORS allowance, loopback Host-header validation, and restrictive security
 headers. Because there is no authentication, a non-loopback bind is rejected
-unless `--allow-remote` is supplied explicitly; that opt-in also permits remote
-Host headers.
+unless `--allow-remote` is supplied explicitly. Remote mode accepts literal IP
+Host headers while continuing to reject arbitrary DNS names, including a
+rebinding domain. Put an authenticated reverse proxy in front of the Inspector
+if a named remote host is required.

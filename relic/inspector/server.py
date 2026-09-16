@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import sys
 import threading
@@ -124,7 +125,9 @@ class InspectorRequestHandler(BaseHTTPRequestHandler):
         self._method_not_allowed()
 
     def _dispatch(self, *, body: bool) -> None:
-        if not self.server.allow_remote and not _is_loopback_host_header(self.headers.get("Host")):
+        if not _is_allowed_host_header(
+            self.headers.get("Host"), allow_remote=self.server.allow_remote
+        ):
             self._send_json(
                 HTTPStatus.BAD_REQUEST,
                 {"status": "invalid_host"},
@@ -237,7 +240,7 @@ def _validate_host(host: str, *, allow_remote: bool) -> str:
     return selected
 
 
-def _is_loopback_host_header(value: str | None) -> bool:
+def _is_allowed_host_header(value: str | None, *, allow_remote: bool) -> bool:
     if not value:
         return False
     try:
@@ -245,14 +248,24 @@ def _is_loopback_host_header(value: str | None) -> bool:
         _ = parsed.port
     except ValueError:
         return False
-    return (
-        parsed.hostname in {"127.0.0.1", "localhost"}
-        and parsed.username is None
-        and parsed.password is None
-        and not parsed.path
-        and not parsed.query
-        and not parsed.fragment
-    )
+    if (
+        parsed.username is not None
+        or parsed.password is not None
+        or parsed.path
+        or parsed.query
+        or parsed.fragment
+    ):
+        return False
+    hostname = parsed.hostname
+    if hostname in {"127.0.0.1", "::1", "localhost"}:
+        return True
+    if not allow_remote or hostname is None:
+        return False
+    try:
+        ipaddress.ip_address(hostname)
+    except ValueError:
+        return False
+    return True
 
 
 def create_inspector_server(

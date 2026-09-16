@@ -202,7 +202,15 @@ def test_inspector_validates_before_binding_and_requires_remote_opt_in(tmp_path:
         port=0,
         allow_remote=True,
     )
-    server.server_close()
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        assert _request(server, "/api/health", headers={"Host": "rebind.example"})[0] == 400
+        assert _request(server, "/api/health", headers={"Host": "192.0.2.10:8765"})[0] == 200
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
 
 
 @pytest.mark.release
