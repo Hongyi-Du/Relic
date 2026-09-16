@@ -15,11 +15,25 @@ Run from a Linux/WSL filesystem, not `/mnt/c`:
 ```bash
 uv sync --dev
 uv run relic verify-benchmark
+uv run relic check-env --scope core
+uv run relic smoke --mode mock
 uv run pytest -q
 ```
 
+`check-env` and mock smoke never contact a model provider. Formal checks are
+model-specific and fail closed while the evaluator image is unavailable:
+
+```bash
+uv run relic check-env --scope formal --model gpt-5.6-terra
+uv run relic smoke --mode formal
+```
+
+The formal smoke performs a network-disabled container workspace roundtrip but
+does not call a model or claim that a paper experiment succeeded.
+
 The Windows runtime path is WSL2/Docker. Native Windows experiment execution is
-not maintained.
+not maintained. See [docs/environment.md](docs/environment.md) for the support
+matrix, `.env` variables, WSL launchers, and memory guidance.
 
 ## Plan or run the canonical main study
 

@@ -61,6 +61,26 @@ def _build_paper_results(args: argparse.Namespace) -> int:
     return 0
 
 
+def _check_environment(args: argparse.Namespace) -> int:
+    from relic.release_checks import check_environment, report_exit_code
+
+    report = check_environment(
+        scope=args.scope,
+        model=args.model,
+        requested_parallelism=args.max_parallel,
+    )
+    print(json.dumps(report, indent=2, ensure_ascii=False))
+    return report_exit_code(report)
+
+
+def _smoke(args: argparse.Namespace) -> int:
+    from relic.release_checks import report_exit_code, smoke
+
+    report = smoke(mode=args.mode, model=args.model)
+    print(json.dumps(report, indent=2, ensure_ascii=False))
+    return report_exit_code(report)
+
+
 def _run_cell(args: argparse.Namespace) -> int:
     from relic.cell_spec import compile_cell_spec
     from relic.cell_worker import CellWorkerError, run_cell
@@ -173,6 +193,23 @@ def build_parser() -> argparse.ArgumentParser:
     results.add_argument("--source", type=Path, default=None)
     results.add_argument("--output-directory", type=Path, default=None)
     results.set_defaults(func=_build_paper_results)
+
+    environment = subparsers.add_parser(
+        "check-env", help="check core or formal release prerequisites without model calls"
+    )
+    environment.add_argument("--scope", default="core", help="core or formal")
+    environment.add_argument("--model", default=None, help="limit formal checks to one model")
+    environment.add_argument("--max-parallel", type=int, default=None)
+    environment.set_defaults(func=_check_environment)
+
+    smoke_parser = subparsers.add_parser(
+        "smoke", help="run a bounded mock or formal no-provider smoke check"
+    )
+    smoke_parser.add_argument("--mode", default="mock", help="mock or formal")
+    smoke_parser.add_argument(
+        "--model", default=None, help="formal mode defaults to gpt-5.6-terra"
+    )
+    smoke_parser.set_defaults(func=_smoke)
 
     cell = subparsers.add_parser(
         "run-cell", help="run one canonical main-study cell with checkpointing"
