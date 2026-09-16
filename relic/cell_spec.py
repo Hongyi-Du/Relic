@@ -42,6 +42,7 @@ _STUDY_KEYS = frozenset(
         "sprint_ticks",
         "work_rhythm_enabled",
         "approval_mode",
+        "source_runner",
         "resource_policy",
         "condition_invariants",
         "formal_evaluator_policy",

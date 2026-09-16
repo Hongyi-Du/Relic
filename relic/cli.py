@@ -9,38 +9,29 @@ import sys
 from pathlib import Path
 
 from relic.benchmark import load_benchmark_manifest, verify_benchmark
-from relic.manifest import build_main_manifest, write_manifest
 from relic.paper_results import write_results
 from relic.paths import default_output_root
 
 
 def _plan_main(args: argparse.Namespace) -> int:
-    payload = build_main_manifest(
-        model=args.model,
-        output_root=args.output_root,
-        max_parallel=args.max_parallel,
-    )
-    destination = args.manifest or Path(payload["output_root"]) / "run_manifest.json"
-    write_manifest(payload, destination)
-    advice = payload["resource_advice"]
-    summary = {
-        "model": payload["model"]["paper_label"],
-        "workloads": len(payload["workloads"]),
-        "seeds": payload["seeds"],
-        "arms": list(payload["arms"]),
-        "total_cells": payload["total_cells"],
-        "max_parallel": payload["max_parallel"],
-        "visible_memory_gib": advice["visible_memory_gib"],
-        "recommended_max_parallel": advice["recommended_max_parallel"],
-        "manifest": str(destination.resolve()),
-    }
-    print(json.dumps(summary, indent=2, ensure_ascii=False))
-    if advice["warning"]:
-        print(
-            "WARNING: requested concurrency exceeds the conservative 16 GiB-per-cell "
-            "memory policy. On WSL2, also check the WSL and Docker memory limits."
+    from relic.source_runner import SourceMainRunnerError, run_source_main
+
+    try:
+        result = run_source_main(
+            model=args.model,
+            output_root=args.output_root,
+            manifest_path=args.manifest,
+            max_parallel=args.max_parallel,
+            dry_run=True,
         )
-    print("Dry plan only: no provider was contacted and no experiment was started.")
+    except SourceMainRunnerError as exc:
+        print(json.dumps({"status": "failed", "error": exc.code}), file=sys.stderr)
+        return 2
+    print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
+    print(
+        "Source-backed dry plan only: no provider or condition subprocess was started. "
+        "Source case plans live under source-dry-run/."
+    )
     return 0
 
 
@@ -103,10 +94,10 @@ def _run_cell(args: argparse.Namespace) -> int:
 
 
 def _run_main(args: argparse.Namespace) -> int:
-    from relic.main_runner import MainRunnerError, run_main
+    from relic.source_runner import SourceMainRunnerError, run_source_main
 
     try:
-        result = run_main(
+        result = run_source_main(
             model=args.model,
             output_root=args.output_root,
             manifest_path=args.manifest,
@@ -114,23 +105,24 @@ def _run_main(args: argparse.Namespace) -> int:
             dry_run=args.dry_run,
             resume=args.resume,
             retry_failed=args.retry_failed,
-            cell_id=args.cell_id,
+            evaluator_bindings_path=args.evaluator_bindings,
+            batch_ids=args.batch,
+            workloads=args.workload,
+            seeds=args.seed,
         )
-    except MainRunnerError as exc:
+    except SourceMainRunnerError as exc:
         print(json.dumps({"status": "failed", "error": exc.code}), file=sys.stderr)
         return 2
     except KeyboardInterrupt:
         print(json.dumps({"status": "interrupted", "error": "scheduler_interrupted"}), file=sys.stderr)
         return 130
     print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
-    if result.max_parallel > result.recommended_max_parallel:
-        print(
-            "WARNING: requested concurrency exceeds the conservative 16 GiB-per-cell "
-            "memory policy. On WSL2, also check the WSL and Docker memory limits."
-        )
     if args.dry_run:
-        print("Dry run only: no provider, evaluator, or cell subprocess was started.")
-    return 0
+        print(
+            "Dry run only: no provider or condition subprocess was started; "
+            "source case plans were materialized under source-dry-run/."
+        )
+    return 0 if result.failed_batches == 0 else 2
 
 
 def _evaluate_cell(args: argparse.Namespace) -> int:
@@ -271,7 +263,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="relic")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    plan = subparsers.add_parser("plan-main", help="write a 120-cell single-model dry-run manifest")
+    plan = subparsers.add_parser(
+        "plan-main", help="materialize the source-backed 30-batch / 120-cell dry plan"
+    )
     plan.add_argument("--model", required=True, help="canonical model config name")
     plan.add_argument("--output-root", type=Path, default=None)
     plan.add_argument("--manifest", type=Path, default=None)
@@ -308,7 +302,7 @@ def build_parser() -> argparse.ArgumentParser:
     smoke_parser.set_defaults(func=_smoke)
 
     cell = subparsers.add_parser(
-        "run-cell", help="run one canonical main-study cell with checkpointing"
+        "run-cell", help="legacy single-cell compatibility runner; not the paired paper executor"
     )
     cell.add_argument("--model", required=True)
     cell.add_argument("--workload", required=True, help="W01 through W10")
@@ -323,7 +317,7 @@ def build_parser() -> argparse.ArgumentParser:
     main_run = subparsers.add_parser(
         "run-main",
         aliases=["run-main-120"],
-        help="run or resume the canonical 120-cell single-model study",
+        help="run or resume the source-backed paired 120-cell single-model study",
     )
     main_run.add_argument("--model", default=None, help="required for a new run")
     main_run.add_argument("--output-root", type=Path, default=None)
@@ -332,7 +326,34 @@ def build_parser() -> argparse.ArgumentParser:
     main_run.add_argument("--dry-run", action="store_true")
     main_run.add_argument("--resume", action="store_true")
     main_run.add_argument("--retry-failed", action="store_true")
-    main_run.add_argument("--cell-id", default=None)
+    main_run.add_argument(
+        "--evaluator-bindings",
+        type=Path,
+        default=None,
+        help=(
+            "JSON mapping of each formal pack to its digest-pinned evaluator binding; "
+            "required before any non-dry-run source batch starts"
+        ),
+    )
+    main_run.add_argument(
+        "--batch",
+        action="append",
+        default=[],
+        help="narrow safely to one paired batch id, e.g. w01__seed1401 (repeatable)",
+    )
+    main_run.add_argument(
+        "--workload",
+        action="append",
+        default=[],
+        help="narrow safely to one canonical workload id, e.g. w01 (repeatable)",
+    )
+    main_run.add_argument(
+        "--seed",
+        action="append",
+        type=int,
+        default=[],
+        help="narrow safely to one canonical seed (repeatable)",
+    )
     main_run.set_defaults(func=_run_main)
 
     status = subparsers.add_parser(

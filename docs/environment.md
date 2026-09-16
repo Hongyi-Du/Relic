@@ -84,7 +84,7 @@ docker compose run --rm relic smoke --mode mock
 docker compose run --rm relic run-main \
   --model gpt-5.6-terra \
   --output-root /data/outputs/main-study \
-  --manifest /data/outputs/main-study/run_manifest.json \
+  --manifest /data/outputs/main-study/source_main_manifest.json \
   --max-parallel 1 --dry-run
 ```
 
@@ -119,6 +119,28 @@ must fail closed; mock smoke and dry-run output are not evidence of paper
 reproduction. Do not add the Docker socket ad hoc and call the result supported:
 the evaluator workspace mounts and isolation policy require a separately
 reviewed integration and end-to-end acceptance test.
+
+When the authors publish the evaluator material, pass it to the source-backed
+main runner as a JSON file rather than ambient evaluator variables. It maps each
+frozen pack ID to exactly these non-secret fields:
+
+```json
+{
+  "<pack-id>": {
+    "backend": "docker",
+    "container_image": "<registry>@sha256:<64-hex-digest>",
+    "container_platform": "linux/amd64",
+    "environment_hash": "<64-hex-digest>",
+    "qualification_plan_hash": "<64-hex-digest>"
+  }
+}
+```
+
+Use `relic run-main --resume --evaluator-bindings <file>` with the dry-plan
+manifest. A missing pack mapping, non-digest image, wrong platform, or malformed
+hash is rejected before the source runner starts a child process or contacts a
+provider. The angle-bracket values above are schema markers, not substitute
+runtime values.
 
 For Inspector use, place an author-supplied sanitized `relic-trace-v1` JSON file
 in `traces/`, set `RELIC_TRACE_FILE` in `.env`, and run:
@@ -174,11 +196,12 @@ overridden from `.env`.
 | `APPTAINER_CACHEDIR` | Apptainer only | runtime default | Optional Apptainer cache path |
 | `APPTAINER_TMPDIR` | Apptainer only | runtime default | Optional Apptainer temporary path |
 
-Internal `ORG_*` identity variables are set per cell by the canonical worker.
-Users must not set them to redefine an experiment. `ORG_LLM_API_KEY` and
-`ORG_LLM_BASE_URL` are advanced aliases for the documented OpenAI-compatible
-credential and endpoint variables. The frozen model YAML, rather than an
-environment override, fixes the formal worker's wire API and JSON transport.
+Internal `ORG_*` identity variables are set per condition by the source baseline
+runner. Users must not set them to redefine an experiment. `ORG_LLM_API_KEY`
+and `ORG_LLM_BASE_URL` are advanced aliases for the documented
+OpenAI-compatible credential and endpoint variables. The frozen model YAML,
+rather than an environment override, fixes the formal source runner's wire API
+and JSON transport.
 
 `check-env` validates the packaged Inspector assets. Inspector reads only a
 strict `relic-trace-v1` file supplied with `--trace`; it never reads private
@@ -187,28 +210,19 @@ author-asset dependency and is not fabricated from aggregate results.
 
 ## Outputs, cache, and concurrency
 
-Outputs default to `outputs/` and are ignored by Git. Scheduler logs are private
-local artifacts under `<output-root>/private/scheduler/`; cell checkpoints and
-evaluator evidence stay in each cell's `private/` directory. Do not resume or
-evaluate checkpoint pickle files obtained from an untrusted source.
+Outputs default to `outputs/` and are ignored by Git. The official
+`source_main_manifest.json` records 30 serial pack/seed source batches; each
+actual batch writes its own `batches/<workload>__seed<seed>/manifest.json` and
+per-condition plans/checkpoints. `source-dry-run/` is planning evidence only,
+kept separate so an unavailable evaluator binding cannot contaminate a later
+formal resume. Do not resume checkpoint pickle files obtained from an untrusted
+source.
 
-Budget approximately 16 GiB of visible RAM per active cell:
-
-| Visible RAM | Conservative maximum |
-|---:|---:|
-| below 32 GiB | 1 |
-| 32–63 GiB | 2 |
-| 64–99 GiB | 4 |
-| 100+ GiB | up to 8 |
-| 128 GiB | recommended for 8 |
-
-On Windows, check both `.wslconfig` and Docker Desktop limits before selecting
-four or more workers. The scheduler defaults to one and warns when requested
-parallelism exceeds the memory-based recommendation. The controller currently
-runs multiple cell subprocesses inside one container rather than one Compose
-container per cell, but the same conservative 16 GiB per active cell budget
-applies. Docker examples default to one worker; do not scale the Compose
-service as a substitute for the canonical scheduler.
+`--max-parallel` means at most that many fresh B0--B3 condition processes
+inside one source batch; it is not a cross-batch concurrency setting. Start at
+one and use the source repository's regular-batch guidance plus the available
+WSL/Docker memory limits when raising it. Do not scale the Compose service as a
+substitute for this paired runner.
 
 ## Windows / WSL2
 

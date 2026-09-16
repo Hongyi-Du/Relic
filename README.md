@@ -61,23 +61,22 @@ in `.env` to the values printed by `id -u` and `id -g`. The container uses a
 read-only root filesystem and writes only to the mounted `outputs/` and
 `cache/` directories.
 
-Generate the canonical single-model 120-cell manifest without provider or
-evaluator calls:
+Generate the source-backed paired 120-cell dry plan without provider or
+condition-process calls:
 
 ```bash
 docker compose run --rm relic run-main \
   --model gpt-5.6-terra \
   --output-root /data/outputs/main-study \
-  --manifest /data/outputs/main-study/run_manifest.json \
+  --manifest /data/outputs/main-study/source_main_manifest.json \
   --max-parallel 1 \
   --dry-run
 ```
 
-The formal CLI remains available as the canonical entrypoint, but a real
-`run-cell`, resumed run, or `evaluate` must not be presented as working in this
-image yet. The required evaluator image has not been supplied, and the default
-Compose services intentionally do not mount the host Docker socket. Formal
-checks therefore fail before any provider request.
+`run-main` is the canonical entrypoint. It delegates every pack/seed group to
+the hci source baseline runner, which isolates its four B0--B3 conditions in
+fresh processes. The required evaluator image and qualification hashes have not
+been supplied, so a real source batch fails closed before any provider request.
 
 To use the Inspector, place an author-supplied, sanitized `relic-trace-v1` file
 under `traces/`, set `RELIC_TRACE_FILE` in `.env` to its filename, then run:
@@ -94,89 +93,62 @@ bundled, and the count-only
 
 ## Plan or run the canonical main study
 
-Use the scheduler's dry-run mode to freeze the 120-cell plan for one model
-without contacting a provider, evaluator, or cell subprocess:
+`run-main` is source-backed: it expands the paper design into 30 paired source
+batches (10 packs x 3 seeds), and each batch invokes
+`tools/run_org_baselines.py` for its four B0--B3 conditions. The source runner,
+not the old Relic per-cell compatibility worker, owns fresh-process isolation,
+deterministic paired ordering, checkpoints, resume identity, LLM blackout
+gates, and formal-record validation. The frozen source batch also carries the
+paper's `work_rhythm` ablation.
+
+Use dry-run mode to write the outer 120-cell plan and all 30 source case plans
+without contacting a provider or starting a condition subprocess:
 
 ```bash
 uv run relic run-main \
   --model gpt-5.6-terra \
   --output-root outputs/main-study \
-  --manifest outputs/main-study/run_manifest.json \
+  --manifest outputs/main-study/source_main_manifest.json \
   --max-parallel 1 \
   --dry-run
 ```
 
-After reviewing that manifest, start or continue the plan with:
+The outer manifest is `source_main_manifest.json`; source dry-run artefacts are
+under `source-dry-run/`, deliberately separate from eventual real batches.
+That separation lets a later formal run bind the as-yet-unpublished evaluator
+identity without changing a source case plan that has already been used for a
+paid run.
+
+Before a real run, obtain the authors' per-pack bindings in a JSON file. Each
+entry must contain `backend`, `container_image` (an immutable
+`...@sha256:<64-hex>` reference), `container_platform` (`linux/amd64`),
+`environment_hash`, and `qualification_plan_hash`. The release intentionally
+does not provide placeholder values. Then start or continue the plan with:
 
 ```bash
 uv run relic run-main \
-  --manifest outputs/main-study/run_manifest.json \
-  --resume --max-parallel 1
+  --manifest outputs/main-study/source_main_manifest.json \
+  --resume --max-parallel 1 \
+  --evaluator-bindings author-published-evaluator-bindings.json
 ```
 
-Each cell runs in a separate subprocess. The scheduler never changes the
-parent process's `ORG_*` identity environment, skips completed cells, writes
-its manifest atomically, and keeps subprocess logs under
-`outputs/main-study/private/scheduler/`. To retry only cells classified as
-model, evaluator, or infrastructure failures, add `--retry-failed` to the
-resume command. `--cell-id` can safely narrow a run or retry to one frozen
-cell. Interrupting the scheduler stops its child process groups and records an
-interrupted state for a later `--resume`.
+`--max-parallel` is passed only to the four condition processes inside each
+serial source batch; it is not a cross-batch scheduler. To run a safe bounded
+sample, retain the paired group and narrow by `--batch w01__seed1401`,
+`--workload w01`, or `--seed 1401` rather than selecting one arm. A missing or
+incomplete evaluator binding fails before a source child or provider client is
+created. `--retry-failed --resume` re-enters the source runner's own
+identity-checked case resume path.
 
-Concurrency defaults to one; budget about 16 GiB for each active cell:
+## Legacy single-cell compatibility command
 
-| Host memory | Conservative maximum parallel cells |
-|---:|---:|
-| 16 GiB | 1 |
-| 32 GiB | 2 |
-| 64 GiB | 4 |
-| 100+ GiB | up to 8 |
-| 128 GiB | recommended for 8 |
+`relic run-cell`, `relic.main_runner`, and `relic.cell_worker` remain only for
+backwards-compatible local artefacts and their historical tests. They are not
+the official paper reproduction executor, and their output must not be mixed
+with the paired source-runner matrix above.
 
-For Windows/WSL2 reproduction, budget approximately 16 GB of RAM per active
-parallel cell/container. Use 1 parallel worker on 16 GB, 2 on 32 GB, 4 on 64
-GB, and 8 only on machines with more than 100 GB of RAM; 128 GB is recommended
-for 8-way parallel execution. Check both `.wslconfig` and Docker Desktop memory
-limits, and reduce parallelism when the host is also running memory-heavy tools.
-The current controller runs several cell subprocesses inside one container;
-scaling the Compose service is not a substitute for the canonical scheduler.
-
-Windows / WSL2 复现时建议按照每个活跃并发 cell / container 约 16 GB
-内存预算。16 GB 建议 1 并发，32 GB 建议 2 并发，64 GB 建议 4 并发；
-8 并发及以上要求机器拥有 100 GB 以上内存，推荐 128 GB。
-
-Formal execution can be costly, so always inspect the dry-run manifest first.
-
-## Run one cell
-
-Formal execution fails closed unless the evaluator is an untrusted,
-network-disabled Docker or Apptainer image pinned by immutable digest. Configure
-the actual environment names consumed by the evaluator:
-
-```bash
-export OPENAI_API_KEY='...'
-export RELIC_EVALUATOR_BACKEND='docker'
-export RELIC_EVALUATOR_CONTAINER_IMAGE='registry.example/relic-evaluator@sha256:<64-hex-digest>'
-export RELIC_EVALUATOR_CONTAINER_PLATFORM='linux/amd64'
-
-uv run relic run-cell \
-  --model gpt-5.6-terra \
-  --workload W01 \
-  --arm B3 \
-  --seed 1401 \
-  --output-root outputs
-```
-
-The evaluator is qualified before any model call. A canonical cell always uses
-336 ticks, checkpoints every 24 ticks, `semi_auto` approval, and exactly the
-`work_rhythm` ablation from `configs/main-study.yaml`; these values are not CLI
-overrides.
-
-This command may incur substantial model usage. The full 120-cell experiment is
-considerably more expensive.
-
-Each cell separates private continuation/evaluator artifacts from its public
-allow-list projection:
+Historical compatibility cells separate private continuation/evaluator artifacts
+from their public allow-list projection:
 
 ```text
 outputs/relic-main-v1/<model>/<workload>/<arm>/seed-<seed>/
@@ -195,7 +167,7 @@ Check status without deserializing a checkpoint:
 uv run relic status --cell-dir outputs/relic-main-v1/gpt-5.6-terra/w01/b3/seed-1401
 ```
 
-Resume the same canonical cell after a validated checkpoint:
+Resume the same legacy cell after a validated checkpoint:
 
 ```bash
 uv run relic run-cell \
@@ -214,7 +186,10 @@ Checkpoint pickle files are private trusted local continuation artifacts. Do not
 run `--resume` or `evaluate` on downloaded or otherwise untrusted cell
 directories; `status` reads only verified sidecars and public JSON.
 
-Evaluate all eligible cells from a user-created v2 run manifest, or from the
+The remaining `evaluate` and `aggregate-user-runs` commands apply only to
+user-created legacy v2 manifests; they do not consume source-backed
+`source_main_manifest.json` output or establish paper reproduction results.
+Evaluate eligible legacy cells from a user-created v2 run manifest, or from the
 run directory that contains exactly that manifest:
 
 ```bash

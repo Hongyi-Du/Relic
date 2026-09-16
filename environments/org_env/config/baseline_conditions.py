@@ -59,6 +59,13 @@ from environments.org_env.backend.agents.seed_team import SeedMember
 B0_SINGLE_AGENT_FOUNDER = "b0_single_agent_founder"
 B1_PERSISTENT_ROLE_ORG = "b1_persistent_role_org"
 B2_POLICY_CONDITIONED_ORG = "b2_policy_conditioned_org"
+# The hci source's recorded experimental identity is retained verbatim.  The
+# public project is named Relic, but changing this value would make a newly
+# generated case plan incompatible with the source runner and prior evidence.
+B3_FULL_SOCIOGENESIS = "b3_full_sociogenesis"
+# Compatibility-only identity accepted when reading manifests created during
+# the early release curation.  New plans always resolve ``b3`` to the source
+# identity above.
 B3_RELIC_ORGANIZATION = "b3_relic_organization"
 # CooperBench's authoritative external adapter was recorded against this
 # source identifier. It is deliberately a second B3 identity with the same
@@ -166,8 +173,8 @@ CONDITIONS = {
         institutionalization_enabled=False,
         capability_learning_enabled=True,
     ),
-    B3_RELIC_ORGANIZATION: OrganizationCondition(
-        condition_id=B3_RELIC_ORGANIZATION,
+    B3_FULL_SOCIOGENESIS: OrganizationCondition(
+        condition_id=B3_FULL_SOCIOGENESIS,
         short_name="b3",
         roster_size=8,
         action_selection_mode=ACTION_SELECTION_PROFILE_POLICY,
@@ -209,6 +216,15 @@ RETIRED_CONDITIONS = {
         institutionalization_enabled=False,
         capability_learning_enabled=False,
     ),
+    B3_RELIC_ORGANIZATION: OrganizationCondition(
+        condition_id=B3_RELIC_ORGANIZATION,
+        short_name="b3",
+        roster_size=8,
+        action_selection_mode=ACTION_SELECTION_PROFILE_POLICY,
+        profile_conditioning_enabled=True,
+        institutionalization_enabled=True,
+        capability_learning_enabled=True,
+    ),
 }
 
 _ALIASES = {
@@ -221,9 +237,10 @@ _ALIASES = {
     "b2": B2_POLICY_CONDITIONED_ORG,
     "policy": B2_POLICY_CONDITIONED_ORG,
     "policy_conditioned": B2_POLICY_CONDITIONED_ORG,
-    "b3": B3_RELIC_ORGANIZATION,
-    "full": B3_RELIC_ORGANIZATION,
-    "relic": B3_RELIC_ORGANIZATION,
+    "b3": B3_FULL_SOCIOGENESIS,
+    "full": B3_FULL_SOCIOGENESIS,
+    "relic": B3_FULL_SOCIOGENESIS,
+    "sociogenesis": B3_FULL_SOCIOGENESIS,
     # Retired rungs keep their own names and resolve to what they actually were.
     "temporary": B1_TEMPORARY_SPECIALIST_TEAM,
     "temporary_team": B1_TEMPORARY_SPECIALIST_TEAM,
@@ -238,7 +255,7 @@ def resolve_condition(value: str | None) -> OrganizationCondition:
     ``b2_persistent_role_org`` was an LLM-direct organization, and reading it
     back as today's policy-conditioned B2 would misreport what was measured.
     """
-    raw = (value or B3_RELIC_ORGANIZATION).strip().lower()
+    raw = (value or B3_FULL_SOCIOGENESIS).strip().lower()
     condition_id = _ALIASES.get(raw, raw)
     if condition_id in CONDITIONS:
         return CONDITIONS[condition_id]
@@ -335,7 +352,7 @@ def organization_condition_ids() -> tuple[str, ...]:
         B0_SINGLE_AGENT_FOUNDER,
         B1_PERSISTENT_ROLE_ORG,
         B2_POLICY_CONDITIONED_ORG,
-        B3_RELIC_ORGANIZATION,
+        B3_FULL_SOCIOGENESIS,
     )
 
 

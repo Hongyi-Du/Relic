@@ -117,7 +117,7 @@ def test_all_120_canonical_cell_specs_are_unique_and_frozen(tmp_path: Path) -> N
         ("B0", "b0_single_agent_founder", 1, "llm_direct", False, False, False),
         ("B1", "b1_persistent_role_org", 8, "llm_direct", False, False, False),
         ("B2", "b2_policy_conditioned_org", 8, "profile_policy", True, True, False),
-        ("B3", "b3_relic_organization", 8, "profile_policy", True, True, True),
+        ("B3", "b3_full_sociogenesis", 8, "profile_policy", True, True, True),
     ),
 )
 def test_arm_yaml_and_runtime_condition_are_bound_fail_closed(

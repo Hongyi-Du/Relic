@@ -529,7 +529,7 @@ def test_claude_gateway_run_passes_the_openai_provider_guard(
 
 
 @pytest.mark.unit
-def test_cli_exposes_run_main_scheduler_options(capsys: pytest.CaptureFixture[str]) -> None:
+def test_cli_exposes_source_backed_run_main_options(capsys: pytest.CaptureFixture[str]) -> None:
     with pytest.raises(SystemExit) as stopped:
         main(["run-main", "--help"])
 
@@ -538,22 +538,18 @@ def test_cli_exposes_run_main_scheduler_options(capsys: pytest.CaptureFixture[st
     assert "--dry-run" in help_text
     assert "--resume" in help_text
     assert "--retry-failed" in help_text
-    assert "--cell-id" in help_text
+    assert "--evaluator-bindings" in help_text
+    assert "--batch" in help_text
+    assert "--workload" in help_text
+    assert "--seed" in help_text
 
 
 @pytest.mark.unit
-def test_cli_run_main_dry_run_uses_scheduler_without_spawning(
+def test_cli_run_main_dry_run_uses_source_baseline_planning(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
-    unverified_cell_specs: None,
 ) -> None:
-    manifest_path = tmp_path / "cli_run_manifest.json"
-
-    def spawn_forbidden(*_args: Any, **_kwargs: Any) -> None:
-        raise AssertionError("CLI dry run must not start a cell subprocess")
-
-    monkeypatch.setattr(main_runner.subprocess, "Popen", spawn_forbidden)
+    manifest_path = tmp_path / "source_main_manifest.json"
 
     assert (
         main(
@@ -566,6 +562,10 @@ def test_cli_run_main_dry_run_uses_scheduler_without_spawning(
                 "--manifest",
                 str(manifest_path),
                 "--dry-run",
+                "--workload",
+                "w01",
+                "--seed",
+                "1401",
             ]
         )
         == 0
@@ -573,4 +573,9 @@ def test_cli_run_main_dry_run_uses_scheduler_without_spawning(
     rendered = capsys.readouterr().out
     assert '"dry_run": true' in rendered
     assert "Dry run only" in rendered
-    assert _load_payload(manifest_path)["runtime"]["status"] == "planned"
+    payload = _load_payload(manifest_path)
+    assert payload["schema_version"] == "relic-source-main-run-manifest-v1"
+    assert payload["execution"]["status"] == "planned"
+    assert (
+        tmp_path / "source-dry-run" / "w01__seed1401" / "manifest.json"
+    ).is_file()
