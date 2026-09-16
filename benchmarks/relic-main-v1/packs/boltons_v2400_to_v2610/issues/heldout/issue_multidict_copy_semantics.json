@@ -1,0 +1,28 @@
+{
+  "issue_id": "issue_multidict_copy_semantics",
+  "title": "Copying a multi-value dictionary throws away all but the last value per key",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "multidict",
+  "candidate_path_hints": [
+    "boltons/dictutils.py",
+    "boltons/urlutils.py"
+  ],
+  "created_tick": 0,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#410",
+  "source_url": "https://github.com/mahmoud/boltons/pull/410",
+  "created_at": "2026-07-17T08:11:07Z",
+  "labels": [],
+  "release": "26.1.0",
+  "title_original": "Fix copy.copy/copy.deepcopy collapsing OrderedMultiDict values to one",
+  "text_original": "## Steps\n\n`copy.copy` and `copy.deepcopy` silently collapse an `OrderedMultiDict`'s multiple values per key down to a single value:\n\n```python\nfrom boltons.dictutils import OrderedMultiDict as OMD\nimport copy\no = OMD([('a', 1), ('a', 2)])\ncopy.deepcopy(o)            # OMD([('a', 2)])  -- lost ('a', 1)\ncopy.deepcopy(o) == o       # False\ncopy.copy(o) == o           # False\n```\n\n`pickle` round-trips correctly; only the `copy` module is affected.\n\n## Cause\n\n`OrderedMultiDict` subclasses `dict`, so the inherited `__reduce_ex__` emits a 5-tuple whose `dictitems` element is an iterator over the *underlying* `{key: [values]}` dict. In `copy._reconstruct`, after `__setstate__` has already rebuilt the full multidict, that `dictitems` iterator is replayed via `__setitem__` (`y['a'] = [1, 2]`), which wipes the internal linked list and replaces each key's values with a single value.\n\n`__getstate__`/`__setstate__` already round-trip the complete multi-value state — which is why `pickle` (different setitems/setstate ordering) was unaffected — so the `dictitems` element is both redundant and actively harmful here.\n\n## Fix\n\nAdd `__reduce__` returning a plain `(self.__class__, (), self.__getstate__())` tuple, omitting `dictitems`. Reconstruction now goes purely through `__setstate__`.\n\n`copy.copy`, `copy.deepcopy`, and `pickle` (protocols 0–5) now all preserve every value; deepcopy independence is kept (mutating a copied value doesn't affect the original) and shallow copy still shares. Added a regression test (`test_omd_copy_module`); full suite passes (438).\n\n## Notes\n\nFound by fuzzing the copy/pickle round-trip. This pull request was prepared with the assistance of AI, under my direction and review.",
+  "text_rewritten": "Making a copy of a multi-value dictionary through the standard copy module collapses each key down to one value: a key that held three values holds a single value in the copy, and the copy then compares unequal to the original. We snapshot request headers this way and lost every repeated header without a single error.\n\nSerializing the same object and reading it back keeps all the values, so it is only the copy path that drops them. Both shallow and deep copies must preserve every value stored under every key, in order, and a deep copy must not share mutable values with the original.",
+  "body": "Making a copy of a multi-value dictionary through the standard copy module collapses each key down to one value: a key that held three values holds a single value in the copy, and the copy then compares unequal to the original. We snapshot request headers this way and lost every repeated header without a single error.\n\nSerializing the same object and reading it back keeps all the values, so it is only the copy path that drops them. Both shallow and deep copies must preserve every value stored under every key, in order, and a deep copy must not share mutable values with the original.",
+  "acceptance_hint": "copy.copy and copy.deepcopy of an OrderedMultiDict preserve every value stored under every key in order and compare equal to the original, and a deep copy shares no mutable values with it; serialization round-trips are unchanged.",
+  "linked_hidden_test_ids": [
+    "hidden_multidict_copy_semantics"
+  ],
+  "hidden": true
+}

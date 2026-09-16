@@ -1,0 +1,23 @@
+{
+  "issue_id": "issue_generic_parent_tagged_union",
+  "title": "A subclass registry rooted at a generic parent cannot be tagged",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "subclass_strategies",
+  "created_tick": 108,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#683",
+  "source_url": "https://github.com/python-attrs/cattrs/pull/683",
+  "created_at": "2025-09-23T19:56:15Z",
+  "labels": [],
+  "release": "v26.1.0",
+  "title_original": "Fix include_subclasses strategy with a generic parent and tagged_union",
+  "text_original": "This extends the fix in #650 to the tagged union strategy. I reported the issue in #682. Without this, using include_subclasses with tagged_union and a generic parent class raises the error `AttributeError: __subclasses__. Did you mean: '__subclasscheck__'?`.",
+  "text_rewritten": "Our message hierarchy has a generic base class and concrete subclasses that each pin the parameter. Registering that hierarchy with the subclass strategy and asking for a discriminator tag fails immediately with `AttributeError: __subclasses__`. Registering the very same hierarchy without the tag strategy works, and so does a tagged non-generic hierarchy, so the combination of \"generic parent\" and \"tag\" is what breaks. Whatever walks the hierarchy is asking the parametrized form for its subclasses rather than the class behind it. Once registered, unstructuring a subclass should emit its fields plus the discriminator, and structuring against the parent should pick the subclass named by the discriminator.",
+  "body": "Our message hierarchy has a generic base class and concrete subclasses that each pin the parameter. Registering that hierarchy with the subclass strategy and asking for a discriminator tag fails immediately with `AttributeError: __subclasses__`. Registering the very same hierarchy without the tag strategy works, and so does a tagged non-generic hierarchy, so the combination of \"generic parent\" and \"tag\" is what breaks. Whatever walks the hierarchy is asking the parametrized form for its subclasses rather than the class behind it. Once registered, unstructuring a subclass should emit its fields plus the discriminator, and structuring against the parent should pick the subclass named by the discriminator.",
+  "acceptance_hint": "A hierarchy rooted at a parametrized generic parent registers with the tag strategy without raising, and round-trips each subclass through its discriminator; non-generic hierarchies keep working.",
+  "linked_hidden_test_ids": [
+    "hidden_generic_parent_tagged_union"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "issue_id": "issue_async_retry_predicate",
+  "title": "Coroutine retry predicate is treated as \"always retry\"",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "async_retry_runtime",
+  "created_tick": 48,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#437",
+  "source_url": "https://github.com/jd/tenacity/pull/437",
+  "created_at": "2024-03-02T07:30:37Z",
+  "labels": [],
+  "release": "9.1.4",
+  "title_original": "Support async actions",
+  "text_original": "Fixes #249 #412. Second PR after breaking down https://github.com/jd/tenacity/pull/433 (follows https://github.com/jd/tenacity/pull/434). After DRYing the `iter()` function, make `AsyncRetrying` support `async` callbacks.",
+  "text_rewritten": "Our retry decision needs to await something: before deciding we look the failure up in a shared cache. So we pass a coroutine function as the `retry=` predicate of an asynchronous retried function. The loop then never stops — it keeps retrying until the attempt budget runs out and raises, regardless of what our predicate would have answered, and the predicate body never executes at all. It looks as though whatever the predicate hands back is used directly as the decision, and a coroutine that has not been started yet is always truthy. Writing the same predicate as an ordinary function makes it work correctly, which is not an option for us because our lookup is asynchronous.",
+  "body": "Our retry decision needs to await something: before deciding we look the failure up in a shared cache. So we pass a coroutine function as the `retry=` predicate of an asynchronous retried function. The loop then never stops — it keeps retrying until the attempt budget runs out and raises, regardless of what our predicate would have answered, and the predicate body never executes at all. It looks as though whatever the predicate hands back is used directly as the decision, and a coroutine that has not been started yet is always truthy. Writing the same predicate as an ordinary function makes it work correctly, which is not an option for us because our lookup is asynchronous.",
+  "acceptance_hint": "An asynchronous retried function configured with a coroutine `retry=` predicate stops as soon as that predicate resolves to false and returns the last result to the caller, and the predicate observes attempt numbers 1, 2, 3, … just as an ordinary predicate would.",
+  "linked_hidden_test_ids": [
+    "hidden_async_retry_predicate"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "issue_id": "issue_random_exponential_lower_bound",
+  "title": "Randomised backoff ignores the configured minimum wait",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "wait_strategies",
+  "created_tick": 120,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#425",
+  "source_url": "https://github.com/jd/tenacity/pull/425",
+  "created_at": "2024-07-29T12:10:10Z",
+  "labels": [],
+  "release": "9.1.4",
+  "title_original": "Respects `min` argument for `wait_random_exponential`",
+  "text_original": "# Summary\nRespects `min` argument for `wait_random_exponential`\n- currently, `min` argument only affects computing the `high` range of the uniform sampling\n- `min` does not affect the `low` range of the uniform sampling, hence the sampled wait may be lower than `min` specified\n- This PR fixes the issue, which I believe is unexpected",
+  "text_rewritten": "We configure the randomised exponential backoff with a minimum of several seconds so that a thundering herd of clients cannot hammer a service that is trying to come back up. In practice we still see retries firing almost immediately. The minimum appears to raise only the top of the random window while the bottom stays pinned at zero, so a large share of the sampled pauses land far below the floor we asked for — which is exactly the behaviour the minimum was supposed to prevent. The maximum is respected. The non-random exponential strategy honours both bounds correctly, and that is what we expected of the randomised one too: sample inside the configured window rather than from zero up to it.",
+  "body": "We configure the randomised exponential backoff with a minimum of several seconds so that a thundering herd of clients cannot hammer a service that is trying to come back up. In practice we still see retries firing almost immediately. The minimum appears to raise only the top of the random window while the bottom stays pinned at zero, so a large share of the sampled pauses land far below the floor we asked for — which is exactly the behaviour the minimum was supposed to prevent. The maximum is respected. The non-random exponential strategy honours both bounds correctly, and that is what we expected of the randomised one too: sample inside the configured window rather than from zero up to it.",
+  "acceptance_hint": "Every pause produced by the randomised exponential strategy configured with minimum M and maximum X falls within [M, X], the window still widens as the attempt number grows, and the deterministic exponential strategy is unchanged.",
+  "linked_hidden_test_ids": [
+    "hidden_random_exponential_lower_bound"
+  ]
+}

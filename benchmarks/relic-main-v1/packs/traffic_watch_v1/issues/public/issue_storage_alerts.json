@@ -1,0 +1,23 @@
+{
+  "issue_id": "issue_storage_alerts",
+  "title": "Storage alerts is not implemented",
+  "issue_type": "feature",
+  "severity": "high",
+  "component": "storage_alerts",
+  "created_tick": 96,
+  "source": "vendor_task_brief",
+  "source_type": "requirements_document",
+  "source_id": "traffic-violation-detection",
+  "labels": [],
+  "release": "1.0.0",
+  "body": "The `storage_alerts` surface described in the brief is not implemented. Build it so its behaviour matches the brief.",
+  "acceptance_hint": "7 executable checks over the storage_alerts surface.",
+  "linked_hidden_test_ids": [
+    "hidden_storage_alerts"
+  ],
+  "candidate_path_hints": [
+    "traffic_violation_system/storage.py",
+    "traffic_violation_system/alerts.py",
+    "traffic_violation_system/violations.py"
+  ]
+}

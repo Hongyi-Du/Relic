@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Sales Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="/static/chart.min.js"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; color: #1a202c; }
+    h1 { margin-top: 0; }
+    form { margin-bottom: 1rem; }
+    input { padding: 0.4rem; margin-right: 0.4rem; }
+    button { padding: 0.4rem 0.8rem; cursor: pointer; }
+    .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    canvas { width: 100%; height: 260px; background: #f7fafc; border: 1px solid #cbd5e0; }
+    table { border-collapse: collapse; margin-top: 1.5rem; width: 100%; }
+    th, td { padding: 0.4rem 0.6rem; border: 1px solid #cbd5e0; text-align: left; }
+    .error { color: #c53030; }
+  </style>
+</head>
+<body>
+  <h1>Sales Dashboard</h1>
+  <form id="login-form">
+    <input id="username" placeholder="username" value="admin" />
+    <input id="password" type="password" placeholder="password" value="adminpass" />
+    <button type="submit">Log in</button>
+    <span id="status"></span>
+  </form>
+
+  <div class="charts">
+    <div><h3>Total sales by category</h3><canvas id="cat-chart" width="500" height="260"></canvas></div>
+    <div><h3>Total sales by month</h3><canvas id="month-chart" width="500" height="260"></canvas></div>
+  </div>
+
+  <h3>Raw sales rows</h3>
+  <table id="sales-table"><thead><tr><th>ID</th><th>Category</th><th>Month</th><th>Amount</th></tr></thead><tbody></tbody></table>
+
+  <script>
+    const API = "/api/v1";
+    let token = null;
+
+    async function api(path, opts = {}) {
+      const headers = Object.assign({ "Content-Type": "application/json" }, opts.headers || {});
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      const res = await fetch(API + path, Object.assign({}, opts, { headers }));
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: "http_error", detail: res.statusText }));
+        throw new Error(body.detail || body.error);
+      }
+      return res.json();
+    }
+
+    function setStatus(msg, isError) {
+      const el = document.getElementById("status");
+      el.textContent = msg;
+      el.className = isError ? "error" : "";
+    }
+
+    document.getElementById("login-form").addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+      try {
+        const data = await api("/auth/login", {
+          method: "POST",
+          body: JSON.stringify({ username, password }),
+        });
+        token = data.access_token;
+        setStatus("Logged in.");
+        await renderAll();
+      } catch (err) {
+        setStatus(err.message, true);
+      }
+    });
+
+    async function renderAll() {
+      const [byCat, byMonth, rows] = await Promise.all([
+        api("/charts/sales/by-category"),
+        api("/charts/sales/by-month"),
+        api("/charts/sales"),
+      ]);
+      new Chart(document.getElementById("cat-chart"), {
+        type: "bar",
+        data: {
+          labels: byCat.map((r) => r.category),
+          datasets: [{ data: byCat.map((r) => r.total) }],
+        },
+      });
+      new Chart(document.getElementById("month-chart"), {
+        type: "line",
+        data: {
+          labels: byMonth.map((r) => r.month),
+          datasets: [{ data: byMonth.map((r) => r.total) }],
+        },
+      });
+      const tbody = document.querySelector("#sales-table tbody");
+      tbody.innerHTML = "";
+      for (const row of rows) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${row.id}</td><td>${row.category}</td><td>${row.month}</td><td>${row.amount}</td>`;
+        tbody.appendChild(tr);
+      }
+    }
+  </script>
+</body>
+</html>

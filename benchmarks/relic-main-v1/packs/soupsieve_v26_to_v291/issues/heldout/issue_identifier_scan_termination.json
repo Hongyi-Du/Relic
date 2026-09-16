@@ -1,0 +1,24 @@
+{
+  "issue_id": "issue_identifier_scan_termination",
+  "title": "A long element name followed by an illegal character stalls the compile",
+  "issue_type": "performance",
+  "severity": "major",
+  "component": "selector_parser",
+  "created_tick": 0,
+  "source": "historical_github",
+  "source_type": "commit",
+  "source_id": "commit@ce44e4996e66",
+  "source_url": "https://github.com/facelessuser/soupsieve/commit/ce44e4996e6632871c18cdd7a7fb641be8ef34ef",
+  "created_at": "2026-07-15T22:23:14Z",
+  "labels": [],
+  "release": "2.9.1",
+  "title_original": "Merge commit from fork (fix inefficient CSS ID matching)",
+  "text_original": "(no upstream description)",
+  "text_rewritten": "When a selector names an element with a very long name -- tens of thousands of characters -- and that name is followed by a character that is not legal in a selector, reporting the syntax error takes many seconds, and the time climbs faster than the length of the name, so a somewhat longer name stops returning at all. The same selector with a legal ending is fast, and class and id names of the same length are fast either way, so the cost is specific to element names in the failing case -- exactly the case an untrusted caller can produce for free.\n\nRejecting an illegal character should cost time proportional to the length of the input, wherever the long name sits in the pattern. Long names that are legal must keep compiling and selecting as they do today, and class and id names must stay as prompt as they are now.",
+  "body": "When a selector names an element with a very long name -- tens of thousands of characters -- and that name is followed by a character that is not legal in a selector, reporting the syntax error takes many seconds, and the time climbs faster than the length of the name, so a somewhat longer name stops returning at all. The same selector with a legal ending is fast, and class and id names of the same length are fast either way, so the cost is specific to element names in the failing case -- exactly the case an untrusted caller can produce for free.\n\nRejecting an illegal character should cost time proportional to the length of the input, wherever the long name sits in the pattern. Long names that are legal must keep compiling and selecting as they do today, and class and id names must stay as prompt as they are now.",
+  "acceptance_hint": "A long element name followed by an illegal character raises a selector syntax error promptly, at a cost proportional to the input length and wherever the name sits in the pattern; long legal names, and long class and id names, are unaffected.",
+  "linked_hidden_test_ids": [
+    "hidden_identifier_scan_termination"
+  ],
+  "hidden": true
+}

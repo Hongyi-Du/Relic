@@ -1,0 +1,28 @@
+{
+  "issue_id": "issue_revoked_task_result_state",
+  "title": "Revoked tasks keep reporting PENDING to clients that poll the result store",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "worker_control",
+  "created_tick": 36,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#9869",
+  "source_url": "https://github.com/celery/celery/pull/9869",
+  "created_at": "2026-01-04T12:11:56Z",
+  "labels": [
+    "PR Type: Bugfix"
+  ],
+  "release": "v5.6.3",
+  "title_original": "Bugfix: Revoked tasks now immediately update backend status to REVOKED",
+  "text_original": "Fixes #9844 \r\n\r\nWhen a task is revoked via `app.control.revoke()`, the task status in the result backend was not being updated to `REVOKED`. The status would remain `PENDING` until a worker actually picked up the task and discovered it was revoked.\r\n\r\nThis was particularly problematic for tasks with ETA/countdown - if the worker was shut down before the ETA arrived, the task status would stay `PENDING` forever.\r\n\r\n## Changes\r\n\r\n- Added a call to `backend.mark_as_revoked()` in the `_revoke()` function to immediately update the backend status when a task is revoked\r\n- Backend failures are caught and logged as warnings without breaking the revocation process\r\n- Added unit tests to verify the new behavior\r\n\r\n## Behavior Change\r\n\r\nThe result backend is now immediately updated when a task is revoked. Previously, the backend was only updated when a worker attempted to process the revoked task.\r\n\r\nThis is the expected/correct behavior - users calling `AsyncResult(task_id).status` after revocation will now correctly see `REVOKED` instead of `PENDING`.",
+  "text_rewritten": "A client that revokes a task and then polls its state keeps seeing PENDING. The state only flips once some worker picks the message up, notices it is revoked and records that. For a task scheduled with a countdown or an ETA that can be hours away, and if the cluster is stopped before the scheduled time it never happens at all -- the task sits at PENDING forever. Revocation should be visible to result-store clients as soon as it is accepted, for every id in a batch revocation, while ids that were not revoked stay untouched. A result store that is unreachable at that moment must not break the revocation itself: the ids still have to be recorded locally so the worker refuses them later.",
+  "body": "A client that revokes a task and then polls its state keeps seeing PENDING. The state only flips once some worker picks the message up, notices it is revoked and records that. For a task scheduled with a countdown or an ETA that can be hours away, and if the cluster is stopped before the scheduled time it never happens at all -- the task sits at PENDING forever. Revocation should be visible to result-store clients as soon as it is accepted, for every id in a batch revocation, while ids that were not revoked stay untouched. A result store that is unreachable at that moment must not break the revocation itself: the ids still have to be recorded locally so the worker refuses them later.",
+  "acceptance_hint": "After a revoke, AsyncResult(...).state reports REVOKED for every revoked id, ids that were never revoked are unaffected, and the worker still records the revocation locally.",
+  "candidate_path_hints": [
+    "celery/worker/control.py"
+  ],
+  "linked_hidden_test_ids": [
+    "hidden_revoked_task_result_state"
+  ]
+}

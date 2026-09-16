@@ -1,0 +1,182 @@
+[
+ {
+  "test_id": "hidden_analysis",
+  "name": "analysis behaves as the brief requires",
+  "rel_path": "test_analysis.py",
+  "issue_ids": [
+   "issue_analysis"
+  ],
+  "expected_behavior": "7 executable checks over the analysis surface.",
+  "evidence_kind": "executable_behavioral_contract",
+  "introduced_in": "1.0.0",
+  "reference_release": "1.0.0",
+  "command": [
+   "python",
+   "-m",
+   "pytest",
+   "tests/hidden/test_analysis.py",
+   "-q"
+  ],
+  "test_function_count": 7
+ },
+ {
+  "test_id": "hidden_cli",
+  "name": "cli behaves as the brief requires",
+  "rel_path": "test_cli.py",
+  "issue_ids": [
+   "issue_cli"
+  ],
+  "expected_behavior": "10 executable checks over the cli surface.",
+  "evidence_kind": "executable_behavioral_contract",
+  "introduced_in": "1.0.0",
+  "reference_release": "1.0.0",
+  "command": [
+   "python",
+   "-m",
+   "pytest",
+   "tests/hidden/test_cli.py",
+   "-q"
+  ],
+  "test_function_count": 10
+ },
+ {
+  "test_id": "hidden_config_and_pool",
+  "name": "config and pool behaves as the brief requires",
+  "rel_path": "test_config_and_pool.py",
+  "issue_ids": [
+   "issue_config_and_pool"
+  ],
+  "expected_behavior": "6 executable checks over the config_and_pool surface.",
+  "evidence_kind": "executable_behavioral_contract",
+  "introduced_in": "1.0.0",
+  "reference_release": "1.0.0",
+  "command": [
+   "python",
+   "-m",
+   "pytest",
+   "tests/hidden/test_config_and_pool.py",
+   "-q"
+  ],
+  "test_function_count": 6
+ },
+ {
+  "test_id": "hidden_engagement",
+  "name": "engagement behaves as the brief requires",
+  "rel_path": "test_engagement.py",
+  "issue_ids": [
+   "issue_engagement"
+  ],
+  "expected_behavior": "5 executable checks over the engagement surface.",
+  "evidence_kind": "executable_behavioral_contract",
+  "introduced_in": "1.0.0",
+  "reference_release": "1.0.0",
+  "command": [
+   "python",
+   "-m",
+   "pytest",
+   "tests/hidden/test_engagement.py",
+   "-q"
+  ],
+  "test_function_count": 5
+ },
+ {
+  "test_id": "hidden_export",
+  "name": "export behaves as the brief requires",
+  "rel_path": "test_export.py",
+  "issue_ids": [
+   "issue_export"
+  ],
+  "expected_behavior": "6 executable checks over the export surface.",
+  "evidence_kind": "executable_behavioral_contract",
+  "introduced_in": "1.0.0",
+  "reference_release": "1.0.0",
+  "command": [
+   "python",
+   "-m",
+   "pytest",
+   "tests/hidden/test_export.py",
+   "-q"
+  ],
+  "test_function_count": 6
+ },
+ {
+  "test_id": "hidden_filters",
+  "name": "filters behaves as the brief requires",
+  "rel_path": "test_filters.py",
+  "issue_ids": [
+   "issue_filters"
+  ],
+  "expected_behavior": "9 executable checks over the filters surface.",
+  "evidence_kind": "executable_behavioral_contract",
+  "introduced_in": "1.0.0",
+  "reference_release": "1.0.0",
+  "command": [
+   "python",
+   "-m",
+   "pytest",
+   "tests/hidden/test_filters.py",
+   "-q"
+  ],
+  "test_function_count": 9
+ },
+ {
+  "test_id": "hidden_growth",
+  "name": "growth behaves as the brief requires",
+  "rel_path": "test_growth.py",
+  "issue_ids": [
+   "issue_growth"
+  ],
+  "expected_behavior": "10 executable checks over the growth surface.",
+  "evidence_kind": "executable_behavioral_contract",
+  "introduced_in": "1.0.0",
+  "reference_release": "1.0.0",
+  "command": [
+   "python",
+   "-m",
+   "pytest",
+   "tests/hidden/test_growth.py",
+   "-q"
+  ],
+  "test_function_count": 10
+ },
+ {
+  "test_id": "hidden_retry",
+  "name": "retry behaves as the brief requires",
+  "rel_path": "test_retry.py",
+  "issue_ids": [
+   "issue_retry"
+  ],
+  "expected_behavior": "3 executable checks over the retry surface.",
+  "evidence_kind": "executable_behavioral_contract",
+  "introduced_in": "1.0.0",
+  "reference_release": "1.0.0",
+  "command": [
+   "python",
+   "-m",
+   "pytest",
+   "tests/hidden/test_retry.py",
+   "-q"
+  ],
+  "test_function_count": 3
+ },
+ {
+  "test_id": "hidden_schema_docs",
+  "name": "schema docs behaves as the brief requires",
+  "rel_path": "test_schema_docs.py",
+  "issue_ids": [
+   "issue_schema_docs"
+  ],
+  "expected_behavior": "3 executable checks over the schema_docs surface.",
+  "evidence_kind": "executable_behavioral_contract",
+  "introduced_in": "1.0.0",
+  "reference_release": "1.0.0",
+  "command": [
+   "python",
+   "-m",
+   "pytest",
+   "tests/hidden/test_schema_docs.py",
+   "-q"
+  ],
+  "test_function_count": 3
+ }
+]

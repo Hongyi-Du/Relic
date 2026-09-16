@@ -1,0 +1,98 @@
+schema_version: org_env_oss_time_machine_pack_v2
+project_id: tg_automation_v1
+source_project_name: telegram-automation-tool
+anonymized_product_name: tg_automation
+company_name: tg_automation
+product_summary: tg_automation, built from the vendor brief for telegram-automation-tool. The starter
+  carries the package structure and signatures with every body removed; the reference implementation,
+  held-out demands and hidden contracts stay evaluator-only.
+license: vendor_sample
+starter_ref: skeleton
+reference_ref: 1.0.0
+reference_is_release: true
+frozen_scope: greenfield_skeleton_plus_reference_solution
+runtime_python: '>=3.11'
+runtime_dependencies:
+- openpyxl
+- telethon
+test_strategy:
+  runner: pytest
+  kind: executable_behavioral_contract
+  rationale: Every contract runs the package through the public surface the brief specifies. The starter
+    exposes that surface already, so a contract fails on behaviour rather than on an import error, and
+    any implementation that behaves correctly earns it.
+evidence_kind: executable_behavioral_contract
+starter_repo_digest: 407d250ebca527a01f2970834d740245fd8750584b0ebdbfe703972a98a02f09
+reference_repo_digest: 6a21480680042b63158225f70fa6a60d6d320bec03ed5b378f86361f3d7a5080
+agent_filesystem_isolation_required: true
+agent_visible:
+  starter_repo: starter_repo
+  public_issues: issues/public
+private_evaluator_only:
+  reference_repo: reference_repo
+  hidden_tests: tests/hidden
+  heldout_issues: issues/heldout
+entrypoints:
+  cli:
+    command: &id001
+    - python
+    - -m
+    - pytest
+    - tests/public
+    - -q
+    - --confcutdir=tests/public
+  smoke:
+    command: *id001
+public_tests:
+  command: *id001
+  dependencies: &id002
+  - openpyxl==3.1.5
+  - pytest==8.3.3
+  - pytest-asyncio==0.24.0
+hidden_tests:
+  command:
+  - python
+  - -m
+  - pytest
+  - tests/hidden
+  - -q
+  - --confcutdir=tests/hidden
+  dependencies: *id002
+issue_stream:
+  schedule: by_tick
+  first_tick: 12
+  interval_ticks: 12
+evaluation:
+  primary_metrics:
+  - hidden_test_pass_rate
+  - causal_fix_rate
+  - issue_fix_rate
+  - regression_pass_rate
+  secondary_metrics:
+  - public_test_pass_rate
+  - heldout_transfer_rate
+controls:
+  default: none
+component_map:
+  analysis:
+  - tg_automation/analysis.py
+  - tg_automation/retry.py
+  cli:
+  - tg_automation/cli.py
+  config_and_pool:
+  - tg_automation/client.py
+  - tg_automation/config.py
+  engagement:
+  - tg_automation/engagement.py
+  export:
+  - tg_automation/analysis.py
+  - tg_automation/export.py
+  filters:
+  - tg_automation/analysis.py
+  - tg_automation/filters.py
+  growth:
+  - tg_automation/growth.py
+  retry:
+  - tg_automation/retry.py
+  schema_docs:
+  - tg_automation/__init__.py

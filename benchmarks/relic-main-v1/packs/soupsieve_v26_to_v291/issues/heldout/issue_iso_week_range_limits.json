@@ -1,0 +1,24 @@
+{
+  "issue_id": "issue_iso_week_range_limits",
+  "title": "Week-numbered range controls treat a week the year does not have as a real value",
+  "issue_type": "bug",
+  "severity": "medium",
+  "component": "selector_matching",
+  "created_tick": 0,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#288",
+  "source_url": "https://github.com/facelessuser/soupsieve/pull/288",
+  "created_at": "2026-01-15T15:14:10Z",
+  "labels": [],
+  "release": "2.9.1",
+  "title_original": "Various fixes by @mundanevision20",
+  "text_original": "- Ensure custom selectors or namespace dictionaries reject non-string keys\r\n- Fix handling of `:in-range` and `:out-of-range` with end of year weeks\r\n- Fix a potential infinite loop in pretty printing of compiled selector objects",
+  "text_rewritten": "The :in-range and :out-of-range states on a week-numbered range control accept a value naming week 53 of a year that only runs to 52 weeks, and then compare that non-existent week against the control's limits. The control ends up reported as out of range, which reads as a data error in our validation report when the real problem is that the value is not a week at all.\n\nA value that names a week the year does not have is not a comparable value, so the control should be treated exactly like one that carries no value -- which this library already reports as in range. Years that genuinely do run to a fifty-third week must keep comparing normally, controls with ordinary in-range and out-of-range values (week or date) must not change, and the two states must stay mutually exclusive.",
+  "body": "The :in-range and :out-of-range states on a week-numbered range control accept a value naming week 53 of a year that only runs to 52 weeks, and then compare that non-existent week against the control's limits. The control ends up reported as out of range, which reads as a data error in our validation report when the real problem is that the value is not a week at all.\n\nA value that names a week the year does not have is not a comparable value, so the control should be treated exactly like one that carries no value -- which this library already reports as in range. Years that genuinely do run to a fifty-third week must keep comparing normally, controls with ordinary in-range and out-of-range values (week or date) must not change, and the two states must stay mutually exclusive.",
+  "acceptance_hint": "A week value naming a week number the year does not have counts as no value at all for the two range states; years that really have a fifty-third week still compare normally, and no control is ever reported in both states.",
+  "linked_hidden_test_ids": [
+    "hidden_iso_week_range_limits"
+  ],
+  "hidden": true
+}

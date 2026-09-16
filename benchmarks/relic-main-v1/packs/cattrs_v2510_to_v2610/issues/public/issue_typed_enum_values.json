@@ -1,0 +1,23 @@
+{
+  "issue_id": "issue_typed_enum_values",
+  "title": "Enums whose members hold rich values cannot be round-tripped",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "enum_handling",
+  "created_tick": 132,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#702",
+  "source_url": "https://github.com/python-attrs/cattrs/pull/702",
+  "created_at": "2025-12-14T13:27:43Z",
+  "labels": [],
+  "release": "v26.1.0",
+  "title_original": "An initial implementation of unstructuring and structuring enums with complex values",
+  "text_original": "Fixes #699. The values of an Enum are unstructured and structured. Structuring is only done when the Enum class has a type defined for the `_value_` attribute as per the Python typing standard (https://typing.python.org/en/latest/spec/enums.html#member-values).",
+  "text_rewritten": "Some of our enums hold rich member values rather than plain strings or numbers - for example a pair of (another enum, an integer). Unstructuring one of these produces a payload that still contains live enum objects instead of primitives, so it cannot be serialized; structuring the payload back fails with a ValueError saying the value is not a valid member. Enums with plain string or number members work in both directions. The Python typing specification lets an enum declare the type of its member values by annotating `_value_` on the class, and we do annotate ours. Please honour that annotation: unstructure a member by converting its value through the declared type, and structure an incoming payload by converting it through the declared type before looking up the member. Enums that do not declare `_value_` must behave exactly as they do today.",
+  "body": "Some of our enums hold rich member values rather than plain strings or numbers - for example a pair of (another enum, an integer). Unstructuring one of these produces a payload that still contains live enum objects instead of primitives, so it cannot be serialized; structuring the payload back fails with a ValueError saying the value is not a valid member. Enums with plain string or number members work in both directions. The Python typing specification lets an enum declare the type of its member values by annotating `_value_` on the class, and we do annotate ours. Please honour that annotation: unstructure a member by converting its value through the declared type, and structure an incoming payload by converting it through the declared type before looking up the member. Enums that do not declare `_value_` must behave exactly as they do today.",
+  "acceptance_hint": "An enum that annotates the type of its member values unstructures into primitives and structures back to the same member, on both shipped converters, while enums without that annotation keep their current behaviour.",
+  "linked_hidden_test_ids": [
+    "hidden_typed_enum_values"
+  ]
+}

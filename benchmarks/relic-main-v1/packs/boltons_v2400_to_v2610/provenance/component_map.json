@@ -1,0 +1,30 @@
+{
+  "filesystem_tools": [
+    "boltons/fileutils.py"
+  ],
+  "type_utilities": [
+    "boltons/typeutils.py"
+  ],
+  "table_rendering": [
+    "boltons/tableutils.py"
+  ],
+  "list_containers": [
+    "boltons/listutils.py"
+  ],
+  "text_utilities": [
+    "boltons/strutils.py"
+  ],
+  "iteration_tools": [
+    "boltons/iterutils.py"
+  ],
+  "traceback_tools": [
+    "boltons/tbutils.py"
+  ],
+  "multidict": [
+    "boltons/dictutils.py",
+    "boltons/urlutils.py"
+  ],
+  "indexed_set": [
+    "boltons/setutils.py"
+  ]
+}

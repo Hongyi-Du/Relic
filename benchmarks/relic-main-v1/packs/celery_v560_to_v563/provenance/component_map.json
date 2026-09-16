@@ -1,0 +1,44 @@
+{
+  "canvas": [
+    "celery/canvas.py"
+  ],
+  "task_api": [
+    "celery/app/task.py"
+  ],
+  "task_execution": [
+    "celery/app/trace.py",
+    "celery/worker/request.py"
+  ],
+  "beat_scheduler": [
+    "celery/beat.py",
+    "celery/worker/components.py",
+    "celery/contrib/testing/worker.py"
+  ],
+  "worker_control": [
+    "celery/worker/control.py"
+  ],
+  "worker_event_loop": [
+    "celery/worker/loops.py"
+  ],
+  "worker_consumer": [
+    "celery/worker/consumer/consumer.py",
+    "celery/worker/consumer/delayed_delivery.py",
+    "requirements/default.txt"
+  ],
+  "worker_shutdown": [
+    "celery/apps/worker.py",
+    "celery/__init__.py"
+  ],
+  "result_backend": [
+    "celery/app/defaults.py",
+    "celery/backends/base.py",
+    "celery/backends/database/__init__.py",
+    "celery/backends/database/session.py"
+  ],
+  "cli": [
+    "celery/bin/base.py",
+    "celery/bin/control.py",
+    "celery/bin/events.py",
+    "celery/bin/graph.py"
+  ]
+}

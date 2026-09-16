@@ -1,0 +1,23 @@
+{
+  "issue_id": "issue_stop_before_deadline",
+  "title": "No way to stop retrying without blowing past a hard deadline",
+  "issue_type": "feature",
+  "severity": "major",
+  "component": "stop_strategies",
+  "created_tick": 24,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#423",
+  "source_url": "https://github.com/jd/tenacity/pull/423",
+  "created_at": "2023-12-18T08:20:45Z",
+  "labels": [],
+  "release": "9.1.4",
+  "title_original": "Add ability to inspect upcoming sleep in `stop` funcs, and add `stop_before_delay`",
+  "text_original": "This seeks to solve a specific problem: if using a wait function like `wait_exponential` or `wait_random_exponential`, along with `stop_after_delay`, the overall time spent retrying is >= `max_delay`. However, in situations where you have a strict deadline and you can't block for longer than `max_delay`, it may be preferable to abort 1 retry attempt early so that you don't exceed that deadline. This PR seeks to achieve that behavior by implementing `stop_before_delay`, which stops retries if the next attempt would take place after the `max_delay` time has elapsed, thereby ensuring that `max_delay` is never surpassed.",
+  "text_rewritten": "We call a downstream service behind a strict SLA: the whole retry sequence has to come back inside a fixed budget. The existing time-based stop condition only looks at how long we have already spent, so it always authorises one more pause and only then discovers the budget is gone. With exponential backoff we routinely spend more than twice the budget before giving up, which is worse for our callers than returning early. What we need is a stop condition that takes the pause it is about to perform into account: if the elapsed time plus the next pause would reach the budget, it should stop right there instead of sleeping. Please add a public stop strategy named `stop_before_delay(max_delay)`, exported from the package root next to the existing stop strategies and accepting the same duration argument types (a number of seconds or a timedelta). The existing time-based stop condition has to keep its current, overshooting behaviour so that nobody's timing shifts underneath them.",
+  "body": "We call a downstream service behind a strict SLA: the whole retry sequence has to come back inside a fixed budget. The existing time-based stop condition only looks at how long we have already spent, so it always authorises one more pause and only then discovers the budget is gone. With exponential backoff we routinely spend more than twice the budget before giving up, which is worse for our callers than returning early. What we need is a stop condition that takes the pause it is about to perform into account: if the elapsed time plus the next pause would reach the budget, it should stop right there instead of sleeping. Please add a public stop strategy named `stop_before_delay(max_delay)`, exported from the package root next to the existing stop strategies and accepting the same duration argument types (a number of seconds or a timedelta). The existing time-based stop condition has to keep its current, overshooting behaviour so that nobody's timing shifts underneath them.",
+  "acceptance_hint": "With a budget D and a fixed pause P, a run driven by `stop_before_delay(D)` stops at the last attempt whose elapsed time plus P is still below D, so the total pause time requested never reaches D; `stop_after_delay` still overshoots and the attempt-count stop is unaffected.",
+  "linked_hidden_test_ids": [
+    "hidden_stop_before_deadline"
+  ]
+}

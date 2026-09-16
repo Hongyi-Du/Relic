@@ -1,0 +1,4 @@
+zensical
+markdown
+pymdown-extensions
+pyspelling

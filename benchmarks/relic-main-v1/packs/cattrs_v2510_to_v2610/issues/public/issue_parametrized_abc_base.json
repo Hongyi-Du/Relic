@@ -1,0 +1,23 @@
+{
+  "issue_id": "issue_parametrized_abc_base",
+  "title": "Classes that declare a parametrized abstract-collection base cannot be structured",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "generic_type_resolution",
+  "created_tick": 12,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#655",
+  "source_url": "https://github.com/python-attrs/cattrs/pull/655",
+  "created_at": "2025-06-04T14:31:21Z",
+  "labels": [],
+  "release": "v26.1.0",
+  "title_original": "Fix structuring of attrs class that inherit from typing/collections.abc generic type aliases",
+  "text_original": "Fixes #654. The first commit reproduces the error `AttributeError: type object 'Iterable' has no attribute '__parameters__'`. I will follow up with the actual fix.",
+  "text_rewritten": "Some of our models declare an abstract collection interface as a base class and parametrize it, e.g. a class that says it is an iterable of ints. Structuring such a model blows up with an AttributeError about a missing '__parameters__' attribute before any of our own code runs. The same model with the unparametrized interface as a base works fine, and so does a model with no interface base at all, so it is only the parametrized form that breaks. We are not asking for any new behaviour from the parameter itself - the fields should be structured exactly as they would be without the interface base.",
+  "body": "Some of our models declare an abstract collection interface as a base class and parametrize it, e.g. a class that says it is an iterable of ints. Structuring such a model blows up with an AttributeError about a missing '__parameters__' attribute before any of our own code runs. The same model with the unparametrized interface as a base works fine, and so does a model with no interface base at all, so it is only the parametrized form that breaks. We are not asking for any new behaviour from the parameter itself - the fields should be structured exactly as they would be without the interface base.",
+  "acceptance_hint": "A model whose base class is a parametrized abstract collection interface structures into the same value it would produce with an unparametrized base, on every shipped converter, and models with plain bases keep working.",
+  "linked_hidden_test_ids": [
+    "hidden_parametrized_abc_base"
+  ]
+}

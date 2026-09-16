@@ -1,0 +1,23 @@
+{
+  "issue_id": "issue_sequence_target_type",
+  "title": "An abstract sequence annotation hands back a mutable list",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "collection_hooks",
+  "created_tick": 48,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#663",
+  "source_url": "https://github.com/python-attrs/cattrs/pull/663",
+  "created_at": "2025-06-30T09:56:36Z",
+  "labels": [],
+  "release": "v26.1.0",
+  "title_original": "Structure sequences into tuples",
+  "text_original": "Potentially breaking: Sequences are now structured into tuples. This allows hashability, better immutability and is more consistent with the collections.abc.Sequence type. See Migrations for steps to restore legacy behavior.",
+  "text_rewritten": "We annotate read-only collections with the abstract sequence type precisely because we do not want them mutated, and we put those models in dictionary keys and caches. Structuring hands back a plain list every time, so the model is unhashable and any caller can append to a field the annotation promised was read-only. The abstract annotation should produce an immutable, hashable sequence - a tuple - and the mutable annotations (the mutable sequence type and the built-in list type) should keep producing lists. This should hold for a bare call, for a field inside a model, and on both shipped converters.",
+  "body": "We annotate read-only collections with the abstract sequence type precisely because we do not want them mutated, and we put those models in dictionary keys and caches. Structuring hands back a plain list every time, so the model is unhashable and any caller can append to a field the annotation promised was read-only. The abstract annotation should produce an immutable, hashable sequence - a tuple - and the mutable annotations (the mutable sequence type and the built-in list type) should keep producing lists. This should hold for a bare call, for a field inside a model, and on both shipped converters.",
+  "acceptance_hint": "Structuring against an abstract sequence annotation yields a hashable tuple with the elements converted as before, while mutable-sequence and list annotations still yield mutable lists.",
+  "linked_hidden_test_ids": [
+    "hidden_sequence_target_type"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "issue_id": "issue_config",
+  "title": "Config is not implemented",
+  "issue_type": "feature",
+  "severity": "medium",
+  "component": "config",
+  "created_tick": 12,
+  "source": "vendor_task_brief",
+  "source_type": "requirements_document",
+  "source_id": "traffic-violation-detection",
+  "labels": [],
+  "release": "1.0.0",
+  "body": "The `config` surface described in the brief is not implemented. Build it so its behaviour matches the brief.",
+  "acceptance_hint": "3 executable checks over the config surface.",
+  "linked_hidden_test_ids": [
+    "hidden_config"
+  ],
+  "candidate_path_hints": [
+    "traffic_violation_system/config.py"
+  ]
+}

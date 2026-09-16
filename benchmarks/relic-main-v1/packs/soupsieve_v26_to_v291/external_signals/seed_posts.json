@@ -1,0 +1,62 @@
+[
+  {
+    "post_id": "ext_seed_ss_1",
+    "author_id": "ext_user_stylesheet_reuse",
+    "topic": "pseudo_class_support",
+    "content_summary": "Patterns copied straight out of our stylesheet stop working here the moment they mention an element state that only a browser can observe.",
+    "stance": -0.3,
+    "credibility": 0.78,
+    "reach": 34,
+    "created_tick": 6
+  },
+  {
+    "post_id": "ext_seed_ss_2",
+    "author_id": "ext_user_config_pipeline",
+    "topic": "public_api",
+    "content_summary": "A namespace map built from our config was accepted with a numeric key and then every prefixed query came back empty; nothing told us why.",
+    "stance": -0.22,
+    "credibility": 0.7,
+    "reach": 19,
+    "created_tick": 30
+  },
+  {
+    "post_id": "ext_seed_ss_3",
+    "author_id": "ext_user_selector_debug",
+    "topic": "selector_debug_output",
+    "content_summary": "Printing a compiled selector to work out why it did not match left the interpreter spinning and I had to kill the shell.",
+    "stance": -0.4,
+    "credibility": 0.74,
+    "reach": 27,
+    "created_tick": 42
+  },
+  {
+    "post_id": "ext_seed_ss_4",
+    "author_id": "ext_user_scraping_service",
+    "topic": "attribute_selectors",
+    "content_summary": "One selector arriving from a public form was enough to peg a worker at full CPU; the request never returned and we had to recycle the process.",
+    "stance": -0.65,
+    "credibility": 0.88,
+    "reach": 71,
+    "created_tick": 55
+  },
+  {
+    "post_id": "ext_seed_ss_5",
+    "author_id": "ext_user_template_queries",
+    "topic": "attribute_selectors",
+    "content_summary": "When a templated attribute query ends up with an empty operand it quietly returns far more elements than the same query does in the browser.",
+    "stance": -0.35,
+    "credibility": 0.8,
+    "reach": 45,
+    "created_tick": 78
+  },
+  {
+    "post_id": "ext_seed_ss_6",
+    "author_id": "ext_user_browser_parity",
+    "topic": "selector_matching",
+    "content_summary": "Positional queries hand us different siblings than the identical CSS picks in the browser for certain step and offset combinations.",
+    "stance": -0.45,
+    "credibility": 0.85,
+    "reach": 52,
+    "created_tick": 90
+  }
+]

@@ -1,0 +1,197 @@
+schema_version: org_env_oss_time_machine_pack_v2
+project_id: cattrs_v2510_to_v2610
+source_project_name: cattrs
+anonymized_product_name: cattrs
+company_name: cattrs
+product_summary: cattrs, a structuring and unstructuring library for attrs and dataclasses. Agents receive
+  the complete v25.1.0 tag; the v26.1.0 tag, held-out demands and hidden contracts stay evaluator-only.
+license: MIT
+repo_url: https://github.com/python-attrs/cattrs
+starter_ref: v25.1.0
+starter_commit: 9122f10a5cdbb7d1c2449e39fabbaf51b8cffe53
+reference_ref: v26.1.0
+reference_commit: fd887b7b268d5e2b550beafe0cbde5e6f514646b
+reference_is_release: true
+starter_release_date: '2025-05-31'
+reference_release_date: '2026-02-18'
+freeze_date: '2026-08-01'
+issue_window_start: '2025-05-31T09:57:16Z'
+issue_window_end: '2026-02-18T22:14:35Z'
+frozen_scope: complete_tag_trees_plus_agent_visible_public_smoke
+github_archive:
+  changes_recorded: 37
+  path: provenance/github
+runtime_python: '>=3.12'
+runtime_dependencies:
+- pytest
+test_strategy:
+  runner: pytest
+  kind: executable_behavioral_contract
+  rationale: Every oracle exercises the frozen library through the public surface that already exists
+    on the starter endpoint, never through a symbol or helper the upstream patch introduced. A candidate
+    that produces the required behavior by another route therefore satisfies the contract, and copying
+    upstream's identifiers earns no credit on its own.
+evidence_kind: executable_behavioral_contract
+starter_repo_digest: d50e26c3b4582e41ea1ec98b02eb8a3e761d00b68909f470bd14c444ff89d21e
+reference_repo_digest: f41408460a046a3619533e81409b1bff78f2f352aaaf57458a6defaf3e301a26
+hidden_suite_hash: 73d96420ffd4a95cbad0bead8847ce892309b5942ad6c7c33953121a5ea65397
+evaluator_environment_hash: e1af84e85d8591c4b59b449e12ce126c4c38452621368652a9f0c4cf81db5a47
+qualification_hash: e89860423d143b4951a4be2f55120f771a48c6edecc5733de056d9073ae24ad6
+qualification_result_hash: c76334d36b92f199ea52136114e5d2e7d349fd2dabcf49ffc1a2bf88c78029a2
+result_hash: c76334d36b92f199ea52136114e5d2e7d349fd2dabcf49ffc1a2bf88c78029a2
+agent_filesystem_isolation_required: true
+agent_filesystem_isolation_status: required_not_verified_by_pack
+agent_filesystem_isolation_requirement: The agent process must receive only the materialized starter workspace.
+  reference_repo, tests/hidden, issues/heldout, contamination and provenance must remain on an evaluator-only
+  filesystem that is not mounted or otherwise readable by the agent.
+contamination_status: probes_defined_not_executed
+contamination_note: Recognition, future-recall and patch-similarity probes are defined, but this Pack
+  records no completed model-specific contamination score or clearance.
+runtime_test_status:
+  behavioral_contracts: qualified_starter_0_of_16_reference_16_of_16
+  upstream_project_suite: not_run
+manual_runtime_test_caveat: The recorded starter and reference outcomes cover this Pack's own behavioral
+  contracts. The upstream project's full test suite was not run and is not claimed by this receipt.
+hidden_test_sources:
+- https://github.com/python-attrs/cattrs/pull/655
+- https://github.com/python-attrs/cattrs/pull/660
+- https://github.com/python-attrs/cattrs/pull/662
+- https://github.com/python-attrs/cattrs/pull/663
+- https://github.com/python-attrs/cattrs/pull/666
+- https://github.com/python-attrs/cattrs/pull/668
+- https://github.com/python-attrs/cattrs/pull/670
+- https://github.com/python-attrs/cattrs/pull/683
+- https://github.com/python-attrs/cattrs/pull/684
+- https://github.com/python-attrs/cattrs/pull/686
+- https://github.com/python-attrs/cattrs/pull/688
+- https://github.com/python-attrs/cattrs/pull/696
+- https://github.com/python-attrs/cattrs/pull/702
+- https://github.com/python-attrs/cattrs/pull/713
+- https://github.com/python-attrs/cattrs/pull/717
+contamination_controls:
+  model_cutoff_policy: pre_reference_cutoff_with_recognition_audit
+  code_anonymized: false
+  audit_tool: tools/oss_time_machine_audit.py
+  heldout_transfer: true
+  recommended_main_experiment_model: pre_2026-02-18_cutoff
+  notes: 'The starter tree is the unmodified upstream release, so the project is recognizable. Recognition
+    is audited rather than assumed away: later patches, reference code, held-out demands and hidden contracts
+    are evaluator-only and never enter product artifacts, perception, search, prompts or normal snapshots.'
+model_cutoff_policy: pre_reference_cutoff_with_recognition_audit
+anonymize:
+  replacements: {}
+agent_visible:
+  starter_repo: starter_repo
+  public_issues: issues/public
+  external_signals: external_signals
+private_evaluator_only:
+  reference_repo: reference_repo
+  hidden_tests: tests/hidden
+  heldout_issues: issues/heldout
+  contamination_probes: contamination
+  github_archive: provenance/github
+entrypoints:
+  cli:
+    command:
+    - python
+    - -m
+    - pytest
+    - tests/public
+    - -q
+  smoke:
+    command:
+    - python
+    - -m
+    - pytest
+    - tests/public
+    - -q
+public_tests:
+  command:
+  - python
+  - -m
+  - pytest
+  - tests/public
+  - -q
+  # cattrs' pyproject sets addopts for pytest-benchmark, which is not in the
+  # sandbox, so pytest exited on the arguments before collecting anything and
+  # the organization's own gate reported an error every time it was run --
+  # fifty-three times in one round, with the board still filling to 11/12.
+  # Those flags belong to the project's benchmark suite, not to this gate.
+  - -o
+  - addopts=
+  dependencies:
+  - attrs>=24.3.0
+  - typing-extensions>=4.12.2
+  - exceptiongroup>=1.1.1; python_version < '3.11'
+  - hypothesis>=6.111.2
+  - pytest>=8.3.2
+  - pytest-benchmark>=4.0.0
+  - immutables>=0.20
+  - coverage>=7.6.1
+  - pytest-xdist>=3.6.1
+hidden_tests:
+  command:
+  - python
+  - -m
+  - pytest
+  - tests/hidden
+  - -q
+  dependencies:
+  - attrs>=24.3.0
+  - typing-extensions>=4.12.2
+  - exceptiongroup>=1.1.1; python_version < '3.11'
+  - hypothesis>=6.111.2
+  - pytest>=8.3.2
+  - pytest-benchmark>=4.0.0
+  - immutables>=0.20
+  - coverage>=7.6.1
+  - pytest-xdist>=3.6.1
+  - attrs
+issue_stream:
+  schedule: by_tick
+  first_tick: 12
+  interval_ticks: 12
+evaluation:
+  primary_metrics:
+  - hidden_test_pass_rate
+  - causal_fix_rate
+  - issue_fix_rate
+  - regression_pass_rate
+  - release_smoke_ok
+  secondary_metrics:
+  - public_test_pass_rate
+  - heldout_transfer_rate
+  - external_adaptation
+controls:
+  default: none
+component_map:
+  generic_type_resolution:
+  - src/cattrs/gen/_generics.py
+  - src/cattrs/converters.py
+  - src/cattrs/_generics.py
+  converter_configuration:
+  - src/cattrs/converters.py
+  - src/cattrs/gen/__init__.py
+  collection_hooks:
+  - src/cattrs/cols.py
+  - src/cattrs/_compat.py
+  - src/cattrs/converters.py
+  error_reporting:
+  - src/cattrs/errors.py
+  union_strategies:
+  - src/cattrs/strategies/_unions.py
+  - src/cattrs/strategies/__init__.py
+  subclass_strategies:
+  - src/cattrs/strategies/_subclasses.py
+  - src/cattrs/strategies/__init__.py
+  newtype_handling:
+  - src/cattrs/converters.py
+  - src/cattrs/_compat.py
+  hook_generation:
+  - src/cattrs/gen/__init__.py
+  - src/cattrs/gen/_shared.py
+  - src/cattrs/gen/typeddicts.py
+  - src/cattrs/cols.py
+  enum_handling:
+  - src/cattrs/converters.py
+  - src/cattrs/preconf/__init__.py

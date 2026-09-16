@@ -1,0 +1,22 @@
+{
+  "issue_id": "issue_auth",
+  "title": "Auth is not implemented",
+  "issue_type": "feature",
+  "severity": "high",
+  "component": "auth",
+  "created_tick": 24,
+  "source": "vendor_task_brief",
+  "source_type": "requirements_document",
+  "source_id": "fastapi-auth-visualization",
+  "labels": [],
+  "release": "1.0.0",
+  "body": "`POST /auth/signup` — JSON body `{\"username\", \"email\", \"password\", \"role\"}`; returns the created user as `{\"id\", \"username\", \"email\", \"role\", \"created_at\"}`. The response must never include `password` or `hashed_password`. Duplicate username returns HTTP 409 with `error: \"conflict\"`.\n\n`POST /auth/login` — JSON credentials; on success returns `{\"access_token\": \"<jwt>\", \"token_type\": \"bearer\"}`. On wrong password, return HTTP 401 with body exactly `{\"error\": \"unauthorized\", \"detail\": \"invalid credentials\"}`.\n\n`POST /auth/token` — OAuth2 password-flow form endpoint; returns the same `{\"access_token\": \"<jwt>\", \"token_type\": \"bearer\"}` shape.",
+  "acceptance_hint": "9 executable checks over the auth surface.",
+  "linked_hidden_test_ids": [
+    "hidden_auth"
+  ],
+  "candidate_path_hints": [
+    "app/db.py",
+    "app/models.py"
+  ]
+}

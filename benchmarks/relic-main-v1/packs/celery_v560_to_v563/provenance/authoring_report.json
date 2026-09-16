@@ -1,0 +1,124 @@
+{
+  "dataset_id": "celery_v560_to_v563",
+  "public_issues": 12,
+  "heldout_issues": 4,
+  "hidden_contracts": 16,
+  "target": {
+    "public": 12,
+    "heldout": 4,
+    "hidden": 16
+  },
+  "shortfall_reason": "",
+  "rejected_candidates": [
+    {
+      "change_id": "pr_10013",
+      "reason": "needs_broker",
+      "detail": "Redis Sentinel ACL support; the redis client is not installed in the evaluator runtime and SentinelBackend cannot be constructed without it."
+    },
+    {
+      "change_id": "commit_4ec4dcaa84",
+      "reason": "needs_broker",
+      "detail": "Redis pub/sub get_connection signature change; requires the redis client."
+    },
+    {
+      "change_id": "pr_10020",
+      "reason": "needs_django",
+      "detail": "Django fixup pool closing; DjangoWorkerFixup imports django.db at construction time and django is not installed in the evaluator runtime."
+    },
+    {
+      "change_id": "pr_10015",
+      "reason": "needs_django",
+      "detail": "Django connection iteration; same dependency as pr_10020."
+    },
+    {
+      "change_id": "pr_10023",
+      "reason": "needs_django",
+      "detail": "Django prefork detection; same dependency as pr_10020."
+    },
+    {
+      "change_id": "pr_10045",
+      "reason": "needs_django",
+      "detail": "DjangoWorkerFixup recursion fix; same dependency as pr_10020. The pool_cls string hardening from the follow-up pr_10048 is covered instead."
+    },
+    {
+      "change_id": "pr_10100",
+      "reason": "needs_sphinx",
+      "detail": "Sphinx :task: cross-reference role; sphinx is not installed in the evaluator runtime and celery.contrib.sphinx cannot be imported."
+    },
+    {
+      "change_id": "pr_10121",
+      "reason": "needs_ephem",
+      "detail": "solar dusk_astronomical horizon sign; celery.schedules.solar imports ephem in its constructor and ephem is not installed. The only alternative would be to assert on the private _horizons table, which is an implementation check."
+    },
+    {
+      "change_id": "pr_10108",
+      "reason": "needs_sqlalchemy",
+      "detail": "date_done column defaults as callables; the model module imports sqlalchemy."
+    },
+    {
+      "change_id": "pr_10098",
+      "reason": "needs_sqlalchemy",
+      "detail": "date_done index; the model module imports sqlalchemy."
+    },
+    {
+      "change_id": "pr_10134",
+      "reason": "needs_sqlalchemy",
+      "detail": "NullPool kwarg filtering; celery.backends.database.session imports sqlalchemy."
+    },
+    {
+      "change_id": "pr_10086",
+      "reason": "windows_unsupported",
+      "detail": "asynpool _sentinel_poll guard; AsynPool is POSIX-only and celery's own suite skips these tests on win32, so the contract would fail on reference too."
+    },
+    {
+      "change_id": "pr_10151",
+      "reason": "windows_unsupported",
+      "detail": "AsynPool.flush rework needs a live prefork pool. The asynloop half of the same PR is covered by issue_event_loop_hub_teardown."
+    },
+    {
+      "change_id": "pr_10165",
+      "reason": "no_contract_possible",
+      "detail": "PEP 649 deferred annotations only differ on Python 3.14+; the evaluator runtime is 3.12 so starter and reference behave identically."
+    },
+    {
+      "change_id": "pr_10187",
+      "reason": "no_contract_possible",
+      "detail": "fun_accepts_kwargs via co_flags; same Python 3.14-only motivation. The only observable 3.12 difference is for functools.wraps wrappers, which is an accidental side effect rather than the required behaviour."
+    },
+    {
+      "change_id": "pr_10179",
+      "reason": "no_contract_possible",
+      "detail": "RPC result-consumer reconnect discriminates, but only reachable by substituting the consumer's private _connection/_consumer attributes, which would bind the contract to the current class layout."
+    },
+    {
+      "change_id": "pr_10189",
+      "reason": "no_contract_possible",
+      "detail": "reconnect_on_error extraction into BaseResultConsumer is a refactor of pr_10179 with the same reachability problem."
+    },
+    {
+      "change_id": "pr_10155",
+      "reason": "no_contract_possible",
+      "detail": "Docstring and reference-doc wording for the on_after_finalize signal; no runtime behaviour changes."
+    },
+    {
+      "change_id": "pr_10133",
+      "reason": "no_contract_possible",
+      "detail": "Missing space in an s3 backend error message; a contract would assert the exact wording, which is an implementation check, and boto3 is not installed."
+    },
+    {
+      "change_id": "pr_10037",
+      "reason": "chore",
+      "detail": "Release preparation for v5.6.1."
+    },
+    {
+      "change_id": "pr_10049",
+      "reason": "chore",
+      "detail": "Release preparation for v5.6.2."
+    },
+    {
+      "change_id": "pr_10221",
+      "reason": "chore",
+      "detail": "Release preparation for v5.6.3."
+    }
+  ]
+}

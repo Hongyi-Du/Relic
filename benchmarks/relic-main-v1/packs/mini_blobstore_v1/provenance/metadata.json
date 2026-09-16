@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0",
+  "task_id": "mini-blobstore",
+  "product_type": "multi-step-greenfield",
+  "steps": 5,
+  "release_status": "verifier-audited",
+  "difficulty": {
+    "label": "uncalibrated-long-horizon-candidate",
+    "evidence_required": "repeated target-agent rollouts"
+  },
+  "provenance": {
+    "kind": "synthetic-curated",
+    "source": "benchmark-authored",
+    "owner": "Terminal Data Factory Team",
+    "contains_proprietary_data": false
+  },
+  "license": {
+    "status": "pending-owner-approval",
+    "distribution": "buyer-review-only"
+  },
+  "quality": {
+    "behavioral_checks": 35,
+    "curated_false_positives": 5,
+    "target_agent_rollouts": 2
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "issue_id": "issue_config_and_pool",
+  "title": "Config and pool is not implemented",
+  "issue_type": "feature",
+  "severity": "high",
+  "component": "config_and_pool",
+  "created_tick": 36,
+  "source": "vendor_task_brief",
+  "source_type": "requirements_document",
+  "source_id": "telegram-automation-tool",
+  "labels": [],
+  "release": "1.0.0",
+  "body": "The CLI accepts one or more group identifiers (username or invite link) via repeated `--group <id>` flags and connects to each via the Telegram API. When more than one group is provided, each group is processed independently and successful groups are still included in the output even if another group fails to connect. A connection failure for one group is logged and does not abort processing of the others. `tg_automation.cli.run` returns `0` whenever at least one `--group` produced output, even if other groups failed to connect; logged connection failures are soft warnings and do not change the exit code. If no group can be processed successfully, `run` returns a non-zero exit code. Global flags `--config <path>`, `--since <iso8601>`, `--until <iso8601>` apply to every subcommand that needs them.\n\nThe configuration file (JSON) declares `default_window_days` and an `accounts` list; each account has `name`, `api_id`, `api_hash`, `session`, `rate_per_minute`, and an optional `proxy` (`{kind: \"socks5\"|\"mtproto\", host, port, ...}`). `tg_automation.config.load_config(path)` returns a `Config` object with `account_names() -> list[str]` and `accounts` list (each exposing `name`, `api_id`, `api_hash`, `session`, `rate_per_minute`, `proxy`); empty `accounts` or duplicate account `name`s raise `ValueError`. `tg_automation.client.ClientPool(cfg, *, client_factory, clock=...)` rotates calls round-robin across the configured accounts (cached one instance per account via `client_factory`), with `acquire()` returning `(account, client)`; the pool honors each account's `rate_per_minute` budget over a rolling 60-second window — exceeding the total budget raises `RuntimeError` until the window advances. A module-level `reset_client_pool()` clears any cached pool state between tests. Calls go through the account's configured proxy when one is declared.",
+  "acceptance_hint": "6 executable checks over the config_and_pool surface.",
+  "linked_hidden_test_ids": [
+    "hidden_config_and_pool"
+  ],
+  "candidate_path_hints": [
+    "tg_automation/client.py",
+    "tg_automation/config.py"
+  ]
+}

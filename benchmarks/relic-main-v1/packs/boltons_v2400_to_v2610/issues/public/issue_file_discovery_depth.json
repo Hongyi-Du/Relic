@@ -1,0 +1,26 @@
+{
+  "issue_id": "issue_file_discovery_depth",
+  "title": "No way to stop the file search from descending into deep subdirectories",
+  "issue_type": "feature",
+  "severity": "medium",
+  "component": "filesystem_tools",
+  "candidate_path_hints": [
+    "boltons/fileutils.py"
+  ],
+  "created_tick": 12,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#358",
+  "source_url": "https://github.com/mahmoud/boltons/pull/358",
+  "created_at": "2024-06-30T06:43:01Z",
+  "labels": [],
+  "release": "26.1.0",
+  "title_original": "Quick implementation of max_depth for boltons.fileutils.iter_find_files",
+  "text_original": "Probably not the fastest, but it works. Would've been nice if `os.walk` took a parameter.",
+  "text_rewritten": "When I point the recursive file search in the filesystem utilities at a project root it always walks the whole tree. On a checkout with a deep build output directory that means waiting on tens of thousands of paths I never wanted, and there is no way to say \"only the top level\" or \"only one directory down\".\n\nPlease let the search take a `max_depth` limit: `max_depth=0` should look at the given directory only, `max_depth=1` should also cover one level of subdirectory, and so on. Leaving it out has to keep today's unlimited walk, and the limit has to combine with the pattern and ignore arguments that already exist.",
+  "body": "When I point the recursive file search in the filesystem utilities at a project root it always walks the whole tree. On a checkout with a deep build output directory that means waiting on tens of thousands of paths I never wanted, and there is no way to say \"only the top level\" or \"only one directory down\".\n\nPlease let the search take a `max_depth` limit: `max_depth=0` should look at the given directory only, `max_depth=1` should also cover one level of subdirectory, and so on. Leaving it out has to keep today's unlimited walk, and the limit has to combine with the pattern and ignore arguments that already exist.",
+  "acceptance_hint": "iter_find_files accepts a max_depth argument that caps how many directory levels below the starting directory are searched (0 meaning the starting directory only); omitting it keeps the current full-tree behaviour and the cap composes with the existing pattern and ignore arguments.",
+  "linked_hidden_test_ids": [
+    "hidden_file_discovery_depth"
+  ]
+}

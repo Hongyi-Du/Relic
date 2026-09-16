@@ -1,0 +1,29 @@
+{
+  "issue_id": "issue_cli_broker_unreachable",
+  "title": "`celery status` dumps a Python traceback when the broker is down",
+  "issue_type": "usability",
+  "severity": "medium",
+  "component": "cli",
+  "created_tick": 132,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#10190",
+  "source_url": "https://github.com/celery/celery/pull/10190",
+  "created_at": "2026-03-11T15:15:14Z",
+  "labels": [
+    "Component: CLI"
+  ],
+  "release": "v5.6.3",
+  "title_original": "Fix#9722 friendly status errors for CLI",
+  "text_original": "### Summary\r\n\r\nThanks @harshang03 for the awesome work on #10118! The UX improvement for CLI broker errors is fantastic and much needed.\r\n\r\nI noticed that Codecov reported some missing coverage and @auvipy requested additional tests. Since the PR hasn't been updated in about a month, I went ahead and added the missing unit tests to cover the remaining `try...except` blocks to help get this over the finish line.\r\n\r\n### What was added\r\nAdded unit tests to simulate `OperationalError` and unexpected exceptions for the following commands, ensuring the `handle_remote_command_error` is triggered correctly:\r\n- [x] `celery inspect <command>` \r\n- [x] `celery control <command>` (broadcast)\r\n- [x] `celery events` (covering the `_run_evcam` and `_run_evtop` paths)\r\n\r\n---\r\nissue https://github.com/celery/celery/issues/9722",
+  "text_rewritten": "Running `celery status` against a cluster whose broker is not reachable prints a raw Python traceback and exits with a generic failure code. Operators cannot tell whether they mistyped the broker URL, whether the broker is down, or whether they hit a bug in the tool. A command that cannot reach the cluster should report that as an unavailable service: exit with the platform's EX_UNAVAILABLE status, print one line naming the underlying reason, and print no traceback. A reachable broker with no workers must keep the unavailable outcome it already reports, and a healthy cluster must still be listed successfully.",
+  "body": "Running `celery status` against a cluster whose broker is not reachable prints a raw Python traceback and exits with a generic failure code. Operators cannot tell whether they mistyped the broker URL, whether the broker is down, or whether they hit a bug in the tool. A command that cannot reach the cluster should report that as an unavailable service: exit with the platform's EX_UNAVAILABLE status, print one line naming the underlying reason, and print no traceback. A reachable broker with no workers must keep the unavailable outcome it already reports, and a healthy cluster must still be listed successfully.",
+  "acceptance_hint": "`celery status` against an unreachable broker exits EX_UNAVAILABLE, includes the transport's own reason text in its output and prints no traceback; a healthy cluster still exits 0.",
+  "candidate_path_hints": [
+    "celery/bin/base.py",
+    "celery/bin/control.py"
+  ],
+  "linked_hidden_test_ids": [
+    "hidden_cli_broker_unreachable"
+  ]
+}

@@ -1,0 +1,189 @@
+{
+  "dataset_id": "cattrs_v2510_to_v2610",
+  "product_name": "cattrs",
+  "starter_ref": "v25.1.0",
+  "reference_ref": "v26.1.0",
+  "evidence_kind": "executable_behavioral_contract",
+  "starter_repo_digest": "d50e26c3b4582e41ea1ec98b02eb8a3e761d00b68909f470bd14c444ff89d21e",
+  "reference_repo_digest": "f41408460a046a3619533e81409b1bff78f2f352aaaf57458a6defaf3e301a26",
+  "hidden_suite_hash": "73d96420ffd4a95cbad0bead8847ce892309b5942ad6c7c33953121a5ea65397",
+  "evaluator_environment_hash": "e1af84e85d8591c4b59b449e12ce126c4c38452621368652a9f0c4cf81db5a47",
+  "qualification_hash": "e89860423d143b4951a4be2f55120f771a48c6edecc5733de056d9073ae24ad6",
+  "qualification_result_hash": "c76334d36b92f199ea52136114e5d2e7d349fd2dabcf49ffc1a2bf88c78029a2",
+  "result_hash": "c76334d36b92f199ea52136114e5d2e7d349fd2dabcf49ffc1a2bf88c78029a2",
+  "agent_filesystem_isolation_required": true,
+  "agent_filesystem_isolation_status": "required_not_verified_by_pack",
+  "contamination_status": "probes_defined_not_executed",
+  "manual_runtime_test_caveat": "The recorded starter and reference outcomes cover this Pack's own behavioral contracts. The upstream project's full test suite was not run and is not claimed by this receipt.",
+  "formal_ready": true,
+  "blocking_reasons": [],
+  "plan_hash": "e89860423d143b4951a4be2f55120f771a48c6edecc5733de056d9073ae24ad6",
+  "evaluator_environment": {
+    "schema_version": "org_env_pack_evaluator_environment_v1",
+    "runner": "pytest",
+    "plugin_autoload": "disabled",
+    "network": "none",
+    "python_version": "3.12.13",
+    "platform": "windows/amd64",
+    "requirements_lock": "benchmarks/org_env_pack_expansion/evaluator-windows-requirements.lock",
+    "requirements_lock_sha256": "630ea63f19075ce84676aa304a596545cffb182ab8537fb8223c185c4dcefd5d",
+    "hash": "e1af84e85d8591c4b59b449e12ce126c4c38452621368652a9f0c4cf81db5a47"
+  },
+  "qualification_result": {
+    "dataset_id": "cattrs_v2510_to_v2610",
+    "evidence_kind": "executable_behavioral_contract",
+    "qualification_hash": "e89860423d143b4951a4be2f55120f771a48c6edecc5733de056d9073ae24ad6",
+    "starter_hidden_passed": 0,
+    "starter_hidden_total": 16,
+    "reference_hidden_passed": 16,
+    "reference_hidden_total": 16,
+    "formal_ready": true,
+    "blocking_reasons": []
+  },
+  "oracles": [
+    {
+      "test_id": "hidden_parametrized_abc_base",
+      "issue_ids": [
+        "issue_parametrized_abc_base"
+      ],
+      "introduced_in": "v26.1.0",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_converter_alias_default",
+      "issue_ids": [
+        "issue_converter_alias_default"
+      ],
+      "introduced_in": "v26.1.0",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_deferred_generic_unstructuring",
+      "issue_ids": [
+        "issue_deferred_generic_unstructuring"
+      ],
+      "introduced_in": "v26.1.0",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_sequence_target_type",
+      "issue_ids": [
+        "issue_sequence_target_type"
+      ],
+      "introduced_in": "v26.1.0",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_missing_handler_error_payload",
+      "issue_ids": [
+        "issue_missing_handler_error_payload"
+      ],
+      "introduced_in": "v26.1.0",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_extra_keys_error_report",
+      "issue_ids": [
+        "issue_extra_keys_error_report"
+      ],
+      "introduced_in": "v26.1.0",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_union_passthrough_numeric",
+      "issue_ids": [
+        "issue_union_passthrough_numeric"
+      ],
+      "introduced_in": "v26.1.0",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_newtype_unstructuring",
+      "issue_ids": [
+        "issue_newtype_unstructuring"
+      ],
+      "introduced_in": "v26.1.0",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_generic_parent_tagged_union",
+      "issue_ids": [
+        "issue_generic_parent_tagged_union"
+      ],
+      "introduced_in": "v26.1.0",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_omit_default_field_converter",
+      "issue_ids": [
+        "issue_omit_default_field_converter"
+      ],
+      "introduced_in": "v26.1.0",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_typed_enum_values",
+      "issue_ids": [
+        "issue_typed_enum_values"
+      ],
+      "introduced_in": "v26.1.0",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_annotated_override_attrs",
+      "issue_ids": [
+        "issue_annotated_override_attrs"
+      ],
+      "introduced_in": "v26.1.0",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_deferred_nested_generic_structuring",
+      "issue_ids": [
+        "issue_deferred_nested_generic_structuring"
+      ],
+      "introduced_in": "v26.1.0",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_abstract_set_target_type",
+      "issue_ids": [
+        "issue_abstract_set_target_type"
+      ],
+      "introduced_in": "v26.1.0",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_diamond_inheritance_subclasses",
+      "issue_ids": [
+        "issue_diamond_inheritance_subclasses"
+      ],
+      "introduced_in": "v26.1.0",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_annotated_override_mappings",
+      "issue_ids": [
+        "issue_annotated_override_mappings"
+      ],
+      "introduced_in": "v26.1.0",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    }
+  ]
+}

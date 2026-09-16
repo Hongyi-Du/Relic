@@ -1,0 +1,25 @@
+{
+  "pseudo_class_support": [
+    "soupsieve/css_parser.py",
+    "soupsieve/css_match.py"
+  ],
+  "attribute_selectors": [
+    "soupsieve/css_parser.py",
+    "soupsieve/css_match.py"
+  ],
+  "selector_parser": [
+    "soupsieve/css_parser.py",
+    "soupsieve/css_types.py"
+  ],
+  "selector_matching": [
+    "soupsieve/css_match.py"
+  ],
+  "public_api": [
+    "soupsieve/__init__.py",
+    "soupsieve/css_types.py"
+  ],
+  "selector_debug_output": [
+    "soupsieve/pretty.py",
+    "soupsieve/css_types.py"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "issue_id": "issue_extra_keys_error_report",
+  "title": "The \"extra keys\" error prints a different message on every run",
+  "issue_type": "bug",
+  "severity": "medium",
+  "component": "error_reporting",
+  "created_tick": 72,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#670",
+  "source_url": "https://github.com/python-attrs/cattrs/pull/670",
+  "created_at": "2025-07-06T20:15:45Z",
+  "labels": [],
+  "release": "v26.1.0",
+  "title_original": "Make `ForbiddenExtraKeysError.__str__` deterministic",
+  "text_original": "Fixes https://github.com/python-attrs/cattrs/issues/669. Currently the value returned by this method can differ depending on the iteration order of a set, which isn't deterministic. This causing `test_errors_pickling` to be flaky. Related: PR#666 (errors) Correctly set `BaseException.args` and make them pickable.",
+  "text_rewritten": "Two problems with the error raised when a payload carries keys the model does not declare. First, the field names in its message come out in a different order on every process, so our log deduplication treats one recurring rejection as dozens of distinct incidents and our snapshot tests are flaky - the names should be listed in alphabetical order so the text is byte-identical every run. Second, we forward these errors from a worker pool and unpickling one dies with a TypeError about missing positional arguments, because the error does not make the values it was constructed from available for the standard rebuild path. Both the class it rejected and the set of offending keys should still be reachable after a round trip. An explicitly supplied message must keep winning over the generated one.",
+  "body": "Two problems with the error raised when a payload carries keys the model does not declare. First, the field names in its message come out in a different order on every process, so our log deduplication treats one recurring rejection as dozens of distinct incidents and our snapshot tests are flaky - the names should be listed in alphabetical order so the text is byte-identical every run. Second, we forward these errors from a worker pool and unpickling one dies with a TypeError about missing positional arguments, because the error does not make the values it was constructed from available for the standard rebuild path. Both the class it rejected and the set of offending keys should still be reachable after a round trip. An explicitly supplied message must keep winning over the generated one.",
+  "acceptance_hint": "The generated message lists the offending keys in alphabetical order every run, the error exposes every value it was constructed from and survives a pickle round trip with its class and key set intact, and an explicit message is still printed verbatim.",
+  "linked_hidden_test_ids": [
+    "hidden_extra_keys_error_report"
+  ]
+}

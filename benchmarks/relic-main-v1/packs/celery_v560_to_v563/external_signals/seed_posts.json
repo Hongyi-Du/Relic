@@ -1,0 +1,114 @@
+[
+  {
+    "post_id": "ext_seed_cy_1",
+    "author_id": "ext_user_ops_rin",
+    "topic": "worker_shutdown",
+    "content_summary": "Rolling a deploy is a coin flip for us now: half the workers lose the broker mid-drain and the tasks that were running come back as connection errors.",
+    "stance": -0.4,
+    "created_tick": 6
+  },
+  {
+    "post_id": "ext_seed_cy_2",
+    "author_id": "ext_user_pkg_mave",
+    "topic": "worker_consumer",
+    "content_summary": "Our distro dropped the exceptiongroup package and now the worker won't even boot on Python 3.12. We're pinning an old release until this is sorted.",
+    "stance": -0.3,
+    "created_tick": 18
+  },
+  {
+    "post_id": "ext_seed_cy_3",
+    "author_id": "ext_user_dash_lior",
+    "topic": "worker_control",
+    "content_summary": "Our dashboard shows revoked jobs as PENDING until something picks them up. For ETA jobs that's basically forever and support keeps asking about it.",
+    "stance": -0.2,
+    "created_tick": 30
+  },
+  {
+    "post_id": "ext_seed_cy_4",
+    "author_id": "ext_user_beatpm",
+    "topic": "beat_scheduler",
+    "content_summary": "Adding -B to our gevent worker used to print a helpful 'run beat standalone' message. Now it's just an AttributeError about a str having no __module__.",
+    "stance": -0.35,
+    "created_tick": 42
+  },
+  {
+    "post_id": "ext_seed_cy_5",
+    "author_id": "ext_user_queue_kai",
+    "topic": "task_api",
+    "content_summary": "Retries on our quorum queues just evaporate. RabbitMQ logs a dead-letter cycle and the task never comes back. Took us two days to even notice.",
+    "stance": -0.5,
+    "created_tick": 54
+  },
+  {
+    "post_id": "ext_seed_cy_6",
+    "author_id": "ext_user_greenlet_bo",
+    "topic": "worker_shutdown",
+    "content_summary": "Ctrl-C on an eventlet worker throws 'do not call blocking functions from the mainloop' instead of shutting down. Have to kill -9 every time.",
+    "stance": -0.3,
+    "created_tick": 66
+  },
+  {
+    "post_id": "ext_seed_cy_7",
+    "author_id": "ext_user_dba_pren",
+    "topic": "result_backend",
+    "content_summary": "Every Monday morning the first few jobs fail with 'MySQL server has gone away'. Everyone I know using the database backend just adds pool_pre_ping by hand.",
+    "stance": -0.4,
+    "created_tick": 78
+  },
+  {
+    "post_id": "ext_seed_cy_8",
+    "author_id": "ext_user_sched_ame",
+    "topic": "beat_scheduler",
+    "content_summary": "Embedded beat comes back from a process restart pointing at the wrong app. The arguments look scrambled when you print the rebuilt object.",
+    "stance": -0.2,
+    "created_tick": 90
+  },
+  {
+    "post_id": "ext_seed_cy_9",
+    "author_id": "ext_user_canvas_tuo",
+    "topic": "canvas",
+    "content_summary": "Six chords in a chain produced a 1.4 GB message and took the broker down with it. Five was already 120 MB. We had to hand-roll the workflow instead.",
+    "stance": -0.6,
+    "created_tick": 102
+  },
+  {
+    "post_id": "ext_seed_cy_10",
+    "author_id": "ext_user_flow_jen",
+    "topic": "task_execution",
+    "content_summary": "Chains sometimes stop halfway with nothing in the logs. It seems to happen on the runs where a message got redelivered.",
+    "stance": -0.45,
+    "created_tick": 114
+  },
+  {
+    "post_id": "ext_seed_cy_11",
+    "author_id": "ext_user_sre_dara",
+    "topic": "cli",
+    "content_summary": "`celery status` printing a full traceback when the broker is down is a rough first experience. New folks on the team think they broke something.",
+    "stance": -0.25,
+    "created_tick": 126
+  },
+  {
+    "post_id": "ext_seed_cy_12",
+    "author_id": "ext_user_api_wen",
+    "topic": "task_execution",
+    "content_summary": "apply_async(ignore_result=False) does nothing for a task declared with ignore_result=True. We ended up defining the same task twice.",
+    "stance": -0.3,
+    "created_tick": 138
+  },
+  {
+    "post_id": "ext_seed_cy_13",
+    "author_id": "ext_user_ops_rin",
+    "topic": "worker_event_loop",
+    "content_summary": "After a Redis failover the workers look healthy in ps but consume nothing. Only a restart brings them back.",
+    "stance": -0.35,
+    "created_tick": 150
+  },
+  {
+    "post_id": "ext_seed_cy_14",
+    "author_id": "ext_user_dash_lior",
+    "topic": "cli",
+    "content_summary": "Happy to see the CLI errors getting attention. Would love `inspect` and `control` to be as readable as the rest.",
+    "stance": 0.1,
+    "created_tick": 162
+  }
+]

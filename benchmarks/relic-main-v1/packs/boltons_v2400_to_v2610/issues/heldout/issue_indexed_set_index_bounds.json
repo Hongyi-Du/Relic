@@ -1,0 +1,27 @@
+{
+  "issue_id": "issue_indexed_set_index_bounds",
+  "title": "An out-of-range negative index on an ordered set quietly returns an element",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "indexed_set",
+  "candidate_path_hints": [
+    "boltons/setutils.py"
+  ],
+  "created_tick": 0,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#424",
+  "source_url": "https://github.com/mahmoud/boltons/pull/424",
+  "created_at": "2026-07-17T06:36:33Z",
+  "labels": [],
+  "release": "26.1.0",
+  "title_original": "Fix IndexedSet slicing after removals and out-of-range negative indexing",
+  "text_original": "## Summary\n\nFixes two related bugs in `IndexedSet`:\n\n1. **Slicing after removals returns wrong items** (#423): `iter_slice` mapped start/stop through `_get_real_index()` (item_list space) but then fed them to `islice` over `__iter__` (apparent/dead-slot-free space), so any prior removal caused slices to over-count by the number of dead slots before each bound.\n\n2. **Out-of-range negative scalar indices wrap silently**: `__getitem__` normalized negative indices before passing them to `_get_real_index`, which normalized them *again*, so e.g. `x[-10]` on a 9-element set quietly returned `x[-1]` instead of raising `IndexError`, and `pop(-15)` silently removed the wrong element.\n\n## Changes\n\n### Commit 1: slicing fix (adopts #423's approach)\n- **`iter_slice`**: Removed the two `_get_real_index()` calls. Bounds now stay in apparent index space (the space `islice` consumes). Only negatives need explicit normalization since `islice` rejects them. Negative-step reversed-window semantics (`x[2:4:-1] == reversed(x)[2:4]`, in place since 2013) are preserved.\n- **Tests**: `test_iset_slice_after_removal` (direct repro from #423) + `test_iset_slice_agreement` (fuzz: 6 removal patterns × 11×11 bounds × 7 steps, verified against both a fresh-built `IndexedSet` and `list` slicing).\n\n### Commit 2: scalar-index bounds check\n- **`_get_real_index`**: Added bounds check after negative normalization → raises `IndexError` for out-of-range indices.\n- **`__getitem__` scalar path**: Removed the redundant pre-normalization (the wraparound cause) and the now-dead `try/except` re-raise.\n- **Tests**: `test_iset_scalar_index_bounds` + `test_iset_scalar_index_multiple_dead_intervals` (5 dead ranges, interval walk).\n\n## Verification\n- All 9 tests pass (`pytest tests/test_setutils.py`)\n- Doctests pass (`pytest --doctest-modules boltons/setutils.py`)\n- Existing reversed-window pin (line 21: `x[2:4:-1] == IndexedSet([8, 7])`) untouched and green\n\nCo-authored-by: Andrew Chen <48723787+chuenchen309@users.noreply.github.com> (slicing fix adopted from #423)",
+  "text_rewritten": "Indexing the insertion-ordered set with a negative position that reaches past the start does not raise. A six-element set asked for position -7 hands back an element instead of reporting the error, so an off-by-one in our paging code went unnoticed for weeks and silently returned the wrong row. A plain list raises IndexError in exactly that situation.\n\nNegative positions beyond the start should be rejected the same way positions beyond the end already are, and that has to hold whether or not elements have been removed from the set. In-range positions, including -1, must keep returning what they return today.",
+  "body": "Indexing the insertion-ordered set with a negative position that reaches past the start does not raise. A six-element set asked for position -7 hands back an element instead of reporting the error, so an off-by-one in our paging code went unnoticed for weeks and silently returned the wrong row. A plain list raises IndexError in exactly that situation.\n\nNegative positions beyond the start should be rejected the same way positions beyond the end already are, and that has to hold whether or not elements have been removed from the set. In-range positions, including -1, must keep returning what they return today.",
+  "acceptance_hint": "Indexing an IndexedSet with a position outside the current range — negative or positive, with or without prior removals — raises IndexError, while in-range positions including -1 return the same elements as before.",
+  "linked_hidden_test_ids": [
+    "hidden_indexed_set_index_bounds"
+  ],
+  "hidden": true
+}

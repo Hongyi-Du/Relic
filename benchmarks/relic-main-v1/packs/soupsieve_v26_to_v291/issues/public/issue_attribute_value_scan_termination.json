@@ -1,0 +1,23 @@
+{
+  "issue_id": "issue_attribute_value_scan_termination",
+  "title": "A malformed attribute test with a long bare value hangs the compile forever",
+  "issue_type": "performance",
+  "severity": "critical",
+  "component": "attribute_selectors",
+  "created_tick": 60,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#289",
+  "source_url": "https://github.com/facelessuser/soupsieve/pull/289",
+  "created_at": "2026-01-19T14:58:31Z",
+  "labels": [],
+  "release": "2.9.1",
+  "title_original": "Attribute pattern fix",
+  "text_original": "(no upstream description)",
+  "text_rewritten": "We compile selectors that arrive from untrusted callers. An attribute test whose closing bracket is missing and whose value is an unquoted run of roughly a hundred ordinary characters never finishes compiling: one request pins a CPU indefinitely and nothing else on that worker makes progress. Noticeably shorter versions of the same input come back with a syntax error immediately, so the cost is exploding with the length of the value rather than growing with it, and a caller only has to add a few characters to move from fast to never.\n\nRejecting a malformed selector should cost time proportional to its length, no matter how long the offending value is. Well-formed attribute tests must keep selecting exactly what they select today, including escaped characters in the attribute name and the |= and != operators.",
+  "body": "We compile selectors that arrive from untrusted callers. An attribute test whose closing bracket is missing and whose value is an unquoted run of roughly a hundred ordinary characters never finishes compiling: one request pins a CPU indefinitely and nothing else on that worker makes progress. Noticeably shorter versions of the same input come back with a syntax error immediately, so the cost is exploding with the length of the value rather than growing with it, and a caller only has to add a few characters to move from fast to never.\n\nRejecting a malformed selector should cost time proportional to its length, no matter how long the offending value is. Well-formed attribute tests must keep selecting exactly what they select today, including escaped characters in the attribute name and the |= and != operators.",
+  "acceptance_hint": "A bracket-unterminated attribute test with a long unquoted value raises a selector syntax error promptly however long that value is; well-formed attribute tests are unchanged.",
+  "linked_hidden_test_ids": [
+    "hidden_attribute_value_scan_termination"
+  ]
+}

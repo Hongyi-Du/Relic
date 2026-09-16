@@ -1,0 +1,162 @@
+{
+  "dataset_id": "soupsieve_v26_to_v291",
+  "product_name": "soupsieve",
+  "starter_ref": "2.6",
+  "reference_ref": "2.9.1",
+  "evidence_kind": "executable_behavioral_contract",
+  "starter_repo_digest": "15d9755e62f8a44eab2e74b0859407c3f82a87856a048acd036d6f46b37b4b72",
+  "reference_repo_digest": "f4aadbf89ebcefd664bfc6ae4e8876c5842d8f16394feffb5f9bc116d4601439",
+  "hidden_suite_hash": "2d544aa99167e8c3657ac7ea5dcffb3776c52645be8cb22e6c8625c77664418f",
+  "evaluator_environment_hash": "e1af84e85d8591c4b59b449e12ce126c4c38452621368652a9f0c4cf81db5a47",
+  "qualification_hash": "f8c83925dbec4f2ce21b3477c565dcc9b45a93ee390fdc5b93ec94a959dc0ceb",
+  "qualification_result_hash": "f02ca99587edc693800d9d3e0784bc6ec08d287c61c627276d57fdbbb6dfa48c",
+  "result_hash": "f02ca99587edc693800d9d3e0784bc6ec08d287c61c627276d57fdbbb6dfa48c",
+  "agent_filesystem_isolation_required": true,
+  "agent_filesystem_isolation_status": "required_not_verified_by_pack",
+  "contamination_status": "probes_defined_not_executed",
+  "manual_runtime_test_caveat": "The recorded starter and reference outcomes cover this Pack's own behavioral contracts. The upstream project's full test suite was not run and is not claimed by this receipt.",
+  "formal_ready": true,
+  "blocking_reasons": [],
+  "plan_hash": "f8c83925dbec4f2ce21b3477c565dcc9b45a93ee390fdc5b93ec94a959dc0ceb",
+  "evaluator_environment": {
+    "schema_version": "org_env_pack_evaluator_environment_v1",
+    "runner": "pytest",
+    "plugin_autoload": "disabled",
+    "network": "none",
+    "python_version": "3.12.13",
+    "platform": "windows/amd64",
+    "requirements_lock": "benchmarks/org_env_pack_expansion/evaluator-windows-requirements.lock",
+    "requirements_lock_sha256": "630ea63f19075ce84676aa304a596545cffb182ab8537fb8223c185c4dcefd5d",
+    "hash": "e1af84e85d8591c4b59b449e12ce126c4c38452621368652a9f0c4cf81db5a47"
+  },
+  "qualification_result": {
+    "dataset_id": "soupsieve_v26_to_v291",
+    "evidence_kind": "executable_behavioral_contract",
+    "qualification_hash": "f8c83925dbec4f2ce21b3477c565dcc9b45a93ee390fdc5b93ec94a959dc0ceb",
+    "starter_hidden_passed": 0,
+    "starter_hidden_total": 13,
+    "reference_hidden_passed": 13,
+    "reference_hidden_total": 13,
+    "formal_ready": true,
+    "blocking_reasons": []
+  },
+  "oracles": [
+    {
+      "test_id": "hidden_open_state_selector",
+      "issue_ids": [
+        "issue_open_state_selector"
+      ],
+      "introduced_in": "2.7",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_live_environment_pseudo_classes",
+      "issue_ids": [
+        "issue_live_environment_pseudo_classes"
+      ],
+      "introduced_in": "2.7",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_namespace_map_key_types",
+      "issue_ids": [
+        "issue_namespace_map_key_types"
+      ],
+      "introduced_in": "2.8.2",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_selector_debug_output_termination",
+      "issue_ids": [
+        "issue_selector_debug_output_termination"
+      ],
+      "introduced_in": "2.8.2",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_attribute_value_scan_termination",
+      "issue_ids": [
+        "issue_attribute_value_scan_termination"
+      ],
+      "introduced_in": "2.8.3",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_unterminated_attribute_string_termination",
+      "issue_ids": [
+        "issue_unterminated_attribute_string_termination"
+      ],
+      "introduced_in": "2.8.4",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_selector_volume_cap",
+      "issue_ids": [
+        "issue_selector_volume_cap"
+      ],
+      "introduced_in": "2.8.4",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_nth_index_boundaries",
+      "issue_ids": [
+        "issue_nth_index_boundaries"
+      ],
+      "introduced_in": "2.9",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_empty_substring_attribute_match",
+      "issue_ids": [
+        "issue_empty_substring_attribute_match"
+      ],
+      "introduced_in": "2.9",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_muted_media_selector",
+      "issue_ids": [
+        "issue_muted_media_selector"
+      ],
+      "introduced_in": "2.7",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_iso_week_range_limits",
+      "issue_ids": [
+        "issue_iso_week_range_limits"
+      ],
+      "introduced_in": "2.8.2",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_whitespace_trim_termination",
+      "issue_ids": [
+        "issue_whitespace_trim_termination"
+      ],
+      "introduced_in": "2.9",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_identifier_scan_termination",
+      "issue_ids": [
+        "issue_identifier_scan_termination"
+      ],
+      "introduced_in": "2.9",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    }
+  ]
+}

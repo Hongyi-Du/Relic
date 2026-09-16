@@ -1,0 +1,29 @@
+{
+  "issue_id": "issue_tracer_ignore_result_precedence",
+  "title": "A per-call ignore_result cannot override the task's own declaration",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "task_execution",
+  "created_tick": 144,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#10184",
+  "source_url": "https://github.com/celery/celery/pull/10184",
+  "created_at": "2026-03-15T10:51:04Z",
+  "labels": [
+    "Component: Result Backend"
+  ],
+  "release": "v5.6.3",
+  "title_original": "Fix: prioritize request ignore_result over task definition",
+  "text_original": "## Description\r\n\r\nFixes #9654 \r\n\r\nPrevious if you set `apply_sync(ignore_result=False)` with `@app.task(ignore_result=True)`, it would failed to get the task results, because in the `trace.py` we only use `task.ignore_result` as the condition to decide whether to publish result.\r\n\r\nAdd new function `get_actual_ignore_result` to handle the handle the priority lookup: `Request > Task`\r\n\r\n## Changes\r\n- Introduced `get_actual_ignore_result` to handle the priority lookup: `Request > Task`.\r\n- Refactored `handle_error_state` to respect these overrides.\r\n- Moved `publish_result` evaluation into the execution flow for better accuracy.\r\n\r\n## Test with three condition\r\n- `@app.task(ignore_result=True)` with `apply_sync(ignore_result=False)` => Expected Test Result `Exist`\r\n- `@app.task(ignore_result=False)` with `apply_sync(ignore_result=True)` => Expected Test Result `Not Exist`\r\n- `app.conf.task_ignore_result = True` with `apply_sync(ignore_result=False)` => Expected Test Result `Exist`\r\n\r\n## ⚠️ Behavioral Changes\r\n\r\nThis PR fixes an inconsistency where `ignore_result=True` tasks would still store error results if the request did not explicitly provide an `ignore_result` key.\r\n\r\n- **Old Behavior**: If a request message lacked the `ignore_result` key, it defaulted to `False` in the worker request, causing `store_errors` to be `True`. This led to failure results being stored even for tasks decorated with `@app.task(ignore_result=True)`.\r\n- **New Behavior**: The worker request now correctly falls back to the task-level `ignore_result` setting. If a task is configured to ignore results, it will no longer store error results by default unless overridden by the request.\r\n\r\n**User Impact**: Users relying on \"accidental\" error persistence for tasks with `ignore_result=True` will notice that these errors are no longer stored in the backend.\r\n",
+  "text_rewritten": "A task declared with ignore_result=True that is submitted through apply_async(ignore_result=False) still stores nothing, so the caller waits forever for a result that is never written. The opposite direction is broken too: a per-call ignore_result=True against a task declared to store results is ignored. The per-message setting is the more specific of the two and has to win in both directions, and the application-wide task_ignore_result has to lose to it as well. A message that expresses no preference must fall back to the task's own declaration.",
+  "body": "A task declared with ignore_result=True that is submitted through apply_async(ignore_result=False) still stores nothing, so the caller waits forever for a result that is never written. The opposite direction is broken too: a per-call ignore_result=True against a task declared to store results is ignored. The per-message setting is the more specific of the two and has to win in both directions, and the application-wide task_ignore_result has to lose to it as well. A message that expresses no preference must fall back to the task's own declaration.",
+  "acceptance_hint": "A per-message ignore_result overrides both the task declaration and task_ignore_result in both directions, and a message without the key falls back to the task declaration.",
+  "candidate_path_hints": [
+    "celery/app/trace.py",
+    "celery/worker/request.py"
+  ],
+  "linked_hidden_test_ids": [
+    "hidden_tracer_ignore_result_precedence"
+  ]
+}

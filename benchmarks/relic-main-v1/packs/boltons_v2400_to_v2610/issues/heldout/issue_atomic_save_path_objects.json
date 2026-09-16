@@ -1,0 +1,27 @@
+{
+  "issue_id": "issue_atomic_save_path_objects",
+  "title": "Atomic file writes reject path objects with a TypeError",
+  "issue_type": "bug",
+  "severity": "medium",
+  "component": "filesystem_tools",
+  "candidate_path_hints": [
+    "boltons/fileutils.py"
+  ],
+  "created_tick": 0,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#416",
+  "source_url": "https://github.com/mahmoud/boltons/pull/416",
+  "created_at": "2026-07-17T08:11:19Z",
+  "labels": [],
+  "release": "26.1.0",
+  "title_original": "fix(fileutils): accept os.PathLike in AtomicSaver",
+  "text_original": "`AtomicSaver.__init__` assigned `dest_path` directly to `self.dest_path` and later concatenated it as a string (`dest_path + '.part'`), which raises `TypeError` when a `pathlib.Path` is passed.\n\n`iter_find_files` called `.split()` on the `directory` argument, which also fails for `pathlib.Path`.\n\n**Changes:**\n- `AtomicSaver.__init__`: convert `dest_path` via `os.fspath()` at the top of the method, and use `self.dest_path` (the already-converted str) when building the `.part` path\n- `iter_find_files`: convert `directory` via `os.fspath()` before calling `.split()`\n- Add `test_atomicsaver_pathlike` and `test_iter_find_files_pathlike` to the test suite\n\nCloses #383",
+  "text_rewritten": "Our codebase passes filesystem path objects around everywhere. Handing one to the atomic-write helper fails immediately with a TypeError about not being able to add a path and a string, so every call site has to be wrapped in str(). Anything that takes a filename should take a path object; the standard library has accepted them for years.\n\nThe helper should take a path object as its destination in both binary and text mode, write exactly what an equivalent string path would write, and still clean up the temporary file when the body of the with-block raises.",
+  "body": "Our codebase passes filesystem path objects around everywhere. Handing one to the atomic-write helper fails immediately with a TypeError about not being able to add a path and a string, so every call site has to be wrapped in str(). Anything that takes a filename should take a path object; the standard library has accepted them for years.\n\nThe helper should take a path object as its destination in both binary and text mode, write exactly what an equivalent string path would write, and still clean up the temporary file when the body of the with-block raises.",
+  "acceptance_hint": "atomic_save accepts a filesystem path object as its destination in binary and text mode, producing the same result as an equivalent string path and leaving no leftover temporary file when the block raises.",
+  "linked_hidden_test_ids": [
+    "hidden_atomic_save_path_objects"
+  ],
+  "hidden": true
+}

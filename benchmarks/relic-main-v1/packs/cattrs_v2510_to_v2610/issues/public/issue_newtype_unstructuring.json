@@ -1,0 +1,23 @@
+{
+  "issue_id": "issue_newtype_unstructuring",
+  "title": "A distinct type alias over a model leaks the model instance into the payload",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "newtype_handling",
+  "created_tick": 96,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#684",
+  "source_url": "https://github.com/python-attrs/cattrs/pull/684",
+  "created_at": "2025-09-03T13:47:45Z",
+  "labels": [],
+  "release": "v26.1.0",
+  "title_original": "Improve Hypothesis test robustness",
+  "text_original": "Fix unstructuring NewTypes with the BaseConverter. Make some Hypothesis tests more robust.",
+  "text_rewritten": "We use distinct type aliases (NewType) over our models to keep domain meanings apart in the type checker. On the basic converter, unstructuring against such an alias hands back the model instance itself instead of a payload of primitives - so what we serialize still contains a live object and the encoder blows up downstream. The same value unstructures correctly when the target is the underlying model, and the other shipped converter already does the right thing, so the alias is the only thing that confuses it. A distinct alias adds no runtime behaviour of its own and should simply be handled as the type it was declared over, including when aliases are stacked and when an alias is used as a field annotation.",
+  "body": "We use distinct type aliases (NewType) over our models to keep domain meanings apart in the type checker. On the basic converter, unstructuring against such an alias hands back the model instance itself instead of a payload of primitives - so what we serialize still contains a live object and the encoder blows up downstream. The same value unstructures correctly when the target is the underlying model, and the other shipped converter already does the right thing, so the alias is the only thing that confuses it. A distinct alias adds no runtime behaviour of its own and should simply be handled as the type it was declared over, including when aliases are stacked and when an alias is used as a field annotation.",
+  "acceptance_hint": "On the basic converter, unstructuring against a distinct type alias produces the same primitive payload as unstructuring against the type it was declared over, including stacked aliases and alias-annotated fields.",
+  "linked_hidden_test_ids": [
+    "hidden_newtype_unstructuring"
+  ]
+}

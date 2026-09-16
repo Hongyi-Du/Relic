@@ -1,0 +1,24 @@
+{
+  "issue_id": "issue_async_wait_stop_strategies",
+  "title": "Coroutine wait and stop strategies abort the loop after a single attempt",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "async_retry_runtime",
+  "created_tick": 0,
+  "hidden": true,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#437",
+  "source_url": "https://github.com/jd/tenacity/pull/437",
+  "created_at": "2024-03-02T07:30:37Z",
+  "labels": [],
+  "release": "9.1.4",
+  "title_original": "Support async actions",
+  "text_original": "Fixes #249 #412. Second PR after breaking down https://github.com/jd/tenacity/pull/433 (follows https://github.com/jd/tenacity/pull/434). After DRYing the `iter()` function, make `AsyncRetrying` support `async` callbacks.",
+  "text_rewritten": "Both our backoff and our give-up decision need to await a lookup: the pause comes out of a rate-limit budget we keep in a shared store, and whether to continue depends on a quota we read from the same place. So we pass coroutine callables as `wait=` and `stop=` on an asynchronous retried function. The loop gives up straight after the first attempt, no pause is ever requested, and neither of our callables actually executes. The same callables written as ordinary functions work correctly. It looks as though whatever the coroutine hands back is consumed as if it were the answer, and a coroutine that has not been started is always truthy.",
+  "body": "Both our backoff and our give-up decision need to await a lookup: the pause comes out of a rate-limit budget we keep in a shared store, and whether to continue depends on a quota we read from the same place. So we pass coroutine callables as `wait=` and `stop=` on an asynchronous retried function. The loop gives up straight after the first attempt, no pause is ever requested, and neither of our callables actually executes. The same callables written as ordinary functions work correctly. It looks as though whatever the coroutine hands back is consumed as if it were the answer, and a coroutine that has not been started is always truthy.",
+  "acceptance_hint": "On the asynchronous path a coroutine `wait=` strategy determines the pause of each attempt and a coroutine `stop=` strategy decides when to give up, producing the same attempt count and the same sequence of pauses as the equivalent ordinary callables.",
+  "linked_hidden_test_ids": [
+    "hidden_async_wait_stop_strategies"
+  ]
+}

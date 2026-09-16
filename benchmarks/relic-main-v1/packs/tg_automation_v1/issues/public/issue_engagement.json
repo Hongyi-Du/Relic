@@ -1,0 +1,21 @@
+{
+  "issue_id": "issue_engagement",
+  "title": "Engagement is not implemented",
+  "issue_type": "feature",
+  "severity": "high",
+  "component": "engagement",
+  "created_tick": 48,
+  "source": "vendor_task_brief",
+  "source_type": "requirements_document",
+  "source_id": "telegram-automation-tool",
+  "labels": [],
+  "release": "1.0.0",
+  "body": "`tg_automation.engagement.engagement_report(group_ids, *, since, until, source)` returns a dictionary with keys `posts` and `user_frequency`. It reads per-post data via `source.iter_posts(group_id, since, until)`, which yields dictionaries with `post_id`, `author_id`, `author_username`, `date` (ISO 8601, UTC), `reactions` (dict of emoji string to integer count), `replies`, and `comments`. `posts` is a list of per-post dictionaries with `group_id`, `post_id`, `author_id`, `author_username`, `date`, `reactions_by_emoji`, `reactions_total`, `replies`, and `comments`. Each post's `date` field is serialized as the UTC tz-aware datetime's `datetime.isoformat()` output, for example `\"2026-05-01T10:00:00+00:00\"`, not the `Z`-suffix or any other ISO 8601 variant. `reactions_by_emoji` is a dictionary keyed by emoji string with integer counts, and `reactions_total` is the sum of those counts. `user_frequency` is a list of per-user dictionaries with `group_id`, `user_id`, `username`, `messages_sent`, and `messages_per_day`. In `user_frequency`, each user's `messages_sent` is the count of posts authored by that user within the `[since, until)` window, one increment per matching row from `iter_posts`, not a count derived from `iter_messages`. `messages_per_day` is a float equal to `messages_sent` divided by the number of days in the `[since, until)` window, using a minimum divisor of 1 day to avoid division by zero, rounded to 4 decimal places.\n\nEvery report subcommand (`analyze`, `filter-users`, `engagement`, `growth trend`, `growth bulk-invite`) accepts `--export <path>` and writes the report as `.csv` when the path ends in `.csv` and as `.xlsx` when it ends in `.xlsx`; any other extension raises `ValueError`. Column headers are snake_case and stable across runs. CSV and XLSX exports emit columns in the insertion order of the keys of the first input row (after header normalization), and this order is preserved across runs. `tg_automation.export.export_report(rows, path)` accepts dicts or any object exposing `as_dict()`; its header-normalization helper `_normalize_field(name)` lowercases, trims surrounding whitespace, and replaces non-alphanumeric runs with single underscores (so `\"Messages Sent\"` and `\"Reactions-Given\"` become `messages_sent` and `reactions_given`).\n\nThe repository includes `docs/output_schema.md`, documenting the output schema for analysis, engagement, growth, and export rows. The document must enumerate every exported field using snake_case names. `docs/output_schema.md` documents every field in markdown tables whose first column is the field name wrapped in backticks, for example a row like `| user_id | int | ... |` should be written with `user_id` backticked in the first column, so each documented field name is parseable as the first backticked token of a table row. Non-field type names or implementation identifiers should not be backticked unless they are listed in a field-name column.",
+  "acceptance_hint": "5 executable checks over the engagement surface.",
+  "linked_hidden_test_ids": [
+    "hidden_engagement"
+  ],
+  "candidate_path_hints": [
+    "tg_automation/engagement.py"
+  ]
+}

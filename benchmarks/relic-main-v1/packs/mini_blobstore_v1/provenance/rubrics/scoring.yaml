@@ -1,0 +1,8 @@
+weights:
+  correctness: 0.50
+  code_quality: 0.20
+  reasoning: 0.15
+  efficiency: 0.15
+release_gate:
+  correctness: 1.0
+  critical_safety_checks: all

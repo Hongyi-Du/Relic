@@ -1,0 +1,22 @@
+{
+  "issue_id": "issue_dashboard",
+  "title": "Dashboard is not implemented",
+  "issue_type": "feature",
+  "severity": "high",
+  "component": "dashboard",
+  "created_tick": 24,
+  "source": "vendor_task_brief",
+  "source_type": "requirements_document",
+  "source_id": "traffic-violation-detection",
+  "labels": [],
+  "release": "1.0.0",
+  "body": "Each detected violation produces a real-time alert (delivered via the dashboard's live feed and/or an external webhook) and is appended to a persistent log.\n\nThe web dashboard supports uploading a video file or pointing at a live camera feed, lists recent violations, and exports violation reports and per-violation snapshot images.\n\nThe implementation uses Python, OpenCV, a YOLO/TensorFlow/PyTorch model for detection, an OCR component for plate recognition, and Flask or Django for the dashboard.\n\nThe dashboard renders cleanly in modern browsers, the repository ships proper documentation and source code, the detection pipeline maintains real-time throughput on a modern CPU, and the system runs on a local machine or server without external cloud dependencies.\n\n### Public API (the test suite imports these names)\n\nAll public names must be exported from the top-level `traffic_violation_system` package (importable as `from traffic_violation_system import ...`). The Flask app factory lives at `traffic_violation_system.dashboard.create_app`. Tests inject fakes by subclassing the abstract seam classes below, so concrete model code must sit behind these seams (no real model is loaded during tests).\n\n`no_change_zone` is a pair of parallel lines defining a band. `LANE_CHANGE` fires when a tracked vehicle's centroid crosses one of the `lane_dividers` between two consecutive frames while both the previous and the current centroid lie between the two `no_change_zone` lines.\n\n### Flask dashboard routes\n\n`create_app(store, upload_dir=...)` exposes:",
+  "acceptance_hint": "6 executable checks over the dashboard surface.",
+  "linked_hidden_test_ids": [
+    "hidden_dashboard"
+  ],
+  "candidate_path_hints": [
+    "traffic_violation_system/dashboard.py",
+    "traffic_violation_system/__init__.py"
+  ]
+}

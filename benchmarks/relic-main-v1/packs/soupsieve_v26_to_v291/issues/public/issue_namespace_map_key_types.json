@@ -1,0 +1,23 @@
+{
+  "issue_id": "issue_namespace_map_key_types",
+  "title": "A namespace map with a non-string prefix is accepted and then never matches",
+  "issue_type": "usability",
+  "severity": "medium",
+  "component": "public_api",
+  "created_tick": 36,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#288",
+  "source_url": "https://github.com/facelessuser/soupsieve/pull/288",
+  "created_at": "2026-01-15T15:14:10Z",
+  "labels": [],
+  "release": "2.9.1",
+  "title_original": "Various fixes by @mundanevision20",
+  "text_original": "- Ensure custom selectors or namespace dictionaries reject non-string keys\r\n- Fix handling of `:in-range` and `:out-of-range` with end of year weeks\r\n- Fix a potential infinite loop in pretty printing of compiled selector objects",
+  "text_rewritten": "We build the namespace map for prefix-qualified selectors out of a config loader, and the loader occasionally hands us a key that is not a string: an integer, a boolean, a tuple. Compiling with such a map succeeds, and from then on every prefix-qualified selector quietly selects nothing, so a one-character config typo surfaces hours later as an empty result set instead of an error at the call site.\n\nA prefix that is not a string can never be written in a selector, so a map containing one should be refused the moment it is handed over, the same way a map with a non-string namespace URI already is. Maps whose prefixes and URIs are all strings must keep working, in both the dictionary form and the iterable-of-pairs form.",
+  "body": "We build the namespace map for prefix-qualified selectors out of a config loader, and the loader occasionally hands us a key that is not a string: an integer, a boolean, a tuple. Compiling with such a map succeeds, and from then on every prefix-qualified selector quietly selects nothing, so a one-character config typo surfaces hours later as an empty result set instead of an error at the call site.\n\nA prefix that is not a string can never be written in a selector, so a map containing one should be refused the moment it is handed over, the same way a map with a non-string namespace URI already is. Maps whose prefixes and URIs are all strings must keep working, in both the dictionary form and the iterable-of-pairs form.",
+  "acceptance_hint": "Compiling with a namespace map that contains any non-string prefix raises TypeError; well-formed maps still compile and select as before.",
+  "linked_hidden_test_ids": [
+    "hidden_namespace_map_key_types"
+  ]
+}

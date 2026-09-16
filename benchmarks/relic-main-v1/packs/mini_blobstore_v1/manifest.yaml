@@ -1,0 +1,94 @@
+schema_version: org_env_oss_time_machine_pack_v2
+project_id: mini_blobstore_v1
+source_project_name: mini-blobstore
+anonymized_product_name: mini-blobstore
+company_name: Mini Blobstore
+product_summary: mini-blobstore, built from a written API contract across 5 stacking
+  steps. The starter is a set of stub modules; the contract, the public smoke and
+  the step instructions are agent-visible, and the step verifiers, the anti-cheat
+  mutants and the reference implementation are not.
+license: vendor-supplied
+repo_url: ''
+starter_ref: stubs
+reference_ref: oracle
+frozen_scope: authored_greenfield_steps_plus_agent_visible_public_smoke
+runtime_python: '>=3.12'
+runtime_dependencies: []
+test_strategy:
+  runner: script
+  kind: executable_behavioral_contract
+  rationale: Each step verifier drives the module through the public surface named
+    in the written contract, which the starter already declares, so a candidate that
+    produces the required behaviour by its own route satisfies it. The vendor also
+    ships mutants that break verification while leaving the surface intact, so passing
+    by asserting success does not.
+evidence_kind: executable_behavioral_contract
+starter_repo_digest: 722dde4c7125d11ea59bce2b2b8457cc7fe3020b1a027c3a7452c40a3f4b4a80
+reference_repo_digest: cae8dc838528a1af6fe91e0001a667a7a0c07b29633ecf8d37ebb9a401174b73
+hidden_suite_hash: 902cc81b4bf44fe88b12f362d71b28e5349e384f168a41adaa1679c5c08887d0
+agent_filesystem_isolation_required: true
+agent_filesystem_isolation_status: required_not_verified_by_pack
+contamination_status: probes_defined_not_executed
+contamination_clearance: false
+model_cutoff_policy: no_upstream_source_authored_for_this_study
+contamination_note: 'There is no upstream project and no public fix to recall: the
+  modules are written for this task. The recall detector still applies and should
+  be run, but the usual source of leakage is absent by construction.'
+runtime_test_status:
+  behavioral_contracts: vendor_audited_1-content-addressing:0of7->7_2-manifest-store:1of7->7_3-multipart-upload:1of7->7_4-replication-repair:1of7->7_5-gc-integrity:1of7->7
+agent_visible:
+  starter_repo: starter_repo
+  public_issues: issues/public
+private_evaluator_only:
+  reference_repo: reference_repo
+  hidden_tests: tests/hidden
+  provenance: provenance
+  contamination_probes: contamination
+public_tests:
+  command:
+  - python
+  - smoke_check.py
+  - --all
+  dependencies: []
+entrypoints:
+  cli:
+    command:
+    - python
+    - smoke_check.py
+    - --all
+  smoke:
+    command:
+    - python
+    - smoke_check.py
+hidden_tests:
+  command:
+  - python
+  - -m
+  - pytest
+  - tests/hidden
+  - -q
+  dependencies: []
+issue_stream:
+  schedule: by_tick
+  first_tick: 0
+  interval_ticks: 12
+evaluation:
+  primary_metrics:
+  - hidden_test_pass_rate
+  - causal_fix_rate
+  - issue_fix_rate
+  secondary_metrics:
+  - public_test_pass_rate
+controls:
+  default: none
+component_map:
+  1-content-addressing:
+  - blobstore/objects.py
+  2-manifest-store:
+  - blobstore/manifests.py
+  3-multipart-upload:
+  - blobstore/uploads.py
+  4-replication-repair:
+  - blobstore/replicas.py
+  5-gc-integrity:
+  - blobstore/gc.py

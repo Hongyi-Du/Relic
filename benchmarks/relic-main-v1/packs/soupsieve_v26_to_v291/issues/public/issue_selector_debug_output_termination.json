@@ -1,0 +1,23 @@
+{
+  "issue_id": "issue_selector_debug_output_termination",
+  "title": "Asking a compiled selector to print its structure never returns",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "selector_debug_output",
+  "created_tick": 48,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#288",
+  "source_url": "https://github.com/facelessuser/soupsieve/pull/288",
+  "created_at": "2026-01-15T15:14:10Z",
+  "labels": [],
+  "release": "2.9.1",
+  "title_original": "Various fixes by @mundanevision20",
+  "text_original": "- Ensure custom selectors or namespace dictionaries reject non-string keys\r\n- Fix handling of `:in-range` and `:out-of-range` with end of year weeks\r\n- Fix a potential infinite loop in pretty printing of compiled selector objects",
+  "text_rewritten": "When a selector does not match what we expect, our first debugging step is to ask the compiled selector to print its own structure. For positional selectors such as :nth-child(...) and :nth-of-type(...), and for attribute selectors, that call never comes back: the process sits at full CPU until we kill it, and whatever else the script was doing is lost. Other selector kinds print fine, including :lang(...), class selectors, plain tag selectors and text-containment selectors, so it is not the printing itself that is broken.\n\nThe dump should always terminate and describe the selector it was given, whatever the selector happens to contain.",
+  "body": "When a selector does not match what we expect, our first debugging step is to ask the compiled selector to print its own structure. For positional selectors such as :nth-child(...) and :nth-of-type(...), and for attribute selectors, that call never comes back: the process sits at full CPU until we kill it, and whatever else the script was doing is lost. Other selector kinds print fine, including :lang(...), class selectors, plain tag selectors and text-containment selectors, so it is not the printing itself that is broken.\n\nThe dump should always terminate and describe the selector it was given, whatever the selector happens to contain.",
+  "acceptance_hint": "Printing the structure of any compiled selector, positional and attribute selectors included, terminates and produces a rendering that mentions the selector's own values.",
+  "linked_hidden_test_ids": [
+    "hidden_selector_debug_output_termination"
+  ]
+}

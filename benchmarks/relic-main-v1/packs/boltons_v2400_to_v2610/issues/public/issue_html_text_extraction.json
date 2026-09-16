@@ -1,0 +1,26 @@
+{
+  "issue_id": "issue_html_text_extraction",
+  "title": "Converting HTML to plain text raises AttributeError on current Python",
+  "issue_type": "compatibility",
+  "severity": "critical",
+  "component": "text_utilities",
+  "candidate_path_hints": [
+    "boltons/strutils.py"
+  ],
+  "created_tick": 60,
+  "source": "historical_github",
+  "source_type": "commit",
+  "source_id": "commit c8c442b98b",
+  "source_url": "https://github.com/mahmoud/boltons/commit/c8c442b98b8cff6d0aee61e61e28d4cb0be0ac21",
+  "created_at": "2025-12-29T20:58:54Z",
+  "labels": [],
+  "release": "26.1.0",
+  "title_original": "fix html2text",
+  "text_original": "",
+  "text_rewritten": "Every single call to the HTML-to-text helper in the string utilities dies with an AttributeError raised from inside the standard library's HTML parser, so the function is completely unusable on the Python versions we run. Even the trivial case of one paragraph fails, which suggests the helper is not setting the parser up the way newer Python versions expect.\n\nIt needs to work again: tags dropped, the readable text kept in order, and named and numeric character references turned back into the characters they stand for. Repeated calls must not bleed text from one call into the next.",
+  "body": "Every single call to the HTML-to-text helper in the string utilities dies with an AttributeError raised from inside the standard library's HTML parser, so the function is completely unusable on the Python versions we run. Even the trivial case of one paragraph fails, which suggests the helper is not setting the parser up the way newer Python versions expect.\n\nIt needs to work again: tags dropped, the readable text kept in order, and named and numeric character references turned back into the characters they stand for. Repeated calls must not bleed text from one call into the next.",
+  "acceptance_hint": "html2text returns the readable text of an HTML fragment on the supported Python versions — tags removed, character references resolved, order preserved — and two successive calls share no state.",
+  "linked_hidden_test_ids": [
+    "hidden_html_text_extraction"
+  ]
+}

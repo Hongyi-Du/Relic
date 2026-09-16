@@ -1,0 +1,26 @@
+{
+  "issue_id": "issue_partition_predicates",
+  "title": "Splitting a sequence into more than two groups takes one pass per group",
+  "issue_type": "feature",
+  "severity": "medium",
+  "component": "iteration_tools",
+  "candidate_path_hints": [
+    "boltons/iterutils.py"
+  ],
+  "created_tick": 72,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#386",
+  "source_url": "https://github.com/mahmoud/boltons/pull/386",
+  "created_at": "2026-01-28T06:33:10Z",
+  "labels": [],
+  "release": "26.1.0",
+  "title_original": "Extend partition to accept multiple predicates",
+  "text_original": "This is one I've wished for -- so you can supply N predicates to partition into N+1 buckets",
+  "text_rewritten": "The partition helper in the iteration utilities only ever hands back a truthy group and a falsy group. Whenever we need three or four buckets — positive / negative / zero, or one bucket per severity level — we run it repeatedly over the same data and stitch the leftovers together by hand, which is both slow and easy to get wrong.\n\nPlease let it take extra predicates positionally after the first one, so `partition(src, pred_a, pred_b)` returns three lists and N predicates return N+1 lists. Each value should go into the first list whose predicate accepts it, and anything that matches no predicate should end up in the final list. The existing single-predicate call must keep returning exactly the (truthy, falsy) pair it returns today.",
+  "body": "The partition helper in the iteration utilities only ever hands back a truthy group and a falsy group. Whenever we need three or four buckets — positive / negative / zero, or one bucket per severity level — we run it repeatedly over the same data and stitch the leftovers together by hand, which is both slow and easy to get wrong.\n\nPlease let it take extra predicates positionally after the first one, so `partition(src, pred_a, pred_b)` returns three lists and N predicates return N+1 lists. Each value should go into the first list whose predicate accepts it, and anything that matches no predicate should end up in the final list. The existing single-predicate call must keep returning exactly the (truthy, falsy) pair it returns today.",
+  "acceptance_hint": "partition(src, key, *more_keys) returns one list per predicate plus a final list for the unmatched remainder, placing each value in the first predicate that accepts it, while the single-predicate call keeps returning the (truthy, falsy) pair.",
+  "linked_hidden_test_ids": [
+    "hidden_partition_predicates"
+  ]
+}

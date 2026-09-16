@@ -1,0 +1,41 @@
+{
+  "generic_type_resolution": [
+    "src/cattrs/gen/_generics.py",
+    "src/cattrs/converters.py",
+    "src/cattrs/_generics.py"
+  ],
+  "converter_configuration": [
+    "src/cattrs/converters.py",
+    "src/cattrs/gen/__init__.py"
+  ],
+  "collection_hooks": [
+    "src/cattrs/cols.py",
+    "src/cattrs/_compat.py",
+    "src/cattrs/converters.py"
+  ],
+  "error_reporting": [
+    "src/cattrs/errors.py"
+  ],
+  "union_strategies": [
+    "src/cattrs/strategies/_unions.py",
+    "src/cattrs/strategies/__init__.py"
+  ],
+  "subclass_strategies": [
+    "src/cattrs/strategies/_subclasses.py",
+    "src/cattrs/strategies/__init__.py"
+  ],
+  "newtype_handling": [
+    "src/cattrs/converters.py",
+    "src/cattrs/_compat.py"
+  ],
+  "hook_generation": [
+    "src/cattrs/gen/__init__.py",
+    "src/cattrs/gen/_shared.py",
+    "src/cattrs/gen/typeddicts.py",
+    "src/cattrs/cols.py"
+  ],
+  "enum_handling": [
+    "src/cattrs/converters.py",
+    "src/cattrs/preconf/__init__.py"
+  ]
+}

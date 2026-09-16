@@ -1,0 +1,23 @@
+{
+  "issue_id": "issue_deferred_generic_unstructuring",
+  "title": "Unstructuring a parametrized generic fails in modules with deferred annotations",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "generic_type_resolution",
+  "created_tick": 36,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#662",
+  "source_url": "https://github.com/python-attrs/cattrs/pull/662",
+  "created_at": "2025-06-27T08:37:25Z",
+  "labels": [],
+  "release": "v26.1.0",
+  "title_original": "Fix type resolution",
+  "text_original": "Fixes #661. Fix unstructuring of generic classes with stringified annotations.",
+  "text_rewritten": "Every module in our codebase opts into deferred annotations, so the field types on our models are strings at runtime. Unstructuring a generic model with the parametrized form as the target dies with `TypeError: ...Envelope[int] is not a module, class, method, or function.` Nothing is wrong with the model itself: the same model unstructures fine when the module does not defer its annotations, and a non-generic model in the same deferred module unstructures fine too. It looks like the annotation resolution step is handed the parametrized form instead of the class it came from.",
+  "body": "Every module in our codebase opts into deferred annotations, so the field types on our models are strings at runtime. Unstructuring a generic model with the parametrized form as the target dies with `TypeError: ...Envelope[int] is not a module, class, method, or function.` Nothing is wrong with the model itself: the same model unstructures fine when the module does not defer its annotations, and a non-generic model in the same deferred module unstructures fine too. It looks like the annotation resolution step is handed the parametrized form instead of the class it came from.",
+  "acceptance_hint": "Unstructuring a value against a parametrized generic target produces the same primitive payload it would produce without deferred annotations, for single- and multi-parameter generics, and non-generic models in the same module are unaffected.",
+  "linked_hidden_test_ids": [
+    "hidden_deferred_generic_unstructuring"
+  ]
+}

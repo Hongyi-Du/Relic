@@ -1,0 +1,50 @@
+[
+  {
+    "post_id": "ext_seed_bl_1",
+    "author_id": "ext_user_scraper",
+    "topic": "text_utilities",
+    "content_summary": "Pinned this library for our scraping pipeline and the HTML-to-text call now blows up on every input under a recent Python, so we vendored our own stripper for the time being.",
+    "stance": -0.25,
+    "created_tick": 6
+  },
+  {
+    "post_id": "ext_seed_bl_2",
+    "author_id": "ext_user_dataeng",
+    "topic": "indexed_set",
+    "content_summary": "The insertion-ordered set is lovely until you delete something; after that the slices we take for paging quietly stop lining up with what iteration shows.",
+    "stance": -0.2,
+    "created_tick": 18
+  },
+  {
+    "post_id": "ext_seed_bl_3",
+    "author_id": "ext_user_apidev",
+    "topic": "multidict",
+    "content_summary": "Spent an afternoon on a test that would not fail: comparing the multi-value dict against a plain dict seems to look at keys and shrug at the values.",
+    "stance": -0.15,
+    "created_tick": 30
+  },
+  {
+    "post_id": "ext_seed_bl_4",
+    "author_id": "ext_user_tooling",
+    "topic": "filesystem_tools",
+    "content_summary": "Would happily switch our repo scanner over if the recursive file search could be told how deep to go; walking a full monorepo just to read the top level is a hard sell.",
+    "stance": 0.1,
+    "created_tick": 42
+  },
+  {
+    "post_id": "ext_seed_bl_5",
+    "author_id": "ext_user_ops",
+    "topic": "text_utilities",
+    "content_summary": "Small thing, but our capacity dashboards read 1024K and 1024M all over the place, which makes the round numbers look like formatting bugs to reviewers.",
+    "stance": -0.1,
+    "created_tick": 54
+  },
+  {
+    "post_id": "ext_seed_bl_6",
+    "author_id": "ext_user_cli",
+    "topic": "table_rendering",
+    "content_summary": "The text table renderer is handy for CLI output, though columns go ragged as soon as one cell is much longer than its neighbours, so we post-process the result.",
+    "stance": -0.1,
+    "created_tick": 66
+  }
+]

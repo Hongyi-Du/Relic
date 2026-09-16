@@ -1,0 +1,29 @@
+{
+  "issue_id": "issue_database_pool_health_defaults",
+  "title": "SQL result backend fails after an idle period with 'server has gone away'",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "result_backend",
+  "created_tick": 84,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#10124",
+  "source_url": "https://github.com/celery/celery/pull/10124",
+  "created_at": "2026-02-16T15:12:31Z",
+  "labels": [
+    "Component: SQLAlchemy"
+  ],
+  "release": "v5.6.3",
+  "title_original": "Fix 10109 db backend connection health",
+  "text_original": "<!-- Please describe your pull request.\r\n\r\nNOTE: All patches should be made against main, not a maintenance branch like\r\n3.1, 2.5, etc.  That is unless the bug is already fixed in main, but not in\r\nthat version series.\r\n\r\nIf it fixes a bug or resolves a feature request,\r\nbe sure to link to that issue via (Fixes #4412) for example.\r\n-->\r\n## Background\r\n\r\nThis PR addresses the GitHub Copilot review comments from PR #10122 by @harshang03.\r\n\r\nRelated: #10109 (original issue)\r\nRelated PR: #10122\r\n\r\n## Description\r\n\r\nGitHub Copilot identified several issues in PR #10122 that needed to be addressed:\r\n1. Duplicate `DEFAULT_DATABASE_ENGINE_OPTIONS` definitions\r\n2. Outdated documentation \r\n3. Missing try-except protection for retry hooks\r\n4. Insufficient test coverage\r\n\r\n## What does this MR do and why?\r\n\r\n### ✅ 1. Remove duplicate DEFAULT_DATABASE_ENGINE_OPTIONS\r\n- Removed duplicate definition from `celery/backends/database/__init__.py`\r\n- Centralized configuration in `celery/app/defaults.py`\r\n\r\n### ✅ 2. Update documentation\r\n- Updated `docs/userguide/configuration.rst` with new defaults\r\n- Added `.. versionchanged:: 5.6` directive with explanation\r\n\r\n### ✅ 3. Add try-except protection for hooks\r\n- Protected `on_backend_retryable_error()` calls in `get_task_meta()`\r\n- Ensures hook failures don't interrupt retry loops\r\n\r\n### ✅ 4. Add comprehensive test coverage\r\n- Added tests for hook failure scenarios in `test_base.py`\r\n- Added additional database backend tests in `test_database.py`\r\n- All tests pass ✅\r\n\r\n## Test\r\n\r\n```bash\r\n# Run affected tests\r\npython -m pytest t/unit/backends/test_base.py::test_backend_retries -v\r\npython -m pytest t/unit/backends/test_database.py -v\r\n```\r\n\r\n## Thanks\r\nThanks to @harshang03 for the initial implementation in PR #10122. This PR builds upon that work to address the review feedback and improve the overall solution.\r\n\r\n## Backward compatible\r\nAll changes maintain backward compatibility:\r\n- Default behavior is improved but existing configurations continue to work\r\n- New defaults only affect fresh installations\r\n- Existing code using custom engine options is unaffected",
+  "text_rewritten": "Workers on the SQL result backend start failing with \"(OperationalError) (2006, 'MySQL server has gone away')\" after a quiet period. The backend hands out connections from a pool that is never checked and never rotated, so the first statement issued on a connection the database closed hours ago blows up. Out of the box the backend should verify a pooled connection before handing it out and retire connections after an hour: the database_engine_options setting must default to {'pool_pre_ping': True, 'pool_recycle': 3600} instead of an empty mapping. Anyone who sets database_engine_options explicitly must still get exactly what they configured, reading the default in one application must not affect another, and the neighbouring database settings keep their current defaults.",
+  "body": "Workers on the SQL result backend start failing with \"(OperationalError) (2006, 'MySQL server has gone away')\" after a quiet period. The backend hands out connections from a pool that is never checked and never rotated, so the first statement issued on a connection the database closed hours ago blows up. Out of the box the backend should verify a pooled connection before handing it out and retire connections after an hour: the database_engine_options setting must default to {'pool_pre_ping': True, 'pool_recycle': 3600} instead of an empty mapping. Anyone who sets database_engine_options explicitly must still get exactly what they configured, reading the default in one application must not affect another, and the neighbouring database settings keep their current defaults.",
+  "acceptance_hint": "app.conf.database_engine_options defaults to {'pool_pre_ping': True, 'pool_recycle': 3600}, an explicit setting replaces it verbatim, and reading the default in one app does not leak into another.",
+  "candidate_path_hints": [
+    "celery/app/defaults.py",
+    "celery/backends/database/__init__.py"
+  ],
+  "linked_hidden_test_ids": [
+    "hidden_database_pool_health_defaults"
+  ]
+}

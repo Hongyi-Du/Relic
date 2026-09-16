@@ -1,0 +1,24 @@
+{
+  "issue_id": "issue_muted_media_selector",
+  "title": "No way to select silenced audio and video elements by state",
+  "issue_type": "feature",
+  "severity": "medium",
+  "component": "pseudo_class_support",
+  "created_tick": 0,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#280",
+  "source_url": "https://github.com/facelessuser/soupsieve/pull/280",
+  "created_at": "2025-04-20T18:41:28Z",
+  "labels": [],
+  "release": "2.9.1",
+  "title_original": "Add new selectors and move some existing selectors out of experimental",
+  "text_original": "- Add `:open` and `:muted`\r\n- Recognize `:autofill`, `:buffering`, `:fullscreen`, `:picture-in-picture`, `:popover-open`, `:seeking`, `:stalled`, and `:volume-locked`.\r\n- Move various existing pseudo-classes out of experimental status.",
+  "text_rewritten": "We audit saved pages for media that is embedded with sound switched off. The CSS Level 4 state pseudo-class for that, :muted, is refused as an unsupported pseudo-class, so the pattern will not compile at all and we are left with the attribute test [muted] -- which also picks up unrelated elements that happen to carry a muted attribute in generated markup.\n\nPlease support :muted so that it selects exactly the audio and video elements that are silenced. It has to work on its own, narrowed to one element type (video:muted, audio:muted), and nested inside :not() and :is(). Attribute-presence selectors such as [muted] must keep their current, broader meaning.",
+  "body": "We audit saved pages for media that is embedded with sound switched off. The CSS Level 4 state pseudo-class for that, :muted, is refused as an unsupported pseudo-class, so the pattern will not compile at all and we are left with the attribute test [muted] -- which also picks up unrelated elements that happen to carry a muted attribute in generated markup.\n\nPlease support :muted so that it selects exactly the audio and video elements that are silenced. It has to work on its own, narrowed to one element type (video:muted, audio:muted), and nested inside :not() and :is(). Attribute-presence selectors such as [muted] must keep their current, broader meaning.",
+  "acceptance_hint": ":muted compiles and selects only silenced audio and video elements, composes inside :not() and :is(), and [muted] still matches every element that merely carries the attribute.",
+  "linked_hidden_test_ids": [
+    "hidden_muted_media_selector"
+  ],
+  "hidden": true
+}

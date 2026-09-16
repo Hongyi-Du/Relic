@@ -1,0 +1,26 @@
+{
+  "issue_id": "issue_table_column_width",
+  "title": "Text tables come out ragged when cells in a column differ in length",
+  "issue_type": "bug",
+  "severity": "medium",
+  "component": "table_rendering",
+  "candidate_path_hints": [
+    "boltons/tableutils.py"
+  ],
+  "created_tick": 36,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#381",
+  "source_url": "https://github.com/mahmoud/boltons/pull/381",
+  "created_at": "2025-02-08T07:55:51Z",
+  "labels": [],
+  "release": "26.1.0",
+  "title_original": "Fix Table.to_text() sizing",
+  "text_original": "Table.to_text now measures column contents instead of row length when sizing the individual columns.\n\nBefore:\n![image](https://github.com/user-attachments/assets/7fd6fc15-b269-4ec2-a2dc-a3264e89571e)\n\nAfter:\n![image](https://github.com/user-attachments/assets/d8ebe4f3-8d32-4e45-bacd-89b87a46cb66)",
+  "text_rewritten": "Rendering a table to text produces misaligned output as soon as the cells in a column vary in length. The header rule is much shorter than the body rows, long cells spill past where the next column starts, and short cells are not padded out to their column. The raggedness tracks the number of rows rather than the text in the column, so a column is clearly being measured against the wrong thing.\n\nEvery rendered line should come out the same width, the column separators should line up between the header, the rule and every body row, and each column should be at least as wide as its own widest cell. No cell text may be dropped.",
+  "body": "Rendering a table to text produces misaligned output as soon as the cells in a column vary in length. The header rule is much shorter than the body rows, long cells spill past where the next column starts, and short cells are not padded out to their column. The raggedness tracks the number of rows rather than the text in the column, so a column is clearly being measured against the wrong thing.\n\nEvery rendered line should come out the same width, the column separators should line up between the header, the rule and every body row, and each column should be at least as wide as its own widest cell. No cell text may be dropped.",
+  "acceptance_hint": "In the rendered text table every column is sized by its own widest cell (header included), so all rendered lines have equal width, the column separators line up on every row, and no cell text is clipped.",
+  "linked_hidden_test_ids": [
+    "hidden_table_column_width"
+  ]
+}

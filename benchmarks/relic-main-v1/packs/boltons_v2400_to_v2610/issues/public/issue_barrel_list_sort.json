@@ -1,0 +1,26 @@
+{
+  "issue_id": "issue_barrel_list_sort",
+  "title": "Sorting the chunked list container crashes once it has grown large",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "list_containers",
+  "candidate_path_hints": [
+    "boltons/listutils.py"
+  ],
+  "created_tick": 48,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#389",
+  "source_url": "https://github.com/mahmoud/boltons/pull/389",
+  "created_at": "2025-10-04T18:21:30Z",
+  "labels": [],
+  "release": "26.1.0",
+  "title_original": "Fix barrellist sort with multiple lists",
+  "text_original": "The following code in `BarrelList.sort` causes a crash\n\n```py\ndel self.lists[:]\nself.lists[0] = tmp_sorted\n```",
+  "text_rewritten": "The chunk-backed list container sorts fine while it is small, but after it has grown past the point where it splits its storage internally, calling sort() raises an IndexError instead of sorting anything. The failure therefore only shows up on exactly the large collections the container exists for, and it takes the container down with it.\n\nSorting a grown container should produce the same ordering as sorting the equivalent plain list, keep every element, and leave the container usable for indexing and slicing afterwards.",
+  "body": "The chunk-backed list container sorts fine while it is small, but after it has grown past the point where it splits its storage internally, calling sort() raises an IndexError instead of sorting anything. The failure therefore only shows up on exactly the large collections the container exists for, and it takes the container down with it.\n\nSorting a grown container should produce the same ordering as sorting the equivalent plain list, keep every element, and leave the container usable for indexing and slicing afterwards.",
+  "acceptance_hint": "BarrelList.sort() succeeds no matter how large the container has grown; afterwards it holds exactly the same elements in ascending order and still supports indexing and slicing.",
+  "linked_hidden_test_ids": [
+    "hidden_barrel_list_sort"
+  ]
+}

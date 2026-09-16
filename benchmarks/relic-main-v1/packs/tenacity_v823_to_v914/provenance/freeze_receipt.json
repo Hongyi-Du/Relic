@@ -1,0 +1,223 @@
+{
+  "dataset_id": "tenacity_v823_to_v914",
+  "frozen_at": "2026-08-01",
+  "source": "https://github.com/jd/tenacity",
+  "transport": "authenticated GitHub API tarball download",
+  "evidence_kind": "executable_behavioral_contract",
+  "starter_repo_digest": "03dd8cb6abb31fa7f9828b9777a3e0510822798409a1511c68da1495342a8a2a",
+  "reference_repo_digest": "58aaf39661e4c4ef42c598f705e159ada3dcd6eac5853615068521e8968f8e7f",
+  "hidden_suite_hash": "6c2940eb14b3762c210e6558ff8c868d8aadb1da1280c821af85305209e6014b",
+  "evaluator_environment_hash": "e1af84e85d8591c4b59b449e12ce126c4c38452621368652a9f0c4cf81db5a47",
+  "qualification_hash": "417905dfb19069e7a94af77dfbd2d7f13f292c9bad0f2fa53872e03836302542",
+  "qualification_result_hash": "ff7d573b2052cb326458f257e3a8b42554d47f641ed55fcb5e85246e01606483",
+  "result_hash": "ff7d573b2052cb326458f257e3a8b42554d47f641ed55fcb5e85246e01606483",
+  "agent_filesystem_isolation_required": true,
+  "agent_filesystem_isolation_status": "required_not_verified_by_pack",
+  "contamination_status": "probes_defined_not_executed",
+  "manual_runtime_test_caveat": "The recorded starter and reference outcomes cover this Pack's own behavioral contracts. The upstream project's full test suite was not run and is not claimed by this receipt.",
+  "starter": {
+    "tag": "8.2.3",
+    "commit": "41ed2420cda8ab7650a39900451099f4730266c3",
+    "archive_sha256": "9933ab3f049673b0dda381832e4680a73781d5bd4711497a0de36f4291003542",
+    "frozen_files_with_public_smoke": 63,
+    "frozen_bytes": 163589,
+    "repo_digest": "03dd8cb6abb31fa7f9828b9777a3e0510822798409a1511c68da1495342a8a2a"
+  },
+  "reference": {
+    "tag": "9.1.4",
+    "commit": "d4e868d6b8368c00b5a1fad54de36c2c8c3a0fb3",
+    "archive_sha256": "4d59a47a62aa6542bd86ab09927e6e0a1a5a2c3ceb5f6b2476d44318f1a611fb",
+    "frozen_files_with_public_smoke": 82,
+    "frozen_bytes": 201550,
+    "repo_digest": "58aaf39661e4c4ef42c598f705e159ada3dcd6eac5853615068521e8968f8e7f"
+  },
+  "github_archive": {
+    "changes_recorded": 45,
+    "path": "provenance/github"
+  },
+  "demands": {
+    "public_issues": 12,
+    "heldout_issues": 4,
+    "hidden_contracts": 16,
+    "distinct_upstream_changes": 11,
+    "target_public_issues": 12,
+    "target_heldout_issues": 4,
+    "target_hidden_contracts": 16
+  },
+  "qualification": {
+    "evidence_kind": "executable_behavioral_contract",
+    "hidden_suite_hash": "6c2940eb14b3762c210e6558ff8c868d8aadb1da1280c821af85305209e6014b",
+    "evaluator_environment_hash": "e1af84e85d8591c4b59b449e12ce126c4c38452621368652a9f0c4cf81db5a47",
+    "plan_hash": "417905dfb19069e7a94af77dfbd2d7f13f292c9bad0f2fa53872e03836302542",
+    "qualification_hash": "417905dfb19069e7a94af77dfbd2d7f13f292c9bad0f2fa53872e03836302542",
+    "qualification_result_hash": "ff7d573b2052cb326458f257e3a8b42554d47f641ed55fcb5e85246e01606483",
+    "result_hash": "ff7d573b2052cb326458f257e3a8b42554d47f641ed55fcb5e85246e01606483",
+    "starter_passed": 0,
+    "starter_total": 16,
+    "reference_passed": 16,
+    "reference_total": 16,
+    "formal_ready": true
+  },
+  "authoring_report": {
+    "dataset_id": "tenacity_v823_to_v914",
+    "repository": "jd/tenacity",
+    "starter_ref": "8.2.3",
+    "reference_ref": "9.1.4",
+    "public_issues": 12,
+    "heldout_issues": 4,
+    "hidden_contracts": 16,
+    "target": {
+      "public": 12,
+      "heldout": 4,
+      "hidden": 16
+    },
+    "shortfall_reason": "",
+    "candidate_pool": {
+      "changes_in_window": 45,
+      "candidates_after_filter": 23,
+      "candidates_carrying_an_endpoint_separating_behaviour_change": 11
+    },
+    "notes": [
+      "Only 11 of the 23 candidates change observable behaviour between 8.2.3 and 9.1.4. The 16 contracts are drawn from those 11 by splitting the multi-behaviour PRs (PR#437 covers four independent async extension points; PR#451 covers dispatch and the async strategy objects; PR#489 covers the pre-sleep and post-attempt log helpers separately). No demand was invented to reach the target count.",
+      "Four public demands are genuine public-API extensions rather than defect reports (stop_before_delay, wait_exception, the tenacity.asyncio.retry strategies, and the per-call statistics attribute). Per AUTHORING.md section 1 these are allowed to assert the presence of a public symbol only because the demand text spells out the required public name and signature, so the organization can derive it from the requirement instead of guessing upstream's naming.",
+      "Every other contract is written purely against names that already exist in the 8.2.3 starter tree, plus standard-library introspection attributes. No contract imports a helper introduced by the upstream fix.",
+      "The held-out four sit in the same capability families as the public twelve: three of them are further async extension points (wait/stop strategies, give-up callback, awaitable pause function for a synchronous callable) and one is the sibling log helper of the public logging demand.",
+      "Contract for PR#489's post-attempt helper drives the callback with a caller-controlled elapsed time instead of a measured one, because time.monotonic() on the Windows evaluator has a 15.6 ms resolution and a real short attempt measures exactly 0.0 s there."
+    ],
+    "rejected_candidates": [
+      {
+        "change_id": "pr_424",
+        "url": "https://github.com/jd/tenacity/pull/424",
+        "reason": "Annotation-only: rewrites a sys.version_info comparison so pyright can narrow it. Runtime behaviour is identical on both endpoints."
+      },
+      {
+        "change_id": "pr_435",
+        "url": "https://github.com/jd/tenacity/pull/435",
+        "reason": "Formatter migration from black to ruff. Every hunk is reflow; no observable behaviour."
+      },
+      {
+        "change_id": "pr_434",
+        "url": "https://github.com/jd/tenacity/pull/434",
+        "reason": "Internal refactor of the iteration loop into an action list. Net observable behaviour versus the starter is unchanged; the sequencing it enabled (computing the pause before evaluating the stop condition) is only observable through the stop_before_delay demand, which is authored against PR#423."
+      },
+      {
+        "change_id": "pr_448",
+        "url": "https://github.com/jd/tenacity/pull/448",
+        "reason": "Ruff version bump; collapses overload bodies onto one line. No observable behaviour."
+      },
+      {
+        "change_id": "pr_479",
+        "url": "https://github.com/jd/tenacity/pull/479",
+        "reason": "Fixes a recursion regression that PR#434 introduced inside this same window. Relative to the 8.2.3 starter the recursive-call behaviour is already correct, so no contract can separate the endpoints on it. The one net-new surface it leaves behind (per-call statistics on the wrapped function) is covered by the PR#484 demand."
+      },
+      {
+        "change_id": "pr_518",
+        "url": "https://github.com/jd/tenacity/pull/518",
+        "reason": "Annotation-only: changes the declared return type of copy() to Self. The returned object was already self.__class__ on both endpoints."
+      },
+      {
+        "change_id": "pr_497",
+        "url": "https://github.com/jd/tenacity/pull/497",
+        "reason": "Annotation-only: widens the match argument type to include re.Pattern. The starter already calls re.compile() on it, and re.compile() returns a compiled pattern unchanged, so a re.Pattern match argument works identically on both endpoints."
+      },
+      {
+        "change_id": "pr_528",
+        "url": "https://github.com/jd/tenacity/pull/528",
+        "reason": "Python 3.14 support: CI matrix, classifiers, and a try/except-to-hasattr rewrite of two lazy properties. The rewrite is behaviour-preserving."
+      },
+      {
+        "change_id": "pr_540",
+        "url": "https://github.com/jd/tenacity/pull/540",
+        "reason": "Annotation-only: introduces a logger Protocol so structlog/loguru type-check. Duck typing already accepted those objects at runtime on the starter."
+      },
+      {
+        "change_id": "pr_546",
+        "url": "https://github.com/jd/tenacity/pull/546",
+        "reason": "Changes a mypy ignore code in a Tornado shim. No runtime effect, and Tornado is not installed in the evaluator runtime."
+      },
+      {
+        "change_id": "pr_552",
+        "url": "https://github.com/jd/tenacity/pull/552",
+        "reason": "Drops Python 3.9 from metadata and CI and inlines the code that was gated behind version checks. On the 3.12 evaluator both endpoints take the same branch. Deletion-style change with no new behaviour."
+      },
+      {
+        "change_id": "pr_555",
+        "url": "https://github.com/jd/tenacity/pull/555",
+        "reason": "Annotation-only: reshapes the decorator's overloads for an async sleep argument into a Protocol so pyright infers the return type correctly. Runtime dispatch is unchanged from PR#551."
+      }
+    ],
+    "accepted_candidates": [
+      {
+        "change_id": "pr_406",
+        "contracts": [
+          "hidden_wrapped_defaults_preserved"
+        ]
+      },
+      {
+        "change_id": "pr_423",
+        "contracts": [
+          "hidden_stop_before_deadline"
+        ]
+      },
+      {
+        "change_id": "pr_437",
+        "contracts": [
+          "hidden_async_lifecycle_callbacks",
+          "hidden_async_retry_predicate",
+          "hidden_async_wait_stop_strategies",
+          "hidden_async_retry_error_callback"
+        ]
+      },
+      {
+        "change_id": "pr_450",
+        "contracts": [
+          "hidden_import_cost_isolation"
+        ]
+      },
+      {
+        "change_id": "pr_451",
+        "contracts": [
+          "hidden_async_callable_object_dispatch",
+          "hidden_async_retry_strategy_objects"
+        ]
+      },
+      {
+        "change_id": "pr_463",
+        "contracts": [
+          "hidden_trio_native_sleep"
+        ]
+      },
+      {
+        "change_id": "pr_484",
+        "contracts": [
+          "hidden_wrapped_statistics_attribute"
+        ]
+      },
+      {
+        "change_id": "pr_425",
+        "contracts": [
+          "hidden_random_exponential_lower_bound"
+        ]
+      },
+      {
+        "change_id": "pr_489",
+        "contracts": [
+          "hidden_before_sleep_log_formatting",
+          "hidden_after_log_precision"
+        ]
+      },
+      {
+        "change_id": "pr_541",
+        "contracts": [
+          "hidden_wait_from_exception"
+        ]
+      },
+      {
+        "change_id": "pr_551",
+        "contracts": [
+          "hidden_sync_callable_async_sleep"
+        ]
+      }
+    ]
+  }
+}

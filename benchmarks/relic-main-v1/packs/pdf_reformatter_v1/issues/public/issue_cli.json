@@ -1,0 +1,21 @@
+{
+  "issue_id": "issue_cli",
+  "title": "Cli is not implemented",
+  "issue_type": "feature",
+  "severity": "high",
+  "component": "cli",
+  "created_tick": 12,
+  "source": "vendor_task_brief",
+  "source_type": "requirements_document",
+  "source_id": "pdf-overflow-converter",
+  "labels": [],
+  "release": "1.0.0",
+  "body": "The `cli` surface described in the brief is not implemented. Build it so its behaviour matches the brief.",
+  "acceptance_hint": "7 executable checks over the cli surface.",
+  "linked_hidden_test_ids": [
+    "hidden_cli"
+  ],
+  "candidate_path_hints": [
+    "pdf_reformatter/cli.py"
+  ]
+}

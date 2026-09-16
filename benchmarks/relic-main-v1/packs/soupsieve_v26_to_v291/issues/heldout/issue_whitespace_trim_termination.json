@@ -1,0 +1,24 @@
+{
+  "issue_id": "issue_whitespace_trim_termination",
+  "title": "A descendant combinator written as a long run of padding stalls the pattern",
+  "issue_type": "performance",
+  "severity": "major",
+  "component": "selector_parser",
+  "created_tick": 0,
+  "source": "historical_github",
+  "source_type": "commit",
+  "source_id": "commit@cf198fcddc92",
+  "source_url": "https://github.com/facelessuser/soupsieve/commit/cf198fcddc9230f06ed39f974eba0ce076b85cda",
+  "created_at": "2026-07-19T01:02:17Z",
+  "labels": [],
+  "release": "2.9.1",
+  "title_original": "Fix inefficient trimming of comments and white space",
+  "text_original": "@kaimandalic",
+  "text_rewritten": "Selectors reaching us from generated CSS sometimes carry a very long run of whitespace, or a long run of comments, between two simple selectors -- the descendant combinator, just written verbosely. Handling one of those takes tens of seconds where the same selector written with a single space takes microseconds, and the cost climbs faster than the length of the padding, so a slightly longer run stops returning at all.\n\nPadding is semantically irrelevant and should cost time proportional to its length. Short padding, padding at the start and end of a pattern, and comments used as padding must all keep resolving to the same selector they resolve to today.",
+  "body": "Selectors reaching us from generated CSS sometimes carry a very long run of whitespace, or a long run of comments, between two simple selectors -- the descendant combinator, just written verbosely. Handling one of those takes tens of seconds where the same selector written with a single space takes microseconds, and the cost climbs faster than the length of the padding, so a slightly longer run stops returning at all.\n\nPadding is semantically irrelevant and should cost time proportional to its length. Short padding, padding at the start and end of a pattern, and comments used as padding must all keep resolving to the same selector they resolve to today.",
+  "acceptance_hint": "A pattern whose descendant combinator is tens of thousands of whitespace characters, or thousands of comments, compiles and selects promptly and resolves to the same selector as the single-space form.",
+  "linked_hidden_test_ids": [
+    "hidden_whitespace_trim_termination"
+  ],
+  "hidden": true
+}

@@ -1,0 +1,23 @@
+{
+  "issue_id": "issue_live_environment_pseudo_classes",
+  "title": "Selectors naming browser-only element states abort the whole pattern",
+  "issue_type": "compatibility",
+  "severity": "major",
+  "component": "pseudo_class_support",
+  "created_tick": 24,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#280",
+  "source_url": "https://github.com/facelessuser/soupsieve/pull/280",
+  "created_at": "2025-04-20T18:41:28Z",
+  "labels": [],
+  "release": "2.9.1",
+  "title_original": "Add new selectors and move some existing selectors out of experimental",
+  "text_original": "- Add `:open` and `:muted`\r\n- Recognize `:autofill`, `:buffering`, `:fullscreen`, `:picture-in-picture`, `:popover-open`, `:seeking`, `:stalled`, and `:volume-locked`.\r\n- Move various existing pseudo-classes out of experimental status.",
+  "text_rewritten": "We reuse stylesheets written for the browser to pull elements out of saved HTML. Several CSS Level 4 pseudo-classes describe states that only exist while a page is live: :autofill, :buffering, :fullscreen, :picture-in-picture, :popover-open, :seeking, :stalled and :volume-locked. As soon as one of those appears anywhere in a pattern the pattern is rejected as invalid syntax, which takes out every other selector in the same list and forces us to strip the CSS by hand before handing it over.\n\nNone of these states can be observed in a static document, so the right behavior is the one already used for :hover and :focus: recognize the selector and have it select nothing. A name that is genuinely not a CSS pseudo-class must still be reported as a syntax error, so this is not a request to accept anything at all after a colon.",
+  "body": "We reuse stylesheets written for the browser to pull elements out of saved HTML. Several CSS Level 4 pseudo-classes describe states that only exist while a page is live: :autofill, :buffering, :fullscreen, :picture-in-picture, :popover-open, :seeking, :stalled and :volume-locked. As soon as one of those appears anywhere in a pattern the pattern is rejected as invalid syntax, which takes out every other selector in the same list and forces us to strip the CSS by hand before handing it over.\n\nNone of these states can be observed in a static document, so the right behavior is the one already used for :hover and :focus: recognize the selector and have it select nothing. A name that is genuinely not a CSS pseudo-class must still be reported as a syntax error, so this is not a request to accept anything at all after a colon.",
+  "acceptance_hint": "Each of those eight state pseudo-classes compiles, selects nothing, and composes inside larger patterns; pseudo-class names that are not real CSS are still rejected as syntax errors.",
+  "linked_hidden_test_ids": [
+    "hidden_live_environment_pseudo_classes"
+  ]
+}

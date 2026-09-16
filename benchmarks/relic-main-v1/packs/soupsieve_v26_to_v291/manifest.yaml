@@ -1,0 +1,162 @@
+schema_version: org_env_oss_time_machine_pack_v2
+project_id: soupsieve_v26_to_v291
+source_project_name: soupsieve
+anonymized_product_name: soupsieve
+company_name: Soup Sieve
+product_summary: Soup Sieve, a CSS selector library for Beautiful Soup. Agents receive the complete 2.6
+  tag; the 2.9.1 tag, held-out demands and hidden contracts stay evaluator-only.
+license: MIT
+repo_url: https://github.com/facelessuser/soupsieve
+starter_ref: '2.6'
+starter_commit: f974ea7e2e70cc940e1bda98b815f5a68eb43990
+reference_ref: 2.9.1
+reference_commit: 05e92be2b34cd6164506ba6c34cdfc764f04ff80
+reference_is_release: true
+starter_release_date: '2024-08-13'
+reference_release_date: '2026-07-21'
+freeze_date: '2026-08-01'
+issue_window_start: '2024-08-13T13:38:31Z'
+issue_window_end: '2026-07-21T16:56:40Z'
+frozen_scope: complete_tag_trees_plus_agent_visible_public_smoke
+github_archive:
+  changes_recorded: 33
+  path: provenance/github
+runtime_python: '>=3.12'
+runtime_dependencies:
+- pytest
+test_strategy:
+  runner: pytest
+  kind: executable_behavioral_contract
+  rationale: Every oracle exercises the frozen library through the public surface that already exists
+    on the starter endpoint, never through a symbol or helper the upstream patch introduced. A candidate
+    that produces the required behavior by another route therefore satisfies the contract, and copying
+    upstream's identifiers earns no credit on its own.
+evidence_kind: executable_behavioral_contract
+starter_repo_digest: e1b78662cdaff535af6db328cd39a56f51ebb15ed9c115d60ed7721f9c7aa776
+reference_repo_digest: f4aadbf89ebcefd664bfc6ae4e8876c5842d8f16394feffb5f9bc116d4601439
+hidden_suite_hash: 2d544aa99167e8c3657ac7ea5dcffb3776c52645be8cb22e6c8625c77664418f
+evaluator_environment_hash: e1af84e85d8591c4b59b449e12ce126c4c38452621368652a9f0c4cf81db5a47
+qualification_hash: f8c83925dbec4f2ce21b3477c565dcc9b45a93ee390fdc5b93ec94a959dc0ceb
+qualification_result_hash: f02ca99587edc693800d9d3e0784bc6ec08d287c61c627276d57fdbbb6dfa48c
+result_hash: f02ca99587edc693800d9d3e0784bc6ec08d287c61c627276d57fdbbb6dfa48c
+agent_filesystem_isolation_required: true
+agent_filesystem_isolation_status: required_not_verified_by_pack
+agent_filesystem_isolation_requirement: The agent process must receive only the materialized starter workspace.
+  reference_repo, tests/hidden, issues/heldout, contamination and provenance must remain on an evaluator-only
+  filesystem that is not mounted or otherwise readable by the agent.
+contamination_status: probes_defined_not_executed
+contamination_note: Recognition, future-recall and patch-similarity probes are defined, but this Pack
+  records no completed model-specific contamination score or clearance.
+runtime_test_status:
+  behavioral_contracts: qualified_starter_0_of_13_reference_13_of_13
+  upstream_project_suite: not_run
+manual_runtime_test_caveat: The recorded starter and reference outcomes cover this Pack's own behavioral
+  contracts. The upstream project's full test suite was not run and is not claimed by this receipt.
+hidden_test_sources:
+- https://github.com/facelessuser/soupsieve/commit/28108ab805818c832d9568142a99844fd95a0d39
+- https://github.com/facelessuser/soupsieve/commit/ce44e4996e6632871c18cdd7a7fb641be8ef34ef
+- https://github.com/facelessuser/soupsieve/commit/cf198fcddc9230f06ed39f974eba0ce076b85cda
+- https://github.com/facelessuser/soupsieve/commit/eb4397618709186c109400448c6043b728217dc3
+- https://github.com/facelessuser/soupsieve/pull/280
+- https://github.com/facelessuser/soupsieve/pull/288
+- https://github.com/facelessuser/soupsieve/pull/289
+- https://github.com/facelessuser/soupsieve/pull/297
+- https://github.com/facelessuser/soupsieve/pull/298
+contamination_controls:
+  model_cutoff_policy: pre_reference_cutoff_with_recognition_audit
+  code_anonymized: false
+  audit_tool: tools/oss_time_machine_audit.py
+  heldout_transfer: true
+  recommended_main_experiment_model: pre_2026-07-21_cutoff
+  notes: 'The starter tree is the unmodified upstream release, so the project is recognizable. Recognition
+    is audited rather than assumed away: later patches, reference code, held-out demands and hidden contracts
+    are evaluator-only and never enter product artifacts, perception, search, prompts or normal snapshots.'
+model_cutoff_policy: pre_reference_cutoff_with_recognition_audit
+anonymize:
+  replacements: {}
+agent_visible:
+  starter_repo: starter_repo
+  public_issues: issues/public
+  external_signals: external_signals
+private_evaluator_only:
+  reference_repo: reference_repo
+  hidden_tests: tests/hidden
+  heldout_issues: issues/heldout
+  contamination_probes: contamination
+  github_archive: provenance/github
+entrypoints:
+  cli:
+    command:
+    - python
+    - -m
+    - pytest
+    - tests/public
+    - -q
+  smoke:
+    command:
+    - python
+    - -m
+    - pytest
+    - tests/public
+    - -q
+public_tests:
+  command:
+  - python
+  - -m
+  - pytest
+  - tests/public
+  - -q
+  dependencies:
+  - pytest
+hidden_tests:
+  command:
+  - python
+  - -m
+  - pytest
+  - tests/hidden
+  - -q
+  dependencies:
+  - beautifulsoup4
+issue_stream:
+  schedule: by_tick
+  first_tick: 12
+  interval_ticks: 12
+evaluation:
+  primary_metrics:
+  - hidden_test_pass_rate
+  - causal_fix_rate
+  - issue_fix_rate
+  - regression_pass_rate
+  - release_smoke_ok
+  secondary_metrics:
+  - public_test_pass_rate
+  - heldout_transfer_rate
+  - external_adaptation
+controls:
+  default: none
+component_map:
+  pseudo_class_support:
+  - soupsieve/css_parser.py
+  - soupsieve/css_match.py
+  attribute_selectors:
+  - soupsieve/css_parser.py
+  - soupsieve/css_match.py
+  selector_parser:
+  - soupsieve/css_parser.py
+  - soupsieve/css_types.py
+  selector_matching:
+  - soupsieve/css_match.py
+  public_api:
+  - soupsieve/__init__.py
+  - soupsieve/css_types.py
+  selector_debug_output:
+  - soupsieve/pretty.py
+  - soupsieve/css_types.py
+demand_shortfall_reason: The 2.6 -> 2.9.1 window contains 17 candidate changes and only 13 of them carry
+  a behavior difference that a public-API contract can observe, so the Pack ships 13 contracts (9 public
+  + 4 heldout) instead of 16. The four held-out demands were kept at full strength because they carry
+  the transfer measurement; the shortfall was taken entirely on the public side, which drops from 12 to
+  9. Four candidates were rejected for having no observable behavior difference at all (annotation-only
+  typing changes, test-only accommodation for a stdlib parser change, the lazy-pattern-construction refactor
+  and its two follow-ups, and two Python-version support-matrix changes). No demand was invented and no
+  contract was weakened to reach a count.

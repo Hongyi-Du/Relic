@@ -1,0 +1,354 @@
+[
+  {
+    "test_id": "hidden_file_discovery_depth",
+    "name": "a depth cap limits how far a recursive file search descends",
+    "rel_path": "test_file_discovery_depth.py",
+    "issue_ids": [
+      "issue_file_discovery_depth"
+    ],
+    "expected_behavior": "iter_find_files honours a max_depth limit counted from the starting directory, composes it with ignore patterns, and searches the whole tree when it is omitted",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "26.1.0",
+    "source_pr": "https://github.com/mahmoud/boltons/pull/358",
+    "source_commit": "ee3c660a6811acd5408d28a5da44fe0a94278834",
+    "reference_release": "26.1.0",
+    "source_url": "https://github.com/mahmoud/boltons/pull/358",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_file_discovery_depth.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_sentinel_copy_identity",
+    "name": "copying a sentinel returns the same object",
+    "rel_path": "test_sentinel_copy_identity.py",
+    "issue_ids": [
+      "issue_sentinel_copy_identity"
+    ],
+    "expected_behavior": "copy.copy and copy.deepcopy of a sentinel return the original object, directly and when nested, without changing its falsiness or repr",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "26.1.0",
+    "source_pr": "https://github.com/mahmoud/boltons/pull/375",
+    "source_commit": "2ccc5098bc2c8d1dae7f9be8934b799d85857a42",
+    "reference_release": "26.1.0",
+    "source_url": "https://github.com/mahmoud/boltons/pull/375",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_sentinel_copy_identity.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_table_column_width",
+    "name": "text tables size each column from that column's own cells",
+    "rel_path": "test_table_column_width.py",
+    "issue_ids": [
+      "issue_table_column_width"
+    ],
+    "expected_behavior": "Table.to_text pads every column to its own widest cell so all rendered lines are equal width and the separators align across header, rule and body",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "26.1.0",
+    "source_pr": "https://github.com/mahmoud/boltons/pull/381",
+    "source_commit": "0c88f25323de3ff85bcca844b9ce6cd171a80392",
+    "reference_release": "26.1.0",
+    "source_url": "https://github.com/mahmoud/boltons/pull/381",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_table_column_width.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_barrel_list_sort",
+    "name": "a grown chunk-backed list sorts without losing elements",
+    "rel_path": "test_barrel_list_sort.py",
+    "issue_ids": [
+      "issue_barrel_list_sort"
+    ],
+    "expected_behavior": "BarrelList.sort() on a container large enough to span several internal chunks orders every element and leaves the container indexable and sliceable",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "26.1.0",
+    "source_pr": "https://github.com/mahmoud/boltons/pull/389",
+    "source_commit": "f9c4f30511b58c543bda7e4c04193fd480f68b24",
+    "reference_release": "26.1.0",
+    "source_url": "https://github.com/mahmoud/boltons/pull/389",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_barrel_list_sort.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_html_text_extraction",
+    "name": "HTML fragments reduce to their readable text",
+    "rel_path": "test_html_text_extraction.py",
+    "issue_ids": [
+      "issue_html_text_extraction"
+    ],
+    "expected_behavior": "html2text strips tags, resolves named and numeric character references, and keeps no state between calls",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "26.1.0",
+    "source_pr": "https://github.com/mahmoud/boltons/commit/c8c442b98b8cff6d0aee61e61e28d4cb0be0ac21",
+    "source_commit": "c8c442b98b8cff6d0aee61e61e28d4cb0be0ac21",
+    "reference_release": "26.1.0",
+    "source_url": "https://github.com/mahmoud/boltons/commit/c8c442b98b8cff6d0aee61e61e28d4cb0be0ac21",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_html_text_extraction.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_partition_predicates",
+    "name": "partitioning accepts several predicates and returns one group each",
+    "rel_path": "test_partition_predicates.py",
+    "issue_ids": [
+      "issue_partition_predicates"
+    ],
+    "expected_behavior": "partition returns N+1 lists for N predicates, first match wins, unmatched values go last, and the one-predicate form still returns (truthy, falsy)",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "26.1.0",
+    "source_pr": "https://github.com/mahmoud/boltons/pull/386",
+    "source_commit": "49f381eedbdcd695f7ed95110ebb1088582de7f3",
+    "reference_release": "26.1.0",
+    "source_url": "https://github.com/mahmoud/boltons/pull/386",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_partition_predicates.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_traceback_parse_truncated",
+    "name": "a clipped traceback parses into the frames it contains",
+    "rel_path": "test_traceback_parse_truncated.py",
+    "issue_ids": [
+      "issue_traceback_parse_truncated"
+    ],
+    "expected_behavior": "ParsedException.from_string tolerates traceback text that ends before the exception line and returns the frames present, while complete tracebacks still round-trip",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "26.1.0",
+    "source_pr": "https://github.com/mahmoud/boltons/pull/401",
+    "source_commit": "8a2a93d8213e1fa4da30c8167ab1a18caad17a17",
+    "reference_release": "26.1.0",
+    "source_url": "https://github.com/mahmoud/boltons/pull/401",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_traceback_parse_truncated.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_byte_size_rollover",
+    "name": "byte counts roll over to the next unit at each power of 1024",
+    "rel_path": "test_byte_size_rollover.py",
+    "issue_ids": [
+      "issue_byte_size_rollover"
+    ],
+    "expected_behavior": "bytes2human uses the larger unit at exact powers of 1024, for negative values and with extra digits, and leaves sub-boundary formatting alone",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "26.1.0",
+    "source_pr": "https://github.com/mahmoud/boltons/pull/403",
+    "source_commit": "766b5547392fe8d54c1e000098499dc556bb5cb7",
+    "reference_release": "26.1.0",
+    "source_url": "https://github.com/mahmoud/boltons/pull/403",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_byte_size_rollover.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_multidict_equality",
+    "name": "a multidict compares unequal to a mapping whose values differ",
+    "rel_path": "test_multidict_equality.py",
+    "issue_ids": [
+      "issue_multidict_equality"
+    ],
+    "expected_behavior": "OrderedMultiDict equality against a plain mapping compares values as well as keys, using the most recent value for a repeated key",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "26.1.0",
+    "source_pr": "https://github.com/mahmoud/boltons/pull/404",
+    "source_commit": "c463d1633a075c398d6ffad7d8653064a615b696",
+    "reference_release": "26.1.0",
+    "source_url": "https://github.com/mahmoud/boltons/pull/404",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_multidict_equality.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_split_iter_zero_maxsplit",
+    "name": "a zero split budget yields one group of the input's elements",
+    "rel_path": "test_split_iter_zero_maxsplit.py",
+    "issue_ids": [
+      "issue_split_iter_zero_maxsplit"
+    ],
+    "expected_behavior": "split_iter with maxsplit=0 yields a single group of the source's elements for both sequences and one-shot iterators",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "26.1.0",
+    "source_pr": "https://github.com/mahmoud/boltons/pull/406",
+    "source_commit": "4aa77cddb5d06def130df6f09aefab4018fa487c",
+    "reference_release": "26.1.0",
+    "source_url": "https://github.com/mahmoud/boltons/pull/406",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_split_iter_zero_maxsplit.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_indexed_set_slicing",
+    "name": "slicing ignores the slots earlier removals vacated",
+    "rel_path": "test_indexed_set_slicing.py",
+    "issue_ids": [
+      "issue_indexed_set_slicing"
+    ],
+    "expected_behavior": "IndexedSet slicing depends only on the current contents, matching plain sequence slicing for positive steps regardless of removal history",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "26.1.0",
+    "source_pr": "https://github.com/mahmoud/boltons/commit/609cabe932a1ea1423b24568644945abb1b8bb84",
+    "source_commit": "609cabe932a1ea1423b24568644945abb1b8bb84",
+    "reference_release": "26.1.0",
+    "source_url": "https://github.com/mahmoud/boltons/commit/609cabe932a1ea1423b24568644945abb1b8bb84",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_indexed_set_slicing.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_word_singularization",
+    "name": "words already ending in a doubled 's' survive singularization",
+    "rel_path": "test_word_singularization.py",
+    "issue_ids": [
+      "issue_word_singularization"
+    ],
+    "expected_behavior": "singularize returns doubled-'s' words unchanged and is idempotent, while ordinary plurals are still reduced",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "26.1.0",
+    "source_pr": "https://github.com/mahmoud/boltons/pull/418",
+    "source_commit": "1e61524a798ea73632029a013a7686036d5c126f",
+    "reference_release": "26.1.0",
+    "source_url": "https://github.com/mahmoud/boltons/pull/418",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_word_singularization.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_indexed_set_index_bounds",
+    "name": "an out-of-range index is rejected instead of wrapping",
+    "rel_path": "test_indexed_set_index_bounds.py",
+    "issue_ids": [
+      "issue_indexed_set_index_bounds"
+    ],
+    "expected_behavior": "IndexedSet raises IndexError for scalar indices outside the current range in either direction, before and after removals",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "26.1.0",
+    "source_pr": "https://github.com/mahmoud/boltons/pull/424",
+    "source_commit": "d0a284fc7ef1aebceb54798600d73be4eeb76ed8",
+    "reference_release": "26.1.0",
+    "source_url": "https://github.com/mahmoud/boltons/pull/424",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_indexed_set_index_bounds.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_multidict_copy_semantics",
+    "name": "duplicating a multidict keeps every value under every key",
+    "rel_path": "test_multidict_copy_semantics.py",
+    "issue_ids": [
+      "issue_multidict_copy_semantics"
+    ],
+    "expected_behavior": "copy.copy and copy.deepcopy of an OrderedMultiDict retain all values per key in order, and the deep copy shares no mutable values with the original",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "26.1.0",
+    "source_pr": "https://github.com/mahmoud/boltons/pull/410",
+    "source_commit": "ebc7a8f776debfa33f0b380b57a444bca75a251b",
+    "reference_release": "26.1.0",
+    "source_url": "https://github.com/mahmoud/boltons/pull/410",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_multidict_copy_semantics.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_atomic_save_path_objects",
+    "name": "atomic writes accept a filesystem path object",
+    "rel_path": "test_atomic_save_path_objects.py",
+    "issue_ids": [
+      "issue_atomic_save_path_objects"
+    ],
+    "expected_behavior": "atomic_save takes a path object for its destination in binary and text mode and still cleans up its temporary file on failure",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "26.1.0",
+    "source_pr": "https://github.com/mahmoud/boltons/pull/416",
+    "source_commit": "55dfe5077bcb5fa76611b5f2a557ea6c442ad87c",
+    "reference_release": "26.1.0",
+    "source_url": "https://github.com/mahmoud/boltons/pull/416",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_atomic_save_path_objects.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_research_repeated_subtrees",
+    "name": "a nested search reports every location a match occurs at",
+    "rel_path": "test_research_repeated_subtrees.py",
+    "issue_ids": [
+      "issue_research_repeated_subtrees"
+    ],
+    "expected_behavior": "research enumerates every location of a match, including repeated references to the same shared sub-object, with paths that resolve back to the value",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "26.1.0",
+    "source_pr": "https://github.com/mahmoud/boltons/pull/394",
+    "source_commit": "17374731bcc404908726a65734f941d789f23a78",
+    "reference_release": "26.1.0",
+    "source_url": "https://github.com/mahmoud/boltons/pull/394",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_research_repeated_subtrees.py",
+      "-q"
+    ]
+  }
+]

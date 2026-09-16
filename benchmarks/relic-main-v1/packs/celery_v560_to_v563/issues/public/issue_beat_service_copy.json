@@ -1,0 +1,28 @@
+{
+  "issue_id": "issue_beat_service_copy",
+  "title": "Embedded beat service comes back wrong after being serialized",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "beat_scheduler",
+  "created_tick": 96,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#10137",
+  "source_url": "https://github.com/celery/celery/pull/10137",
+  "created_at": "2026-02-21T16:01:21Z",
+  "labels": [
+    "PR Type: Bugfix"
+  ],
+  "release": "v5.6.3",
+  "title_original": "fix(beat): correct argument order in Service.__reduce__",
+  "text_original": "## Summary\n\n`Service.__reduce__` in `celery/beat.py` returns arguments in the wrong positional order, causing deserialization to fail when pickling/unpickling the beat `Service` instance.\n\n## Problem\n\n`Service.__init__` signature is:\n```python\ndef __init__(self, app, max_interval=None, schedule_filename=None, scheduler_cls=None):\n```\n\nBut `__reduce__` was returning:\n```python\nreturn self.__class__, (self.max_interval, self.schedule_filename, self.scheduler_cls, self.app)\n```\n\nThis means on unpickling, `app` receives `self.max_interval` (an int/float), `max_interval` receives `self.schedule_filename` (a string), etc. This would blow up whenever the Service object is pickled and then unpickled — for example when beat is embedded in a multiprocessing child.\n\n## Fix\n\nReorder the tuple to match the `__init__` signature:\n```python\nreturn self.__class__, (self.app, self.max_interval, self.schedule_filename, self.scheduler_cls)\n```\n",
+  "text_rewritten": "A beat service that is serialized and rebuilt -- which is what happens whenever beat is embedded and the surrounding process is re-created -- comes back with its constructor arguments shuffled: the application slot holds the loop interval, the interval slot holds the schedule filename, and so on down the line. Depending on the values involved the rebuilt object either explodes on first use or quietly runs against the wrong application. Reconstructing a service from its own serialization has to produce an equivalent service -- same app, same maximum loop interval, same schedule filename, same scheduler class -- including when those values came from application defaults, and it has to stay stable across repeated rounds.",
+  "body": "A beat service that is serialized and rebuilt -- which is what happens whenever beat is embedded and the surrounding process is re-created -- comes back with its constructor arguments shuffled: the application slot holds the loop interval, the interval slot holds the schedule filename, and so on down the line. Depending on the values involved the rebuilt object either explodes on first use or quietly runs against the wrong application. Reconstructing a service from its own serialization has to produce an equivalent service -- same app, same maximum loop interval, same schedule filename, same scheduler class -- including when those values came from application defaults, and it has to stay stable across repeated rounds.",
+  "acceptance_hint": "copy.copy(Service(...)) returns a Service with the same app, max_interval, schedule_filename and scheduler_cls, including when those came from application defaults.",
+  "candidate_path_hints": [
+    "celery/beat.py"
+  ],
+  "linked_hidden_test_ids": [
+    "hidden_beat_service_copy"
+  ]
+}

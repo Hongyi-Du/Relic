@@ -1,0 +1,288 @@
+[
+  {
+    "test_id": "hidden_open_state_selector",
+    "name": "the expanded state of disclosure and dialog elements is selectable",
+    "rel_path": "test_open_state_selector.py",
+    "issue_ids": [
+      "issue_open_state_selector"
+    ],
+    "expected_behavior": "`:open` selects exactly the `<details>` and `<dialog>` elements carrying the expanded state, on its own, narrowed by element type, and nested inside `:not()` / `:is()`; `[open]` keeps matching every element that merely carries the attribute.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "2.7",
+    "source_pr": "https://github.com/facelessuser/soupsieve/pull/280",
+    "source_commit": "6b22489422a9a7080adb2f465b1e0eaf7672603d",
+    "reference_release": "2.9.1",
+    "source_url": "https://github.com/facelessuser/soupsieve/pull/280",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_open_state_selector.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_live_environment_pseudo_classes",
+    "name": "state pseudo-classes that need a live viewer parse and select nothing",
+    "rel_path": "test_live_environment_pseudo_classes.py",
+    "issue_ids": [
+      "issue_live_environment_pseudo_classes"
+    ],
+    "expected_behavior": "`:autofill`, `:buffering`, `:fullscreen`, `:picture-in-picture`, `:popover-open`, `:seeking`, `:stalled` and `:volume-locked` compile, select nothing, and compose inside larger patterns; pseudo-class names that are not real CSS still raise `SelectorSyntaxError`.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "2.7",
+    "source_pr": "https://github.com/facelessuser/soupsieve/pull/280",
+    "source_commit": "6b22489422a9a7080adb2f465b1e0eaf7672603d",
+    "reference_release": "2.9.1",
+    "source_url": "https://github.com/facelessuser/soupsieve/pull/280",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_live_environment_pseudo_classes.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_namespace_map_key_types",
+    "name": "a namespace map with a non-string prefix is refused up front",
+    "rel_path": "test_namespace_map_key_types.py",
+    "issue_ids": [
+      "issue_namespace_map_key_types"
+    ],
+    "expected_behavior": "Compiling with a namespace map whose keys include an int, bool, float, tuple or frozenset raises `TypeError`; non-string URIs still raise `TypeError`; all-string maps compile and select in both the dict and iterable-of-pairs forms.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "2.8.2",
+    "source_pr": "https://github.com/facelessuser/soupsieve/pull/288",
+    "source_commit": "c6e80fcab9ca4d3eaa61913778263e82bcecca1f",
+    "reference_release": "2.9.1",
+    "source_url": "https://github.com/facelessuser/soupsieve/pull/288",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_namespace_map_key_types.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_selector_debug_output_termination",
+    "name": "dumping a compiled selector's structure always terminates",
+    "rel_path": "test_selector_debug_output_termination.py",
+    "issue_ids": [
+      "issue_selector_debug_output_termination"
+    ],
+    "expected_behavior": "Asking any compiled selector to print its structure terminates and emits a multi-line rendering that mentions the selector's own values, positional and attribute selectors included.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "2.8.2",
+    "source_pr": "https://github.com/facelessuser/soupsieve/pull/288",
+    "source_commit": "c6e80fcab9ca4d3eaa61913778263e82bcecca1f",
+    "reference_release": "2.9.1",
+    "source_url": "https://github.com/facelessuser/soupsieve/pull/288",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_selector_debug_output_termination.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_attribute_value_scan_termination",
+    "name": "a bracket-unterminated attribute test with a long bare value is refused promptly",
+    "rel_path": "test_attribute_value_scan_termination.py",
+    "issue_ids": [
+      "issue_attribute_value_scan_termination"
+    ],
+    "expected_behavior": "Compiling an attribute test with no closing bracket and a long unquoted value raises `SelectorSyntaxError` in time proportional to the input length; well-formed attribute tests, including escaped attribute names and the `|=` / `!=` operators, are unchanged.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "2.8.3",
+    "source_pr": "https://github.com/facelessuser/soupsieve/pull/289",
+    "source_commit": "d7c47842a4f8d168243af96b62b9ad7fb84a2038",
+    "reference_release": "2.9.1",
+    "source_url": "https://github.com/facelessuser/soupsieve/pull/289",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_attribute_value_scan_termination.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_unterminated_attribute_string_termination",
+    "name": "an attribute test with an unterminated quoted value is refused promptly",
+    "rel_path": "test_unterminated_attribute_string_termination.py",
+    "issue_ids": [
+      "issue_unterminated_attribute_string_termination"
+    ],
+    "expected_behavior": "Compiling an attribute test whose single- or double-quoted value is never closed raises `SelectorSyntaxError` in time proportional to the input length; properly quoted values, including long ones and ones holding the other quote character, are unchanged.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "2.8.4",
+    "source_pr": "https://github.com/facelessuser/soupsieve/commit/eb4397618709186c109400448c6043b728217dc3",
+    "source_commit": "eb4397618709186c109400448c6043b728217dc3",
+    "reference_release": "2.9.1",
+    "source_url": "https://github.com/facelessuser/soupsieve/commit/eb4397618709186c109400448c6043b728217dc3",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_unterminated_attribute_string_termination.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_selector_volume_cap",
+    "name": "a pattern whose selector count is far above the ceiling is refused",
+    "rel_path": "test_selector_volume_cap.py",
+    "issue_ids": [
+      "issue_selector_volume_cap"
+    ],
+    "expected_behavior": "Compiling a pattern of tens of thousands of selectors raises `ValueError`, whether they are written at the top level, reached through `:is()`, or reached through a custom `:--name` alias; a few hundred selectors still compile and select.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "2.8.4",
+    "source_pr": "https://github.com/facelessuser/soupsieve/commit/28108ab805818c832d9568142a99844fd95a0d39",
+    "source_commit": "28108ab805818c832d9568142a99844fd95a0d39",
+    "reference_release": "2.9.1",
+    "source_url": "https://github.com/facelessuser/soupsieve/commit/28108ab805818c832d9568142a99844fd95a0d39",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_selector_volume_cap.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_nth_index_boundaries",
+    "name": "An+B index arithmetic agrees with the CSS selector specification",
+    "rel_path": "test_nth_index_boundaries.py",
+    "issue_ids": [
+      "issue_nth_index_boundaries"
+    ],
+    "expected_behavior": "Every `An+B` form selects exactly the siblings whose 1-based index equals a*n + b for some integer n >= 0, including sequences that cross index 0, land only on the last sibling, or use a negative step; `odd`, a bare integer and other established forms are unchanged.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "2.9",
+    "source_pr": "https://github.com/facelessuser/soupsieve/pull/297",
+    "source_commit": "751c57b2c7e978e206b94b7dba17f8e2af392e19",
+    "reference_release": "2.9.1",
+    "source_url": "https://github.com/facelessuser/soupsieve/pull/297",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_nth_index_boundaries.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_empty_substring_attribute_match",
+    "name": "prefix, suffix and substring attribute tests with an empty operand select nothing",
+    "rel_path": "test_empty_substring_attribute_match.py",
+    "issue_ids": [
+      "issue_empty_substring_attribute_match"
+    ],
+    "expected_behavior": "`[attr^=\"\"]`, `[attr$=\"\"]` and `[attr*=\"\"]` select nothing, with or without a case flag and when combined with other conditions; non-empty operands, `[attr]`, `[attr=\"\"]` and `[attr~=\"\"]` are unchanged.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "2.9",
+    "source_pr": "https://github.com/facelessuser/soupsieve/pull/298",
+    "source_commit": "8c5ceee4a0e376f74dfeadd4149ad5ece7836d53",
+    "reference_release": "2.9.1",
+    "source_url": "https://github.com/facelessuser/soupsieve/pull/298",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_empty_substring_attribute_match.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_muted_media_selector",
+    "name": "the silenced state of audio and video elements is selectable",
+    "rel_path": "test_muted_media_selector.py",
+    "issue_ids": [
+      "issue_muted_media_selector"
+    ],
+    "expected_behavior": "`:muted` selects exactly the `<video>` and `<audio>` elements carrying the silenced state, on its own, narrowed by element type, and nested inside `:not()` / `:is()`; `[muted]` keeps matching every element that merely carries the attribute.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "2.7",
+    "source_pr": "https://github.com/facelessuser/soupsieve/pull/280",
+    "source_commit": "6b22489422a9a7080adb2f465b1e0eaf7672603d",
+    "reference_release": "2.9.1",
+    "source_url": "https://github.com/facelessuser/soupsieve/pull/280",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_muted_media_selector.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_iso_week_range_limits",
+    "name": "week-numbered range controls agree with how many weeks a year has",
+    "rel_path": "test_iso_week_range_limits.py",
+    "issue_ids": [
+      "issue_iso_week_range_limits"
+    ],
+    "expected_behavior": "A week value naming a week number its year does not have counts as no value at all, so the control reports `:in-range`; a year that genuinely runs to a fifty-third week still compares against the limits, and no control is reported in both range states.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "2.8.2",
+    "source_pr": "https://github.com/facelessuser/soupsieve/pull/288",
+    "source_commit": "c6e80fcab9ca4d3eaa61913778263e82bcecca1f",
+    "reference_release": "2.9.1",
+    "source_url": "https://github.com/facelessuser/soupsieve/pull/288",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_iso_week_range_limits.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_whitespace_trim_termination",
+    "name": "padding inside a pattern costs time proportional to its length",
+    "rel_path": "test_whitespace_trim_termination.py",
+    "issue_ids": [
+      "issue_whitespace_trim_termination"
+    ],
+    "expected_behavior": "A descendant combinator written as tens of thousands of whitespace characters or thousands of comments compiles and selects promptly and resolves to the same selector as the single-space form; short and edge padding are unchanged.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "2.9",
+    "source_pr": "https://github.com/facelessuser/soupsieve/commit/cf198fcddc9230f06ed39f974eba0ce076b85cda",
+    "source_commit": "cf198fcddc9230f06ed39f974eba0ce076b85cda",
+    "reference_release": "2.9.1",
+    "source_url": "https://github.com/facelessuser/soupsieve/commit/cf198fcddc9230f06ed39f974eba0ce076b85cda",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_whitespace_trim_termination.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_identifier_scan_termination",
+    "name": "scanning a long element name costs time proportional to its length",
+    "rel_path": "test_identifier_scan_termination.py",
+    "issue_ids": [
+      "issue_identifier_scan_termination"
+    ],
+    "expected_behavior": "An element name tens of thousands of characters long followed by an illegal character raises SelectorSyntaxError promptly, wherever in the pattern the name sits; long legal names still compile and select, and long class and id names stay prompt.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "2.9",
+    "source_pr": "https://github.com/facelessuser/soupsieve/commit/ce44e4996e6632871c18cdd7a7fb641be8ef34ef",
+    "source_commit": "ce44e4996e6632871c18cdd7a7fb641be8ef34ef",
+    "reference_release": "2.9.1",
+    "source_url": "https://github.com/facelessuser/soupsieve/commit/ce44e4996e6632871c18cdd7a7fb641be8ef34ef",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_identifier_scan_termination.py",
+      "-q"
+    ]
+  }
+]

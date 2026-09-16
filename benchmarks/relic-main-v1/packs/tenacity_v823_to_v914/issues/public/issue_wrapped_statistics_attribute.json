@@ -1,0 +1,23 @@
+{
+  "issue_id": "issue_wrapped_statistics_attribute",
+  "title": "Retry statistics cannot be read back reliably after a decorated call",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "retry_statistics",
+  "created_tick": 108,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#484",
+  "source_url": "https://github.com/jd/tenacity/pull/484",
+  "created_at": "2024-07-05T07:22:20Z",
+  "labels": [],
+  "release": "9.1.4",
+  "title_original": "fix: Restore contents of retry attribute for wrapped functions",
+  "text_original": "Fixes #482. After https://github.com/jd/tenacity/pull/479 we changed the contents of the `retry` attribute for retry wrapped functions. However, it is useful that this attribute contains the reference to the retry object as it allows to modify its behaviour on-the-fly. Simply restoring the previous behaviour not possible, as they assume the contents of the `retry` attribute can be read, but recursive calls may end up overwriting the same context and make this invalid (see the discussion in #482). These changes restore the `retry` attribute, and update both tests and docs to make clear this is a write-only attribute and statistics should be read from the separate `statistics` attribute in the wrapped function.",
+  "text_rewritten": "We record how many attempts each call took. The only place those numbers are available today is the shared configuration object hanging off the decorated function, and that is a problem on two counts: it is the same object we patch in tests to shorten waits, and it is shared by every caller of that function, so what we read back is whatever the most recent unrelated call happened to leave behind. Under recursion or concurrency it is simply the wrong call's numbers. We want the statistics of the invocation we just made, published on the decorated function itself as a `statistics` attribute — a mapping carrying at least `attempt_number`, `idle_for` and `start_time`, refreshed by each call, for both synchronous and asynchronous targets. The shared configuration object must remain reachable and remain patchable so that tests can still change behaviour on the fly, and `retry_with` must keep working.",
+  "body": "We record how many attempts each call took. The only place those numbers are available today is the shared configuration object hanging off the decorated function, and that is a problem on two counts: it is the same object we patch in tests to shorten waits, and it is shared by every caller of that function, so what we read back is whatever the most recent unrelated call happened to leave behind. Under recursion or concurrency it is simply the wrong call's numbers. We want the statistics of the invocation we just made, published on the decorated function itself as a `statistics` attribute — a mapping carrying at least `attempt_number`, `idle_for` and `start_time`, refreshed by each call, for both synchronous and asynchronous targets. The shared configuration object must remain reachable and remain patchable so that tests can still change behaviour on the fly, and `retry_with` must keep working.",
+  "acceptance_hint": "After calling a decorated function, synchronous or asynchronous, `fn.statistics['attempt_number']` reports the attempts that particular call took and is refreshed by the next call; `fn.retry` is still the configuration object, patching it still changes behaviour, and `fn.retry_with` still produces a reconfigured variant.",
+  "linked_hidden_test_ids": [
+    "hidden_wrapped_statistics_attribute"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "issue_id": "issue_writers",
+  "title": "Writers is not implemented",
+  "issue_type": "feature",
+  "severity": "medium",
+  "component": "writers",
+  "created_tick": 48,
+  "source": "vendor_task_brief",
+  "source_type": "requirements_document",
+  "source_id": "pdf-overflow-converter",
+  "labels": [],
+  "release": "1.0.0",
+  "body": "The `writers` surface described in the brief is not implemented. Build it so its behaviour matches the brief.",
+  "acceptance_hint": "7 executable checks over the writers surface.",
+  "linked_hidden_test_ids": [
+    "hidden_writers"
+  ],
+  "candidate_path_hints": [
+    "pdf_reformatter/extract.py",
+    "pdf_reformatter/layout.py",
+    "pdf_reformatter/writers.py"
+  ]
+}

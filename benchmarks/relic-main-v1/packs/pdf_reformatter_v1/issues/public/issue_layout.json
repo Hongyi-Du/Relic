@@ -1,0 +1,22 @@
+{
+  "issue_id": "issue_layout",
+  "title": "Layout is not implemented",
+  "issue_type": "feature",
+  "severity": "high",
+  "component": "layout",
+  "created_tick": 36,
+  "source": "vendor_task_brief",
+  "source_type": "requirements_document",
+  "source_id": "pdf-overflow-converter",
+  "labels": [],
+  "release": "1.0.0",
+  "body": "The `layout` surface described in the brief is not implemented. Build it so its behaviour matches the brief.",
+  "acceptance_hint": "9 executable checks over the layout surface.",
+  "linked_hidden_test_ids": [
+    "hidden_layout"
+  ],
+  "candidate_path_hints": [
+    "pdf_reformatter/extract.py",
+    "pdf_reformatter/layout.py"
+  ]
+}

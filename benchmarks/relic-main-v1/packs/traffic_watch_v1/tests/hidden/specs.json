@@ -1,0 +1,209 @@
+[
+  {
+    "test_id": "hidden_config",
+    "name": "config behaves as the brief requires",
+    "rel_path": "test_config.py",
+    "issue_ids": [
+      "issue_config"
+    ],
+    "expected_behavior": "3 executable checks over the config surface.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "1.0.0",
+    "reference_release": "1.0.0",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_config.py",
+      "-q"
+    ],
+    "test_function_count": 3,
+    "starter_passed": 1,
+    "starter_total": 3,
+    "reference_passed": 3
+  },
+  {
+    "test_id": "hidden_dashboard",
+    "name": "dashboard behaves as the brief requires",
+    "rel_path": "test_dashboard.py",
+    "issue_ids": [
+      "issue_dashboard"
+    ],
+    "expected_behavior": "6 executable checks over the dashboard surface.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "1.0.0",
+    "reference_release": "1.0.0",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_dashboard.py",
+      "-q"
+    ],
+    "test_function_count": 6,
+    "starter_passed": 0,
+    "starter_total": 6,
+    "reference_passed": 6
+  },
+  {
+    "test_id": "hidden_ocr_and_reports",
+    "name": "ocr and reports behaves as the brief requires",
+    "rel_path": "test_ocr_and_reports.py",
+    "issue_ids": [
+      "issue_ocr_and_reports"
+    ],
+    "expected_behavior": "6 executable checks over the ocr_and_reports surface.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "1.0.0",
+    "reference_release": "1.0.0",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_ocr_and_reports.py",
+      "-q"
+    ],
+    "test_function_count": 6,
+    "starter_passed": 0,
+    "starter_total": 6,
+    "reference_passed": 6
+  },
+  {
+    "test_id": "hidden_pipeline_helmet_seatbelt",
+    "name": "pipeline helmet seatbelt behaves as the brief requires",
+    "rel_path": "test_pipeline_helmet_seatbelt.py",
+    "issue_ids": [
+      "issue_pipeline_helmet_seatbelt"
+    ],
+    "expected_behavior": "4 executable checks over the pipeline_helmet_seatbelt surface.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "1.0.0",
+    "reference_release": "1.0.0",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_pipeline_helmet_seatbelt.py",
+      "-q"
+    ],
+    "test_function_count": 4,
+    "starter_passed": 0,
+    "starter_total": 4,
+    "reference_passed": 4
+  },
+  {
+    "test_id": "hidden_pipeline_reckless",
+    "name": "pipeline reckless behaves as the brief requires",
+    "rel_path": "test_pipeline_reckless.py",
+    "issue_ids": [
+      "issue_pipeline_reckless"
+    ],
+    "expected_behavior": "3 executable checks over the pipeline_reckless surface.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "1.0.0",
+    "reference_release": "1.0.0",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_pipeline_reckless.py",
+      "-q"
+    ],
+    "test_function_count": 3,
+    "starter_passed": 0,
+    "starter_total": 3,
+    "reference_passed": 3
+  },
+  {
+    "test_id": "hidden_pipeline_red_light",
+    "name": "pipeline red light behaves as the brief requires",
+    "rel_path": "test_pipeline_red_light.py",
+    "issue_ids": [
+      "issue_pipeline_red_light"
+    ],
+    "expected_behavior": "3 executable checks over the pipeline_red_light surface.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "1.0.0",
+    "reference_release": "1.0.0",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_pipeline_red_light.py",
+      "-q"
+    ],
+    "test_function_count": 3,
+    "starter_passed": 0,
+    "starter_total": 3,
+    "reference_passed": 3
+  },
+  {
+    "test_id": "hidden_pipeline_speed_wrongway",
+    "name": "pipeline speed wrongway behaves as the brief requires",
+    "rel_path": "test_pipeline_speed_wrongway.py",
+    "issue_ids": [
+      "issue_pipeline_speed_wrongway"
+    ],
+    "expected_behavior": "4 executable checks over the pipeline_speed_wrongway surface.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "1.0.0",
+    "reference_release": "1.0.0",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_pipeline_speed_wrongway.py",
+      "-q"
+    ],
+    "test_function_count": 4,
+    "starter_passed": 0,
+    "starter_total": 4,
+    "reference_passed": 4
+  },
+  {
+    "test_id": "hidden_storage_alerts",
+    "name": "storage alerts behaves as the brief requires",
+    "rel_path": "test_storage_alerts.py",
+    "issue_ids": [
+      "issue_storage_alerts"
+    ],
+    "expected_behavior": "7 executable checks over the storage_alerts surface.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "1.0.0",
+    "reference_release": "1.0.0",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_storage_alerts.py",
+      "-q"
+    ],
+    "test_function_count": 7,
+    "starter_passed": 0,
+    "starter_total": 7,
+    "reference_passed": 7
+  },
+  {
+    "test_id": "hidden_tracking",
+    "name": "tracking behaves as the brief requires",
+    "rel_path": "test_tracking.py",
+    "issue_ids": [
+      "issue_tracking"
+    ],
+    "expected_behavior": "4 executable checks over the tracking surface.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "1.0.0",
+    "reference_release": "1.0.0",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_tracking.py",
+      "-q"
+    ],
+    "test_function_count": 4,
+    "starter_passed": 0,
+    "starter_total": 4,
+    "reference_passed": 4
+  }
+]

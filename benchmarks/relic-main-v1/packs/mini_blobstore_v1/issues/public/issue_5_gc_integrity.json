@@ -1,0 +1,19 @@
+{
+  "issue_id": "issue_5_gc_integrity",
+  "title": "Step 5 \u2014 Safe garbage collection",
+  "issue_type": "feature",
+  "severity": "medium",
+  "component": "5-gc-integrity",
+  "candidate_path_hints": [
+    "blobstore/gc.py"
+  ],
+  "created_tick": 60,
+  "source": "authored_greenfield_spec",
+  "source_type": "task_step",
+  "source_id": "5-gc-integrity",
+  "body": "# Step 5 \u2014 Safe garbage collection\n\nKeep the full system working and implement `blobstore.gc`. Compute reachability\nfrom manifests and incomplete upload parts. `plan()` returns sorted candidates\nand a state fingerprint; `apply(plan)` rejects stale plans and quarantines\ncandidates before deletion. `audit()` and dry-run planning are deterministic\nand read-only. Never delete a reachable object.",
+  "acceptance_hint": "# Step 5 \u2014 Safe garbage collection  Keep the full system working and implement `blobstore.gc`. Compute reachability from manifests and incomplete upload parts. `plan()` returns sorted candidates and a state fingerprint; `apply(plan)` rejects stale plans and quarantines candidates before deletion. `audit()` and dry-run planning are deterministic and read-only. Never delete a reachable object.",
+  "linked_hidden_test_ids": [
+    "hidden_5_gc_integrity"
+  ]
+}

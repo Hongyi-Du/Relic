@@ -1,0 +1,26 @@
+{
+  "issue_id": "issue_indexed_set_slicing",
+  "title": "Slicing an ordered set returns the wrong window after anything is removed",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "indexed_set",
+  "candidate_path_hints": [
+    "boltons/setutils.py"
+  ],
+  "created_tick": 132,
+  "source": "historical_github",
+  "source_type": "commit",
+  "source_id": "commit 609cabe932",
+  "source_url": "https://github.com/mahmoud/boltons/commit/609cabe932a1ea1423b24568644945abb1b8bb84",
+  "created_at": "2026-07-17T06:36:33Z",
+  "labels": [],
+  "release": "26.1.0",
+  "title_original": "fix IndexedSet slicing after removals: keep iter_slice bounds in apparent index space (#423)",
+  "text_original": "Co-authored-by: Andrew Chen <48723787+chuenchen309@users.noreply.github.com>",
+  "text_rewritten": "As soon as we remove an element from the insertion-ordered set, slicing it stops agreeing with what iterating it shows. A three-element slice can come back with four elements, and the window is shifted by roughly the number of items removed earlier. A set built fresh from the same remaining contents slices correctly, so the answer depends on the removal history rather than on what the set holds now.\n\nSlicing must depend only on the current contents: for positive steps it should match plain sequence slicing of the surviving elements, and the same slice must give the same answer whether or not anything was removed along the way. A slice should still come back as an ordered set.",
+  "body": "As soon as we remove an element from the insertion-ordered set, slicing it stops agreeing with what iterating it shows. A three-element slice can come back with four elements, and the window is shifted by roughly the number of items removed earlier. A set built fresh from the same remaining contents slices correctly, so the answer depends on the removal history rather than on what the set holds now.\n\nSlicing must depend only on the current contents: for positive steps it should match plain sequence slicing of the surviving elements, and the same slice must give the same answer whether or not anything was removed along the way. A slice should still come back as an ordered set.",
+  "acceptance_hint": "Slicing an IndexedSet returns the same window as slicing the list of its current contents no matter how many elements were removed beforehand, gives identical results to a freshly built set with the same contents, and still returns an IndexedSet.",
+  "linked_hidden_test_ids": [
+    "hidden_indexed_set_slicing"
+  ]
+}

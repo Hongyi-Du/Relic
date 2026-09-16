@@ -1,0 +1,21 @@
+{
+  "issue_id": "issue_charts",
+  "title": "Charts is not implemented",
+  "issue_type": "feature",
+  "severity": "high",
+  "component": "charts",
+  "created_tick": 36,
+  "source": "vendor_task_brief",
+  "source_type": "requirements_document",
+  "source_id": "fastapi-auth-visualization",
+  "labels": [],
+  "release": "1.0.0",
+  "body": "`GET /charts/sales` — list of sales rows, each serialized with exactly the keys `{\"id\", \"category\", \"month\", \"amount\"}`.\n\n`GET /charts/sales/by-category` — aggregation rows with keys `{\"category\", \"total\"}`.\n\n`GET /charts/sales/by-month` — aggregation rows with keys `{\"month\", \"total\"}`.\n\nAll `/api/v1/charts/*` endpoints are protected routes. Requests without a valid bearer token must return HTTP 401 with `{\"error\":\"unauthorized\",\"detail\":\"...\"}`.",
+  "acceptance_hint": "4 executable checks over the charts surface.",
+  "linked_hidden_test_ids": [
+    "hidden_charts"
+  ],
+  "candidate_path_hints": [
+    "app/routers/charts.py"
+  ]
+}

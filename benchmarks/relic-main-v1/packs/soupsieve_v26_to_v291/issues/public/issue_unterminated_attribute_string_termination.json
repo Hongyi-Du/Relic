@@ -1,0 +1,23 @@
+{
+  "issue_id": "issue_unterminated_attribute_string_termination",
+  "title": "An attribute test whose quoted value is never closed hangs the compile forever",
+  "issue_type": "performance",
+  "severity": "critical",
+  "component": "attribute_selectors",
+  "created_tick": 72,
+  "source": "historical_github",
+  "source_type": "commit",
+  "source_id": "commit@eb4397618709",
+  "source_url": "https://github.com/facelessuser/soupsieve/commit/eb4397618709186c109400448c6043b728217dc3",
+  "created_at": "2026-05-24T13:25:14Z",
+  "labels": [],
+  "release": "2.9.1",
+  "title_original": "Merge commit from fork",
+  "text_original": "* Fix inefficient attribute pattern\n\nFound by @mauriceng98\n\n* Fix lint",
+  "text_rewritten": "Same shape of failure as the unterminated bare value, but with quotes. If a caller sends an attribute test that opens a quoted value and never closes it -- a few hundred characters is enough, with either single or double quotes -- the compile never returns and the worker is gone. The input is plainly invalid, so it should come back as a syntax error in time proportional to its length.\n\nProperly quoted values must keep working: values containing spaces, values containing the other quote character, values several hundred characters long, and the prefix/suffix/substring operators over quoted values.",
+  "body": "Same shape of failure as the unterminated bare value, but with quotes. If a caller sends an attribute test that opens a quoted value and never closes it -- a few hundred characters is enough, with either single or double quotes -- the compile never returns and the worker is gone. The input is plainly invalid, so it should come back as a syntax error in time proportional to its length.\n\nProperly quoted values must keep working: values containing spaces, values containing the other quote character, values several hundred characters long, and the prefix/suffix/substring operators over quoted values.",
+  "acceptance_hint": "An attribute test with an unterminated single- or double-quoted value raises a selector syntax error promptly however long the value is; properly quoted values are unchanged.",
+  "linked_hidden_test_ids": [
+    "hidden_unterminated_attribute_string_termination"
+  ]
+}

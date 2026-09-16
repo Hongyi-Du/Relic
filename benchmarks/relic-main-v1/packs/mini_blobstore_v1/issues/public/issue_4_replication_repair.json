@@ -1,0 +1,19 @@
+{
+  "issue_id": "issue_4_replication_repair",
+  "title": "Step 4 \u2014 Replication audit and repair",
+  "issue_type": "feature",
+  "severity": "medium",
+  "component": "4-replication-repair",
+  "candidate_path_hints": [
+    "blobstore/replicas.py"
+  ],
+  "created_tick": 48,
+  "source": "authored_greenfield_spec",
+  "source_type": "task_step",
+  "source_id": "4-replication-repair",
+  "body": "# Step 4 \u2014 Replication audit and repair\n\nKeep Steps 1\u20133 working and implement `blobstore.replicas`. A `ReplicaSet`\nreplicates verified objects, audits healthy/missing/corrupt states\ndeterministically, quarantines corrupt destination files, and repairs only from\na healthy source. Repair must verify the destination and must not mutate the\nprimary or an already healthy replica.",
+  "acceptance_hint": "# Step 4 \u2014 Replication audit and repair  Keep Steps 1\u20133 working and implement `blobstore.replicas`. A `ReplicaSet` replicates verified objects, audits healthy/missing/corrupt states deterministically, quarantines corrupt destination files, and repairs only from a healthy source. Repair must verify the destination and must not mutate the primary or an already healthy replica.",
+  "linked_hidden_test_ids": [
+    "hidden_4_replication_repair"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0",
+  "mutants": [
+    {"name": "trust_existing_digest", "step": 1, "script": "fp1_trust_existing_digest.py"},
+    {"name": "allow_parent_manifest", "step": 2, "script": "fp2_allow_parent_manifest.py"},
+    {"name": "overwrite_upload_part", "step": 3, "script": "fp3_overwrite_upload_part.py"},
+    {"name": "corrupt_replica_healthy", "step": 4, "script": "fp4_corrupt_replica_healthy.py"},
+    {"name": "apply_stale_gc_plan", "step": 5, "script": "fp5_apply_stale_gc_plan.py"}
+  ]
+}

@@ -1,0 +1,70 @@
+schema_version: relic-benchmark-manifest-v1
+benchmark: relic-main-v1
+source_repository: https://github.com/Hongyi-Du/SocioGenesis
+source_commit: 32aca051d223616cc79547d6f9997ac932b9b02b
+tree_digest_algorithm: >-
+  sha256 over sorted records of UTF-8 relative-path, NUL, lowercase file
+  sha256, newline
+
+workloads:
+  - id: w01
+    name: Mini Blobstore
+    pack: mini_blobstore_v1
+    category: zero_to_one_construction
+    file_count: 67
+    tree_sha256: 3b040fb8bf0053afe6de7669da131e117300289dbad9a59f3c4a6f2fe743c386
+  - id: w02
+    name: Traffic Watch
+    pack: traffic_watch_v1
+    category: zero_to_one_construction
+    file_count: 46
+    tree_sha256: 4838ee9a155200d24316fab1977478abd969630112fb912bab8e435bb017c026
+  - id: w03
+    name: TG Automation
+    pack: tg_automation_v1
+    category: zero_to_one_construction
+    file_count: 58
+    tree_sha256: f66a204e8a9ecf595c5fbc0b393f1bc38ec4ec79fae2d016d81126429f7a783f
+  - id: w04
+    name: PDF Reformatter
+    pack: pdf_reformatter_v1
+    category: zero_to_one_construction
+    file_count: 25
+    tree_sha256: 7162ff55f6a8f526ea2889744290eb1fb14fdb50903eb14fb96965092bc8963e
+  - id: w05
+    name: FastAPI Dashboard
+    pack: fastapi_dashboard_v1
+    category: zero_to_one_construction
+    file_count: 45
+    tree_sha256: de828817267be4a6cfb7c58758ddf6b4a9c76324ae12ebc57eb7d78a484233bc
+  - id: w06
+    name: Boltons 24.0.0 to 26.1.0
+    pack: boltons_v2400_to_v2610
+    category: upstream_version_transition
+    file_count: 279
+    tree_sha256: 1659b8f59f5c737b219c5d661ce371fadbe44d2f85bc7b56ce6bde20eef60653
+  - id: w07
+    name: Celery 5.6.0 to 5.6.3
+    pack: celery_v560_to_v563
+    category: upstream_version_transition
+    file_count: 1384
+    tree_sha256: 04df0d914ffad15c9960e838841cf7a21fe79e1d24f0fd8e30a750a91696de29
+  - id: w08
+    name: Soup Sieve 2.6 to 2.9.1
+    pack: soupsieve_v26_to_v291
+    category: upstream_version_transition
+    file_count: 331
+    tree_sha256: 72241d600ed378115d6bdaa29fee5ff078870ffcf66d180d7a08f7dcd3f2e2d3
+  - id: w09
+    name: cattrs 25.1.0 to 26.1.0
+    pack: cattrs_v2510_to_v2610
+    category: upstream_version_transition
+    file_count: 374
+    tree_sha256: 5bc329df63587dcfa19b4c38e6c4ec0cbe369e383a19a6e06dc9f372835e6abc
+  - id: w10
+    name: Tenacity 8.2.3 to 9.1.4
+    pack: tenacity_v823_to_v914
+    category: upstream_version_transition
+    file_count: 196
+    tree_sha256: 450ec7ed06d4ab4e4d612b2486c43f21a8643d73673b543a87117928aa7266f0
+

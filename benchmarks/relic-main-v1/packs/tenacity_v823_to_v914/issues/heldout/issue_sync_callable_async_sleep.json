@@ -1,0 +1,24 @@
+{
+  "issue_id": "issue_sync_callable_async_sleep",
+  "title": "An awaitable pause function is ignored when the retried callable is synchronous",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "async_retry_runtime",
+  "created_tick": 0,
+  "hidden": true,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#551",
+  "source_url": "https://github.com/jd/tenacity/pull/551",
+  "created_at": "2026-02-05T06:31:38Z",
+  "labels": [],
+  "release": "9.1.4",
+  "title_original": "Support async sleep for sync fn-to-retry",
+  "text_original": "This enables us to avoid blocking the async runloop, without needing to trivially wrap the function-to-retry. Unfortunately the relevant introspection functions are new in Python 3.10; since Python 3.9 is EOL I've also dropped it from metadata and CI configs. Release note: Passing an async `sleep` callable (e.g. `trio.sleep`) to `@retry` now correctly uses `AsyncRetrying`, even when the decorated function is synchronous. Previously, the async sleep would silently not be awaited, resulting in no delay between retries.",
+  "text_rewritten": "We call a blocking third-party client from inside an asynchronous service and we do not want its backoff pauses to block the event loop, so we pass an awaitable pause function to the retry decorator while the retried callable itself stays synchronous. The pauses simply never happen: the awaitable the pause function returns is dropped on the floor, every attempt fires back to back, and the decorated call hands us a plain value rather than something we can await. The only workaround we have found is to wrap the synchronous callable in a trivial coroutine at every call site. Supplying an awaitable pause function should be enough on its own to make the whole retry loop awaitable, whether the retried callable is synchronous or asynchronous. A blocking pause function must keep the call synchronous exactly as it is today.",
+  "body": "We call a blocking third-party client from inside an asynchronous service and we do not want its backoff pauses to block the event loop, so we pass an awaitable pause function to the retry decorator while the retried callable itself stays synchronous. The pauses simply never happen: the awaitable the pause function returns is dropped on the floor, every attempt fires back to back, and the decorated call hands us a plain value rather than something we can await. The only workaround we have found is to wrap the synchronous callable in a trivial coroutine at every call site. Supplying an awaitable pause function should be enough on its own to make the whole retry loop awaitable, whether the retried callable is synchronous or asynchronous. A blocking pause function must keep the call synchronous exactly as it is today.",
+  "acceptance_hint": "With an awaitable pause function, a synchronous retried callable produces an awaitable whose pauses are actually performed and awaited; with a blocking pause function the call stays synchronous and completely unchanged.",
+  "linked_hidden_test_ids": [
+    "hidden_sync_callable_async_sleep"
+  ]
+}

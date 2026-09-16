@@ -1,0 +1,1617 @@
+{
+  "schema_version": "org_env_pack_change_archive_v1",
+  "repository": "mahmoud/boltons",
+  "starter_ref": "24.0.0",
+  "reference_ref": "26.1.0",
+  "starter_commit": "992a58c1036fcf4d52cbf3313b6217b7c07b11d9",
+  "reference_commit": "1d525271754ed7aea7f2347ed16ddbcedb1097a3",
+  "note": "Evaluator-only record of every merged change between the two endpoints, including upstream patches. Never expose this to an agent.",
+  "changes": [
+    {
+      "change_id": "commit_2bf02565e0",
+      "kind": "commit",
+      "number": null,
+      "sha": "2bf02565e01fb783e593ca192f20de2ef7bb722a",
+      "title": "update tox and use wheels for a bit of a speedup (ht https://hynek.me/articles/turbo-charge-tox/ )",
+      "body": "",
+      "merged_at": "2024-04-28T21:28:17Z",
+      "url": "https://github.com/mahmoud/boltons/commit/2bf02565e01fb783e593ca192f20de2ef7bb722a",
+      "labels": [],
+      "files": [
+        {
+          "filename": "requirements-test.txt",
+          "status": "modified",
+          "additions": 46,
+          "deletions": 1,
+          "patch": "@@ -1,4 +1,49 @@\n+attrs==22.1.0\n+bleach==6.0.0\n+cachetools==5.3.2\n+certifi==2022.12.7\n+cffi==1.15.1\n+chardet==5.2.0\n+charset-normalizer==3.0.1\n+colorama==0.4.6\n coverage==6.5.0\n+cryptography==39.0.1\n+distlib==0.3.7\n+docutils==0.19\n+exceptiongroup==1.0.4\n+filelock==3.13.1\n+idna==3.4\n+importlib-metadata==6.0.0\n+iniconfig==1.1.1\n+jaraco.classes==3.2.3\n+jeepney==0.8.0\n+keyring==23.13.1\n+markdown-it-py==2.1.0\n+mdurl==0.1.2\n+more-itertools==9.0.0\n+packaging==23.2\n+pkginfo==1.9.6\n+platformdirs==4.2.1\n+pluggy==1.3.0\n+py==1.11.0\n+pycparser==2.21\n+Pygments==2.14.0\n+pyproject-api==1.6.1\n pytest==7.2.0\n pytest-cov==4.0.0\n-tox<3.0\n+readme-renderer==37.3\n+requests==2.28.2\n+requests-toolbelt==0.10.1\n+rfc3986==2.0.0\n+rich==13.3.1\n+SecretStorage==3.3.3\n+six==1.16.0\n+tomli==2.0.1\n+tox==4.15.0\n+tox-uv==1.7.0\n+twine==4.0.2\n+urllib3==1.26.14\n+uv==0.1.39\n+virtualenv==20.26.0\n+webencodings==0.5.1\n+zipp==3.14.0"
+        },
+        {
+          "filename": "tox.ini",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 1,
+          "patch": "@@ -1,7 +1,8 @@\n [tox]\n envlist = py37,py39,py310,py311,py312,pypy3\n [testenv]\n+package = wheel\n+wheel_build_env = .pkg\n changedir = .tox\n deps = -rrequirements-test.txt\n commands = pytest --doctest-modules {envsitepackagesdir}/boltons {toxinidir}/tests {posargs}\n-"
+        }
+      ],
+      "touches_source": false,
+      "touches_tests": false,
+      "additions": 48,
+      "deletions": 2
+    },
+    {
+      "change_id": "commit_8f84e2a7f3",
+      "kind": "commit",
+      "number": null,
+      "sha": "8f84e2a7f3c236ae80a4ec2f39cead9d4a3412e7",
+      "title": "Revert \"update tox and use wheels for a bit of a speedup (ht https://hynek.me/articles/turbo-charge-tox/ )\"",
+      "body": "This reverts commit 2bf02565e01fb783e593ca192f20de2ef7bb722a.",
+      "merged_at": "2024-04-28T21:51:07Z",
+      "url": "https://github.com/mahmoud/boltons/commit/8f84e2a7f3c236ae80a4ec2f39cead9d4a3412e7",
+      "labels": [],
+      "files": [
+        {
+          "filename": "requirements-test.txt",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 46,
+          "patch": "@@ -1,49 +1,4 @@\n-attrs==22.1.0\n-bleach==6.0.0\n-cachetools==5.3.2\n-certifi==2022.12.7\n-cffi==1.15.1\n-chardet==5.2.0\n-charset-normalizer==3.0.1\n-colorama==0.4.6\n coverage==6.5.0\n-cryptography==39.0.1\n-distlib==0.3.7\n-docutils==0.19\n-exceptiongroup==1.0.4\n-filelock==3.13.1\n-idna==3.4\n-importlib-metadata==6.0.0\n-iniconfig==1.1.1\n-jaraco.classes==3.2.3\n-jeepney==0.8.0\n-keyring==23.13.1\n-markdown-it-py==2.1.0\n-mdurl==0.1.2\n-more-itertools==9.0.0\n-packaging==23.2\n-pkginfo==1.9.6\n-platformdirs==4.2.1\n-pluggy==1.3.0\n-py==1.11.0\n-pycparser==2.21\n-Pygments==2.14.0\n-pyproject-api==1.6.1\n pytest==7.2.0\n pytest-cov==4.0.0\n-readme-renderer==37.3\n-requests==2.28.2\n-requests-toolbelt==0.10.1\n-rfc3986==2.0.0\n-rich==13.3.1\n-SecretStorage==3.3.3\n-six==1.16.0\n-tomli==2.0.1\n-tox==4.15.0\n-tox-uv==1.7.0\n-twine==4.0.2\n-urllib3==1.26.14\n-uv==0.1.39\n-virtualenv==20.26.0\n-webencodings==0.5.1\n-zipp==3.14.0\n+tox<3.0"
+        },
+        {
+          "filename": "tox.ini",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 2,
+          "patch": "@@ -1,8 +1,7 @@\n [tox]\n envlist = py37,py39,py310,py311,py312,pypy3\n [testenv]\n-package = wheel\n-wheel_build_env = .pkg\n changedir = .tox\n deps = -rrequirements-test.txt\n commands = pytest --doctest-modules {envsitepackagesdir}/boltons {toxinidir}/tests {posargs}\n+"
+        }
+      ],
+      "touches_source": false,
+      "touches_tests": false,
+      "additions": 2,
+      "deletions": 48
+    },
+    {
+      "change_id": "commit_2c541395b2",
+      "kind": "commit",
+      "number": null,
+      "sha": "2c541395b2f7cc62e699c2eb77e5065280da6aa5",
+      "title": "revert to tox==4.8.0 as 4.9 seems to have quietly dropped 3.7 support",
+      "body": "",
+      "merged_at": "2024-04-28T21:53:40Z",
+      "url": "https://github.com/mahmoud/boltons/commit/2c541395b2f7cc62e699c2eb77e5065280da6aa5",
+      "labels": [],
+      "files": [
+        {
+          "filename": "requirements-test.txt",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "patch": "@@ -1,4 +1,4 @@\n coverage==6.5.0\n pytest==7.2.0\n pytest-cov==4.0.0\n-tox<3.0\n+tox==4.8.0"
+        }
+      ],
+      "touches_source": false,
+      "touches_tests": false,
+      "additions": 1,
+      "deletions": 1
+    },
+    {
+      "change_id": "pr_367",
+      "kind": "pull_request",
+      "number": 367,
+      "sha": "1dc1423b5e43203a0dd0fd3cb453ac82525b42e2",
+      "title": "Fix Python 3.13 beta test failures (fixes #365)",
+      "body": "Kicked the can down the road (and documented as much) for anchors (`~~~~^^`) in `tbutils`, and fixed the move from `_partialmethod` to `__partialmethod__` in `funcutils`. This fixes #365.",
+      "merged_at": "2024-06-15T23:34:15Z",
+      "url": "https://github.com/mahmoud/boltons/pull/367",
+      "labels": [],
+      "files": [
+        {
+          "filename": "boltons/funcutils.py",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 0,
+          "patch": "@@ -249,6 +249,11 @@ class InstancePartial(functools.partial):\n     \"\"\"\n     @property\n     def _partialmethod(self):\n+        # py3.13 switched from _partialmethod to __partialmethod__, this is kept for backwards compat <=py3.12\n+        return self.__partialmethod__\n+    \n+    @property\n+    def __partialmethod__(self):\n         return functools.partialmethod(self.func, *self.args, **self.keywords)\n \n     def __get__(self, obj, obj_type):\n@@ -268,6 +273,11 @@ class CachedInstancePartial(functools.partial):\n     \"\"\"\n     @property\n     def _partialmethod(self):\n+        # py3.13 switched from _partialmethod to __partialmethod__, this is kept for backwards compat <=py3.12\n+        return self.__partialmethod__\n+    \n+    @property\n+    def __partialmethod__(self):\n         return functools.partialmethod(self.func, *self.args, **self.keywords)\n \n     def __set_name__(self, obj_type, name):"
+        },
+        {
+          "filename": "boltons/tbutils.py",
+          "status": "modified",
+          "additions": 7,
+          "deletions": 3,
+          "patch": "@@ -184,8 +184,6 @@ class _DeferredLine:\n     def __init__(self, filename, lineno, module_globals=None):\n         self.filename = filename\n         self.lineno = lineno\n-        # TODO: this is going away when we fix linecache\n-        # TODO: (mark) read about loader\n         if module_globals is None:\n             self._mod_name = None\n             self._mod_loader = None\n@@ -660,7 +658,7 @@ def fix_print_exception():\n     \"\"\"\n     Sets the default exception hook :func:`sys.excepthook` to the\n     :func:`tbutils.print_exception` that uses all the ``tbutils``\n-    facilities to provide slightly more correct output behavior.\n+    facilities to provide a consistent output behavior.\n     \"\"\"\n     sys.excepthook = print_exception\n \n@@ -715,6 +713,12 @@ def to_string(self):\n \n         ``ParsedException.from_string(text).to_string()`` should yield\n         ``text``.\n+\n+        .. note::\n+\n+           Note that this method does not output \"anchors\" (e.g.,\n+           ``~~~~~^^``), as were added in Python 3.13. See the built-in\n+           ``traceback`` module if these are necessary.\n         \"\"\"\n         lines = ['Traceback (most recent call last):']\n "
+        },
+        {
+          "filename": "tests/test_tbutils.py",
+          "status": "modified",
+          "additions": 5,
+          "deletions": 2,
+          "patch": "@@ -27,7 +27,7 @@ def test():\n     try:\n         test()\n     except:\n-        _, _, exc_traceback = sys.exc_info()\n+        exc, _, exc_traceback = sys.exc_info()\n         tbi = TracebackInfo.from_traceback(exc_traceback)\n         exc_info = ExceptionInfo.from_exc_info(*sys.exc_info())\n         exc_info2 = ExceptionInfo.from_current()\n@@ -53,7 +53,10 @@ def test():\n     assert \"ValueError('yay fun')\" in new_exc_hook_res\n     assert len(new_exc_hook_res) > len(tbi_str)\n \n-    assert new_exc_hook_res == builtin_exc_hook_res\n+    if sys.version_info <= (3, 12):\n+        # output diverges with Python 3.13+, see https://github.com/mahmoud/boltons/issues/365\n+        # TLDR tbutils only has minimal handling for anchors (e.g., ~~~~^^)\n+        assert new_exc_hook_res == builtin_exc_hook_res\n \n \n def test_contextual():"
+        },
+        {
+          "filename": "tox.ini",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "patch": "@@ -1,5 +1,5 @@\n [tox]\n-envlist = py37,py39,py310,py311,py312,pypy3\n+envlist = py37,py39,py310,py311,py312,py313,pypy3\n [testenv]\n changedir = .tox\n deps = -rrequirements-test.txt"
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": true,
+      "additions": 23,
+      "deletions": 6
+    },
+    {
+      "change_id": "pr_370",
+      "kind": "pull_request",
+      "number": 370,
+      "sha": "827f193775a793716bc2615e939340c398ecd042",
+      "title": "Fix timeutils import warning on Python 3.12+ by removing EPOCH_NAIVE",
+      "body": "fixes #369, cc @duncanmmacleod  ",
+      "merged_at": "2024-06-24T17:08:31Z",
+      "url": "https://github.com/mahmoud/boltons/pull/370",
+      "labels": [],
+      "files": [
+        {
+          "filename": "boltons/timeutils.py",
+          "status": "modified",
+          "additions": 5,
+          "deletions": 4,
+          "patch": "@@ -54,7 +54,7 @@\n import time\n import bisect\n import operator\n-from datetime import tzinfo, timedelta, date, datetime\n+from datetime import tzinfo, timedelta, date, datetime, timezone\n \n \n def total_seconds(td):\n@@ -70,7 +70,9 @@ def dt_to_timestamp(dt):\n \n     .. _Epoch-based timestamps: https://en.wikipedia.org/wiki/Unix_time\n \n-    >>> abs(round(time.time() - dt_to_timestamp(datetime.utcnow()), 2))\n+    >>> timestamp = int(time.time())\n+    >>> utc_dt = datetime.fromtimestamp(timestamp, timezone.utc)\n+    >>> timestamp - dt_to_timestamp(utc_dt)\n     0.0\n \n     ``dt_to_timestamp`` supports both timezone-aware and naïve\n@@ -86,7 +88,7 @@ def dt_to_timestamp(dt):\n     if dt.tzinfo:\n         td = dt - EPOCH_AWARE\n     else:\n-        td = dt - EPOCH_NAIVE\n+        td = dt.replace(tzinfo=timezone.utc) - EPOCH_AWARE\n     return timedelta.total_seconds(td)\n \n \n@@ -423,7 +425,6 @@ def __repr__(self):\n \n UTC = ConstantTZInfo('UTC')\n EPOCH_AWARE = datetime.fromtimestamp(0, UTC)\n-EPOCH_NAIVE = datetime.utcfromtimestamp(0)\n \n \n class LocalTZInfo(tzinfo):"
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": false,
+      "additions": 5,
+      "deletions": 4
+    },
+    {
+      "change_id": "pr_366",
+      "kind": "pull_request",
+      "number": 366,
+      "sha": "9381c52b800a5eb85ab8549887987656c96efb16",
+      "title": "Remove more redundant internal compatibility aliases",
+      "body": "Noticed in https://github.com/python/typeshed/pull/11804 . Follow-up to #362\r\n\r\nidk if you'd like to drop tests for `total_ordering` since boltons is no longer implementing it.",
+      "merged_at": "2024-06-30T06:17:48Z",
+      "url": "https://github.com/mahmoud/boltons/pull/366",
+      "labels": [],
+      "files": [
+        {
+          "filename": "boltons/deprutils.py",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 2,
+          "patch": "@@ -30,10 +30,9 @@\n \n \n import sys\n+from types import ModuleType\n from warnings import warn\n \n-ModuleType = type(sys)\n-\n # todo: only warn once\n \n "
+        },
+        {
+          "filename": "boltons/funcutils.py",
+          "status": "modified",
+          "additions": 7,
+          "deletions": 9,
+          "patch": "@@ -40,10 +40,11 @@\n import functools\n import itertools\n from inspect import formatannotation\n-from types import MethodType, FunctionType\n-\n-make_method = lambda desc, obj, obj_type: MethodType(desc, obj)\n+from types import FunctionType, MethodType\n \n+# For legacy compatibility.\n+# boltons used to offer an implementation of total_ordering for Python <2.7\n+from functools import total_ordering as total_ordering\n \n try:\n     from .typeutils import make_sentinel\n@@ -252,7 +253,7 @@ def _partialmethod(self):\n         return functools.partialmethod(self.func, *self.args, **self.keywords)\n \n     def __get__(self, obj, obj_type):\n-        return make_method(self, obj, obj_type)\n+        return MethodType(self, obj)\n \n \n \n@@ -283,13 +284,13 @@ def __get__(self, obj, obj_type):\n         name = self.__name__\n \n         if obj is None:\n-            return make_method(self, obj, obj_type)\n+            return MethodType(self, obj)\n         try:\n             # since this is a data descriptor, this block\n             # is probably only hit once (per object)\n             return obj.__dict__[name]\n         except KeyError:\n-            obj.__dict__[name] = ret = make_method(self, obj, obj_type)\n+            obj.__dict__[name] = ret = MethodType(self, obj)\n             return ret\n \n \n@@ -971,9 +972,6 @@ def _indent(text, margin, newline='\\n', key=bool):\n     return newline.join(indented_lines)\n \n \n-from functools import total_ordering\n-\n-\n def noop(*args, **kwargs):\n     \"\"\"\n     Simple function that should be used when no effect is desired."
+        },
+        {
+          "filename": "boltons/mathutils.py",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 12,
+          "patch": "@@ -121,15 +121,6 @@ def floor(x, options=None):\n     return options[i - 1]\n \n \n-try:\n-    _int_types = (int, long)\n-    bytes = str\n-except NameError:\n-    # py3 has no long\n-    _int_types = (int,)\n-    unicode = str\n-\n-\n class Bits:\n     '''\n     An immutable bit-string or bit-array object.\n@@ -147,12 +138,12 @@ class Bits:\n     __slots__ = ('val', 'len')\n \n     def __init__(self, val=0, len_=None):\n-        if type(val) not in _int_types:\n+        if type(val) is not int:\n             if type(val) is list:\n                 val = ''.join(['1' if e else '0' for e in val])\n             if type(val) is bytes:\n                 val = val.decode('ascii')\n-            if type(val) is unicode:\n+            if type(val) is str:\n                 if len_ is None:\n                     len_ = len(val)\n                     if val.startswith('0x'):\n@@ -164,7 +155,7 @@ def __init__(self, val=0, len_=None):\n                         val = int(val, 2)\n                     else:\n                         val = 0\n-            if type(val) not in _int_types:\n+            if type(val) is not int:\n                 raise TypeError(f'initialized with bad type: {type(val).__name__}')\n         if val < 0:\n             raise ValueError('Bits cannot represent negative values')"
+        },
+        {
+          "filename": "boltons/timeutils.py",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 4,
+          "patch": "@@ -57,10 +57,9 @@\n from datetime import tzinfo, timedelta, date, datetime\n \n \n-def total_seconds(td):\n-    # For legacy compatibility.\n-    # boltons used to offer an implementation of total_seconds for Python <2.7\n-    return timedelta.total_seconds(td)\n+# For legacy compatibility.\n+# boltons used to offer an implementation of total_seconds for Python <2.7\n+total_seconds = timedelta.total_seconds\n \n \n def dt_to_timestamp(dt):"
+        },
+        {
+          "filename": "boltons/urlutils.py",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 8,
+          "patch": "@@ -55,8 +55,6 @@\n import string\n from unicodedata import normalize\n \n-unicode = str\n-\n # The unreserved URI characters (per RFC 3986 Section 2.3)\n _UNRESERVED_CHARS = frozenset('~-._0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'\n                               'abcdefghijklmnopqrstuvwxyz')\n@@ -124,9 +122,9 @@ class URLParseError(ValueError):\n \n def to_unicode(obj):\n     try:\n-        return unicode(obj)\n+        return str(obj)\n     except UnicodeDecodeError:\n-        return unicode(obj, encoding=DEFAULT_ENCODING)\n+        return str(obj, encoding=DEFAULT_ENCODING)\n \n \n # regex from gruber via tornado\n@@ -174,7 +172,7 @@ def find_all_links(text, with_text=False, default_scheme='https', schemes=()):\n     _add = ret.append\n \n     def _add_text(t):\n-        if ret and isinstance(ret[-1], unicode):\n+        if ret and isinstance(ret[-1], str):\n             ret[-1] += t\n         else:\n             _add(t)\n@@ -311,7 +309,7 @@ def unquote_to_bytes(string):\n         # Is it a string-like object?\n         string.split\n         return b''\n-    if isinstance(string, unicode):\n+    if isinstance(string, str):\n         string = string.encode('utf-8')\n     bits = string.split(b'%')\n     if len(bits) == 1:\n@@ -741,7 +739,7 @@ def get_authority(self, full_quote=False, with_userinfo=False):\n             # TODO: 0 port?\n             if self.port and self.port != self.default_port:\n                 _add(':')\n-                _add(unicode(self.port))\n+                _add(str(self.port))\n         return ''.join(parts)\n \n     def to_text(self, full_quote=False):\n@@ -903,7 +901,7 @@ def parse_url(url_text):\n     >>> sorted(res.keys())  # res is a basic dictionary\n     ['_netloc_sep', 'authority', 'family', 'fragment', 'host', 'password', 'path', 'port', 'query', 'scheme', 'username']\n     \"\"\"\n-    url_text = unicode(url_text)\n+    url_text = str(url_text)\n     # raise TypeError('parse_url expected text, not %r' % url_str)\n     um = _URL_RE.match(url_text)\n     try:"
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": false,
+      "additions": 20,
+      "deletions": 35
+    },
+    {
+      "change_id": "pr_358",
+      "kind": "pull_request",
+      "number": 358,
+      "sha": "ee3c660a6811acd5408d28a5da44fe0a94278834",
+      "title": "Quick implementation of max_depth for boltons.fileutils.iter_find_files",
+      "body": "Probably not the fastest, but it works. Would've been nice if `os.walk` took a parameter.",
+      "merged_at": "2024-06-30T06:43:01Z",
+      "url": "https://github.com/mahmoud/boltons/pull/358",
+      "labels": [],
+      "files": [
+        {
+          "filename": "boltons/fileutils.py",
+          "status": "modified",
+          "additions": 7,
+          "deletions": 1,
+          "patch": "@@ -486,7 +486,7 @@ def __exit__(self, exc_type, exc_val, exc_tb):\n         return\n \n \n-def iter_find_files(directory, patterns, ignored=None, include_dirs=False):\n+def iter_find_files(directory, patterns, ignored=None, include_dirs=False, max_depth=None):\n     \"\"\"Returns a generator that yields file paths under a *directory*,\n     matching *patterns* using `glob`_ syntax (e.g., ``*.txt``). Also\n     supports *ignored* patterns.\n@@ -500,6 +500,9 @@ def iter_find_files(directory, patterns, ignored=None, include_dirs=False):\n             glob-formatted patterns to ignore.\n         include_dirs (bool): Whether to include directories that match\n            patterns, as well. Defaults to ``False``.\n+        max_depth (int): traverse up to this level of subdirectory.\n+           I.e., 0 for the specified *directory* only, 1 for *directory* \n+           and one level of subdirectory.\n \n     For example, finding Python files in the current directory:\n \n@@ -524,7 +527,10 @@ def iter_find_files(directory, patterns, ignored=None, include_dirs=False):\n     elif isinstance(ignored, str):\n         ignored = [ignored]\n     ign_re = re.compile('|'.join([fnmatch.translate(p) for p in ignored]))\n+    start_depth = len(directory.split(os.path.sep))\n     for root, dirs, files in os.walk(directory):\n+        if max_depth is not None and (len(root.split(os.path.sep)) - start_depth) > max_depth:\n+            continue\n         if include_dirs:\n             for basename in dirs:\n                 if pats_re.match(basename):"
+        },
+        {
+          "filename": "tests/test_fileutils.py",
+          "status": "modified",
+          "additions": 18,
+          "deletions": 1,
+          "patch": "@@ -1,4 +1,10 @@\n-from boltons.fileutils import FilePerms\n+import os.path\n+\n+from boltons import fileutils\n+from boltons.fileutils import FilePerms, iter_find_files\n+\n+\n+BOLTONS_PATH = os.path.dirname(os.path.abspath(fileutils.__file__))\n \n \n def test_fileperms():\n@@ -17,3 +23,14 @@ def test_fileperms():\n     assert oct(int(up)) == '0o770'\n \n     assert int(FilePerms()) == 0\n+\n+\n+def test_iter_find_files():\n+    def _to_baseless_list(paths):\n+        return [p.lstrip(BOLTONS_PATH) for p in paths]\n+\n+    assert 'fileutils.py' in _to_baseless_list(iter_find_files(BOLTONS_PATH, patterns=['*.py']))\n+\n+    boltons_parent = os.path.dirname(BOLTONS_PATH)\n+    assert 'fileutils.py' in _to_baseless_list(iter_find_files(boltons_parent, patterns=['*.py']))\n+    assert 'fileutils.py' not in _to_baseless_list(iter_find_files(boltons_parent, patterns=['*.py'], max_depth=0))\n\\ No newline at end of file"
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": true,
+      "additions": 25,
+      "deletions": 2
+    },
+    {
+      "change_id": "pr_372",
+      "kind": "pull_request",
+      "number": 372,
+      "sha": "1f07518303de8a087cb945c5c0375cbeeb09ba71",
+      "title": "Add enter parameter to iterutils.research to allow traversing custom data types",
+      "body": "see #368, cc @majidaldo",
+      "merged_at": "2024-07-01T19:00:11Z",
+      "url": "https://github.com/mahmoud/boltons/pull/372",
+      "labels": [],
+      "files": [
+        {
+          "filename": "boltons/iterutils.py",
+          "status": "modified",
+          "additions": 75,
+          "deletions": 34,
+          "patch": "@@ -165,15 +165,15 @@ def split_iter(src, sep=None, maxsplit=None):\n         sep_func = sep\n     elif not is_scalar(sep):\n         sep = frozenset(sep)\n-        sep_func = lambda x: x in sep\n+        def sep_func(x): return x in sep\n     else:\n-        sep_func = lambda x: x == sep\n+        def sep_func(x): return x == sep\n \n     cur_group = []\n     split_count = 0\n     for s in src:\n         if maxsplit is not None and split_count >= maxsplit:\n-            sep_func = lambda x: False\n+            def sep_func(x): return False\n         if sep_func(s):\n             if sep is None and not cur_group:\n                 # If sep is none, str.split() \"groups\" separators\n@@ -229,7 +229,7 @@ def rstrip(iterable, strip_value=None):\n     ['Foo', 'Bar']\n \n     \"\"\"\n-    return list(rstrip_iter(iterable,strip_value))\n+    return list(rstrip_iter(iterable, strip_value))\n \n \n def rstrip_iter(iterable, strip_value=None):\n@@ -253,7 +253,7 @@ def rstrip_iter(iterable, strip_value=None):\n                 else:\n                     broken = True\n                     break\n-            if not broken: # Return to caller here because the end of the\n+            if not broken:  # Return to caller here because the end of the\n                 return     # iterator has been reached\n             yield from cache\n         yield i\n@@ -268,10 +268,10 @@ def strip(iterable, strip_value=None):\n     ['Foo', 'Bar', 'Bam']\n \n     \"\"\"\n-    return list(strip_iter(iterable,strip_value))\n+    return list(strip_iter(iterable, strip_value))\n \n \n-def strip_iter(iterable,strip_value=None):\n+def strip_iter(iterable, strip_value=None):\n     \"\"\"Strips values from the beginning and end of an iterable. Stripped items\n     will match the value of the argument strip_value. Functionality is\n     analogous to that of the method str.strip. Returns a generator.\n@@ -280,7 +280,7 @@ def strip_iter(iterable,strip_value=None):\n     ['Foo', 'Bar', 'Bam']\n \n     \"\"\"\n-    return rstrip_iter(lstrip_iter(iterable,strip_value),strip_value)\n+    return rstrip_iter(lstrip_iter(iterable, strip_value), strip_value)\n \n \n def chunked(src, size, count=None, **kw):\n@@ -340,11 +340,12 @@ def chunked_iter(src, size, **kw):\n         raise ValueError('got unexpected keyword arguments: %r' % kw.keys())\n     if not src:\n         return\n-    postprocess = lambda chk: chk\n+\n+    def postprocess(chk): return chk\n     if isinstance(src, (str, bytes)):\n-        postprocess = lambda chk, _sep=type(src)(): _sep.join(chk)\n+        def postprocess(chk, _sep=type(src)()): return _sep.join(chk)\n         if isinstance(src, bytes):\n-            postprocess = lambda chk: bytes(chk)\n+            def postprocess(chk): return bytes(chk)\n     src_iter = iter(src)\n     while True:\n         cur_chunk = list(itertools.islice(src_iter, size))\n@@ -385,15 +386,19 @@ def chunk_ranges(input_size, chunk_size, input_offset=0, overlap_size=0, align=F\n     >>> list(chunk_ranges(input_offset=3, input_size=15, chunk_size=5, overlap_size=1, align=True))\n     [(3, 5), (4, 9), (8, 13), (12, 17), (16, 18)]\n     \"\"\"\n-    input_size = _validate_positive_int(input_size, 'input_size', strictly_positive=False)\n+    input_size = _validate_positive_int(\n+        input_size, 'input_size', strictly_positive=False)\n     chunk_size = _validate_positive_int(chunk_size, 'chunk_size')\n-    input_offset = _validate_positive_int(input_offset, 'input_offset', strictly_positive=False)\n-    overlap_size = _validate_positive_int(overlap_size, 'overlap_size', strictly_positive=False)\n+    input_offset = _validate_positive_int(\n+        input_offset, 'input_offset', strictly_positive=False)\n+    overlap_size = _validate_positive_int(\n+        overlap_size, 'overlap_size', strictly_positive=False)\n \n     input_stop = input_offset + input_size\n \n     if align:\n-        initial_chunk_len = chunk_size - input_offset % (chunk_size - overlap_size)\n+        initial_chunk_len = chunk_size - \\\n+            input_offset % (chunk_size - overlap_size)\n         if initial_chunk_len != overlap_size:\n             yield (input_offset, min(input_offset + initial_chunk_len, input_stop))\n             if input_offset + initial_chunk_len >= input_stop:\n@@ -479,7 +484,7 @@ def windowed_iter(src, size, fill=_UNSET):\n \n     With *fill* set, the iterator always yields a number of windows\n     equal to the length of the *src* iterable.\n-    \n+\n     >>> windowed(range(4), 3, fill=None)\n     [(0, 1, 2), (1, 2, 3), (2, 3, None), (3, None, None)]\n \n@@ -495,17 +500,16 @@ def windowed_iter(src, size, fill=_UNSET):\n         except StopIteration:\n             return zip([])\n         return zip(*tees)\n-    \n+\n     for i, t in enumerate(tees):\n-        for _ in range(i):  \n+        for _ in range(i):\n             try:\n                 next(t)\n             except StopIteration:\n                 continue\n     return zip_longest(*tees, fillvalue=fill)\n \n \n-\n def xfrange(stop, start=None, step=1.0):\n     \"\"\"Same as :func:`frange`, but generator-based instead of returning a\n     list.\n@@ -726,21 +730,21 @@ def bucketize(src, key=bool, value_transform=None, key_filter=None):\n         src = zip(key, src)\n \n     if isinstance(key, str):\n-        key_func = lambda x: getattr(x, key, x)\n+        def key_func(x): return getattr(x, key, x)\n     elif callable(key):\n         key_func = key\n     elif isinstance(key, list):\n-        key_func = lambda x: x[0]\n+        def key_func(x): return x[0]\n     else:\n         raise TypeError('expected key to be callable or a string or a list')\n \n     if value_transform is None:\n-        value_transform = lambda x: x\n+        def value_transform(x): return x\n     if not callable(value_transform):\n         raise TypeError('expected callable value transform function')\n     if isinstance(key, list):\n         f = value_transform\n-        value_transform=lambda x: f(x[1])\n+        def value_transform(x): return f(x[1])\n \n     ret = {}\n     for val in src:\n@@ -807,11 +811,11 @@ def unique_iter(src, key=None):\n     if not is_iterable(src):\n         raise TypeError('expected an iterable, not %r' % type(src))\n     if key is None:\n-        key_func = lambda x: x\n+        def key_func(x): return x\n     elif callable(key):\n         key_func = key\n     elif isinstance(key, str):\n-        key_func = lambda x: getattr(x, key, x)\n+        def key_func(x): return getattr(x, key, x)\n     else:\n         raise TypeError('\"key\" expected a string or callable, not %r' % key)\n     seen = set()\n@@ -862,7 +866,7 @@ def redundant(src, key=None, groups=False):\n     elif callable(key):\n         key_func = key\n     elif isinstance(key, (str, bytes)):\n-        key_func = lambda x: getattr(x, key, x)\n+        def key_func(x): return getattr(x, key, x)\n     else:\n         raise TypeError('\"key\" expected a string or callable, not %r' % key)\n     seen = {}  # key to first seen item\n@@ -964,6 +968,7 @@ def flatten_iter(iterable):\n         else:\n             yield item\n \n+\n def flatten(iterable):\n     \"\"\"``flatten()`` returns a collapsed list of all the elements from\n     *iterable* while collapsing any nested iterables.\n@@ -1006,6 +1011,7 @@ def default_visit(path, key, value):\n     # print('visit(%r, %r, %r)' % (path, key, value))\n     return key, value\n \n+\n # enable the extreme: monkeypatching iterutils with a different default_visit\n _orig_default_visit = default_visit\n \n@@ -1128,6 +1134,9 @@ def remap(root, visit=default_visit, enter=default_enter, exit=default_exit,\n             callable. When set to ``False``, remap ignores any errors\n             raised by the *visit* callback. Items causing exceptions\n             are kept. See examples for more details.\n+        trace (bool): Pass ``trace=True`` to print out the entire\n+            traversal. Or pass a tuple of ``'visit'``, ``'enter'``,\n+            or ``'exit'`` to print only the selected events.\n \n     remap is designed to cover the majority of cases with just the\n     *visit* callable. While passing in multiple callables is very\n@@ -1156,6 +1165,15 @@ def remap(root, visit=default_visit, enter=default_enter, exit=default_exit,\n     if not callable(exit):\n         raise TypeError('exit expected callable, not: %r' % exit)\n     reraise_visit = kwargs.pop('reraise_visit', True)\n+    trace = kwargs.pop('trace', ())\n+    if trace is True:\n+        trace = ('visit', 'enter', 'exit')\n+    elif isinstance(trace, str):\n+        trace = (trace,)\n+    if not isinstance(trace, (tuple, list, set)):\n+        raise TypeError('trace expected tuple of event names, not: %r' % trace)\n+    trace_enter, trace_exit, trace_visit = 'enter' in trace, 'exit' in trace, 'visit' in trace\n+\n     if kwargs:\n         raise TypeError('unexpected keyword arguments: %r' % kwargs.keys())\n \n@@ -1168,14 +1186,23 @@ def remap(root, visit=default_visit, enter=default_enter, exit=default_exit,\n             key, new_parent, old_parent = value\n             id_value = id(old_parent)\n             path, new_items = new_items_stack.pop()\n+            if trace_exit:\n+                print(' .. remap exit:', path, '-', key, '-',\n+                      old_parent, '-', new_parent, '-', new_items)\n             value = exit(path, key, old_parent, new_parent, new_items)\n+            if trace_exit:\n+                print(' .. remap exit result:', value)\n             registry[id_value] = value\n             if not new_items_stack:\n                 continue\n         elif id_value in registry:\n             value = registry[id_value]\n         else:\n+            if trace_enter:\n+                print(' .. remap enter:', path, '-', key, '-', value)\n             res = enter(path, key, value)\n+            if trace_enter:\n+                print(' .. remap enter result:', res)\n             try:\n                 new_parent, new_items = res\n             except TypeError:\n@@ -1191,21 +1218,29 @@ def remap(root, visit=default_visit, enter=default_enter, exit=default_exit,\n                 stack.append((_REMAP_EXIT, (key, new_parent, value)))\n                 if new_items:\n                     stack.extend(reversed(list(new_items)))\n+                if trace_enter:\n+                    print(' .. remap stack size now:', len(stack))\n                 continue\n         if visit is _orig_default_visit:\n             # avoid function call overhead by inlining identity operation\n             visited_item = (key, value)\n         else:\n             try:\n+                if trace_visit:\n+                    print(' .. remap visit:', path, '-', key, '-', value)\n                 visited_item = visit(path, key, value)\n             except Exception:\n                 if reraise_visit:\n                     raise\n                 visited_item = True\n             if visited_item is False:\n+                if trace_visit:\n+                    print(' .. remap visit result: <drop>')\n                 continue  # drop\n             elif visited_item is True:\n                 visited_item = (key, value)\n+            if trace_visit:\n+                print(' .. remap visit result:', visited_item)\n             # TODO: typecheck?\n             #    raise TypeError('expected (key, value) from visit(),'\n             #                    ' not: %r' % visited_item)\n@@ -1221,6 +1256,7 @@ class PathAccessError(KeyError, IndexError, TypeError):\n     representing what can occur when looking up a path in a nested\n     object.\n     \"\"\"\n+\n     def __init__(self, exc, seg, path):\n         self.exc = exc\n         self.seg = seg\n@@ -1296,7 +1332,7 @@ def get_path(root, path, default=_UNSET):\n     return cur\n \n \n-def research(root, query=lambda p, k, v: True, reraise=False):\n+def research(root, query=lambda p, k, v: True, reraise=False, enter=default_enter):\n     \"\"\"The :func:`research` function uses :func:`remap` to recurse over\n     any data nested in *root*, and find values which match a given\n     criterion, specified by the *query* callable.\n@@ -1343,16 +1379,16 @@ def research(root, query=lambda p, k, v: True, reraise=False):\n     if not callable(query):\n         raise TypeError('query expected callable, not: %r' % query)\n \n-    def enter(path, key, value):\n+    def _enter(path, key, value):\n         try:\n             if query(path, key, value):\n                 ret.append((path + (key,), value))\n         except Exception:\n             if reraise:\n                 raise\n-        return default_enter(path, key, value)\n+        return enter(path, key, value)\n \n-    remap(root, enter=enter)\n+    remap(root, enter=_enter)\n     return ret\n \n \n@@ -1383,6 +1419,7 @@ class GUIDerator:\n     detect a fork on next iteration and reseed accordingly.\n \n     \"\"\"\n+\n     def __init__(self, size=24):\n         self.size = size\n         if size < 20 or size > 36:\n@@ -1495,13 +1532,16 @@ def soft_sorted(iterable, first=None, last=None, key=None, reverse=False):\n     last = last or []\n     key = key or (lambda x: x)\n     seq = list(iterable)\n-    other = [x for x in seq if not ((first and key(x) in first) or (last and key(x) in last))]\n+    other = [x for x in seq if not (\n+        (first and key(x) in first) or (last and key(x) in last))]\n     other.sort(key=key, reverse=reverse)\n \n     if first:\n-        first = sorted([x for x in seq if key(x) in first], key=lambda x: first.index(key(x)))\n+        first = sorted([x for x in seq if key(x) in first],\n+                       key=lambda x: first.index(key(x)))\n     if last:\n-        last = sorted([x for x in seq if key(x) in last], key=lambda x: last.index(key(x)))\n+        last = sorted([x for x in seq if key(x) in last],\n+                      key=lambda x: last.index(key(x)))\n     return first + other + last\n \n \n@@ -1536,7 +1576,7 @@ def __lt__(self, other):\n                 ret = obj < other\n             except TypeError:\n                 ret = ((type(obj).__name__, id(type(obj)), obj)\n-                        < (type(other).__name__, id(type(other)), other))\n+                       < (type(other).__name__, id(type(other)), other))\n             return ret\n \n     if key is not None and not callable(key):\n@@ -1545,6 +1585,7 @@ def __lt__(self, other):\n \n     return sorted(iterable, key=_Wrapper, reverse=reverse)\n \n+\n \"\"\"\n May actually be faster to do an isinstance check for a str path\n "
+        },
+        {
+          "filename": "tests/test_iterutils.py",
+          "status": "modified",
+          "additions": 22,
+          "deletions": 0,
+          "patch": "@@ -396,6 +396,28 @@ def broken_query(p, k, v):\n     assert research(root, broken_query) == []\n \n \n+def test_research_custom_enter():\n+    # see #368\n+    from types import SimpleNamespace as NS\n+    root = NS(\n+        a='a',\n+        b='b',\n+        c=NS(aa='aa') )\n+\n+    def query(path, key, value):\n+        return value.startswith('a')\n+    \n+    def custom_enter(path, key, value):\n+        if isinstance(value, NS):\n+            return [], value.__dict__.items()\n+        return default_enter(path, key, value)\n+\n+    with pytest.raises(TypeError):\n+        research(root, query)\n+    assert research(root, query, enter=custom_enter) == [(('a',), 'a'), (('c', 'aa'), 'aa')]\n+\n+\n+\n def test_backoff_basic():\n     from boltons.iterutils import backoff\n "
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": true,
+      "additions": 97,
+      "deletions": 34
+    },
+    {
+      "change_id": "commit_d463c60587",
+      "kind": "commit",
+      "number": null,
+      "sha": "d463c605877f80787a62f8d968d358cdd7d0a601",
+      "title": "fix module name in multireplace docstring",
+      "body": "",
+      "merged_at": "2024-07-09T23:51:31Z",
+      "url": "https://github.com/mahmoud/boltons/commit/d463c605877f80787a62f8d968d358cdd7d0a601",
+      "labels": [],
+      "files": [
+        {
+          "filename": "boltons/strutils.py",
+          "status": "modified",
+          "additions": 5,
+          "deletions": 5,
+          "patch": "@@ -1140,8 +1140,8 @@ class MultiReplace:\n \n     Dictionary Usage::\n \n-        from boltons import stringutils\n-        s = stringutils.MultiReplace({\n+        from boltons import strutils\n+        s = strutils.MultiReplace({\n             'foo': 'zoo',\n             'cat': 'hat',\n             'bat': 'kraken'\n@@ -1151,8 +1151,8 @@ class MultiReplace:\n \n     Iterable Usage::\n \n-        from boltons import stringutils\n-        s = stringutils.MultiReplace([\n+        from boltons import strutils\n+        s = strutils.MultiReplace([\n             ('foo', 'zoo'),\n             ('cat', 'hat'),\n             ('bat', 'kraken)'\n@@ -1233,7 +1233,7 @@ def multi_replace(text, sub_map, **kwargs):\n \n     Example Usage::\n \n-        from boltons.stringutils import multi_replace\n+        from boltons.strutils import multi_replace\n         new = multi_replace(\n             'The foo bar cat ate a bat',\n             {'foo': 'zoo', 'cat': 'hat', 'bat': 'kraken'}"
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": false,
+      "additions": 5,
+      "deletions": 5
+    },
+    {
+      "change_id": "pr_375",
+      "kind": "pull_request",
+      "number": 375,
+      "sha": "2ccc5098bc2c8d1dae7f9be8934b799d85857a42",
+      "title": "Sentinel copy return self",
+      "body": "",
+      "merged_at": "2024-10-17T05:54:38Z",
+      "url": "https://github.com/mahmoud/boltons/pull/375",
+      "labels": [],
+      "files": [
+        {
+          "filename": "boltons/typeutils.py",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 0,
+          "patch": "@@ -88,6 +88,12 @@ def __reduce__(self):\n         def __bool__(self):\n             return False\n \n+        def __copy__(self):\n+            return self\n+\n+        def __deepcopy__(self, _memo):\n+            return self\n+\n     if var_name:\n         frame = sys._getframe(1)\n         module = frame.f_globals.get('__name__')"
+        },
+        {
+          "filename": "tests/test_typeutils.py",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 0,
+          "patch": "@@ -1,3 +1,4 @@\n+import copy\n import pickle\n \n from boltons.typeutils import make_sentinel\n@@ -10,3 +11,8 @@ def test_sentinel_falsiness():\n \n def test_sentinel_pickle():\n     assert pickle.dumps(NOT_SET)\n+\n+def test_sentinel_copy():\n+    test = make_sentinel('test')\n+    assert test is copy.copy(test)\n+    assert test is copy.deepcopy(test)"
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": true,
+      "additions": 12,
+      "deletions": 0
+    },
+    {
+      "change_id": "pr_374",
+      "kind": "pull_request",
+      "number": 374,
+      "sha": "d6fb9863e4f77efb5e0f6b3fd29368af66362ca8",
+      "title": "Update variable output command in tests.yaml",
+      "body": "Solves:\r\n\r\n> The `set-output` command is deprecated and will be disabled soon. Please upgrade to using Environment Files. For more information see: https://github.blog/changelog/2022-10-11-github-actions-deprecating-save-state-and-set-output-commands/",
+      "merged_at": "2024-11-02T03:19:28Z",
+      "url": "https://github.com/mahmoud/boltons/pull/374",
+      "labels": [],
+      "files": [
+        {
+          "filename": ".github/workflows/tests.yaml",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "patch": "@@ -39,7 +39,7 @@ jobs:\n           python -m pip install -U pip\n       - name: get pip cache dir\n         id: pip-cache\n-        run: echo \"::set-output name=dir::$(pip cache dir)\"\n+        run: echo \"dir=$(pip cache dir)\" >> $GITHUB_OUTPUT\n       - name: cache pip\n         uses: actions/cache@v4\n         with:"
+        }
+      ],
+      "touches_source": false,
+      "touches_tests": false,
+      "additions": 1,
+      "deletions": 1
+    },
+    {
+      "change_id": "commit_df92fa4f0e",
+      "kind": "commit",
+      "number": null,
+      "sha": "df92fa4f0e13c92f9536a4e8f7ec78ced90e8789",
+      "title": "set the shell to make windows ci happy maybe",
+      "body": "",
+      "merged_at": "2024-11-02T03:25:48Z",
+      "url": "https://github.com/mahmoud/boltons/commit/df92fa4f0e13c92f9536a4e8f7ec78ced90e8789",
+      "labels": [],
+      "files": [
+        {
+          "filename": ".github/workflows/tests.yaml",
+          "status": "modified",
+          "additions": 18,
+          "deletions": 16,
+          "patch": "@@ -2,14 +2,14 @@ name: Tests\n on:\n   push:\n     paths-ignore:\n-      - 'docs/**'\n-      - '*.md'\n-      - '*.rst'\n+      - \"docs/**\"\n+      - \"*.md\"\n+      - \"*.rst\"\n   pull_request:\n     paths-ignore:\n-      - 'docs/**'\n-      - '*.md'\n-      - '*.rst'\n+      - \"docs/**\"\n+      - \"*.md\"\n+      - \"*.rst\"\n jobs:\n   tests:\n     name: ${{ matrix.name }}\n@@ -18,15 +18,15 @@ jobs:\n       fail-fast: false\n       matrix:\n         include:\n-          - {name: Linux, python: '3.12', os: ubuntu-latest, tox: py312}\n-          - {name: Windows, python: '3.12', os: windows-latest, tox: py312}\n-          - {name: Mac, python: '3.12', os: macos-latest, tox: py312}\n-          - {name: '3.11', python: '3.11', os: ubuntu-latest, tox: py311}\n-          - {name: '3.10', python: '3.10', os: ubuntu-latest, tox: py310}\n-          - {name: '3.9', python: '3.9', os: ubuntu-latest, tox: py39}\n-          - {name: '3.8', python: '3.8', os: ubuntu-latest, tox: py38}\n-          - {name: '3.7', python: '3.7', os: ubuntu-latest, tox: py37}\n-          - {name: 'PyPy3', python: 'pypy-3.9', os: ubuntu-latest, tox: pypy3}\n+          - { name: Linux, python: \"3.12\", os: ubuntu-latest, tox: py312 }\n+          - { name: Windows, python: \"3.12\", os: windows-latest, tox: py312 }\n+          - { name: Mac, python: \"3.12\", os: macos-latest, tox: py312 }\n+          - { name: \"3.11\", python: \"3.11\", os: ubuntu-latest, tox: py311 }\n+          - { name: \"3.10\", python: \"3.10\", os: ubuntu-latest, tox: py310 }\n+          - { name: \"3.9\", python: \"3.9\", os: ubuntu-latest, tox: py39 }\n+          - { name: \"3.8\", python: \"3.8\", os: ubuntu-latest, tox: py38 }\n+          - { name: \"3.7\", python: \"3.7\", os: ubuntu-latest, tox: py37 }\n+          - { name: \"PyPy3\", python: \"pypy-3.9\", os: ubuntu-latest, tox: pypy3 }\n     steps:\n       - uses: actions/checkout@v4\n       - uses: actions/setup-python@v5\n@@ -39,7 +39,9 @@ jobs:\n           python -m pip install -U pip\n       - name: get pip cache dir\n         id: pip-cache\n-        run: echo \"dir=$(pip cache dir)\" >> $GITHUB_OUTPUT\n+        shell: bash\n+        run: |\n+          echo \"dir=$(pip cache dir)\" >> \"$GITHUB_OUTPUT\"\n       - name: cache pip\n         uses: actions/cache@v4\n         with:"
+        }
+      ],
+      "touches_source": false,
+      "touches_tests": false,
+      "additions": 18,
+      "deletions": 16
+    },
+    {
+      "change_id": "commit_5aed99eb06",
+      "kind": "commit",
+      "number": null,
+      "sha": "5aed99eb066f563fbad2231498492df8403a643d",
+      "title": "write 24.1 changelog",
+      "body": "",
+      "merged_at": "2024-11-02T03:42:53Z",
+      "url": "https://github.com/mahmoud/boltons/commit/5aed99eb066f563fbad2231498492df8403a643d",
+      "labels": [],
+      "files": [
+        {
+          "filename": "CHANGELOG.md",
+          "status": "modified",
+          "additions": 13,
+          "deletions": 0,
+          "patch": "@@ -5,6 +5,19 @@ for an average of one 33-commit release about every 9 weeks. Versions\n are named according to the [CalVer](https://calver.org) versioning\n scheme (`YY.MINOR.MICRO`).\n \n+## 24.1.0\n+\n+_(November 1, 2024)_\n+\n+- Added `max_depth` parameter to [`fileutils.iter_find_files`][fileutils.iter_find_files]\n+- Added `enter` parameter to [`iterutils.research`][iterutils.research] to support traversing custom data types\n+- Add optional print tracing for [`iterutils.remap`][iterutils.remap] for easier debugging\n+- Fixed [`typeutils.Sentinel`][typeutils.make_sentinel] copy behavior to return self\n+- Tentative Python 3.13 support ([#365][i365], [#366][i366])\n+\n+[i365]: https://github.com/mahmoud/boltons/issues/365\n+[i366]: https://github.com/mahmoud/boltons/issues/366\n+\n ## 24.0.0\n \n Per the RFC in issue [#365][i339], boltons is now **Python 3 only**. 3.7+ for now."
+        }
+      ],
+      "touches_source": false,
+      "touches_tests": false,
+      "additions": 13,
+      "deletions": 0
+    },
+    {
+      "change_id": "commit_3bfcfdd043",
+      "kind": "commit",
+      "number": null,
+      "sha": "3bfcfdd04395b6cc74a5c0cdc72c8f64cc4ac01f",
+      "title": "quick file rotation util",
+      "body": "",
+      "merged_at": "2024-11-28T18:05:53Z",
+      "url": "https://github.com/mahmoud/boltons/commit/3bfcfdd04395b6cc74a5c0cdc72c8f64cc4ac01f",
+      "labels": [],
+      "files": [
+        {
+          "filename": "boltons/fileutils.py",
+          "status": "modified",
+          "additions": 36,
+          "deletions": 1,
+          "patch": "@@ -138,7 +138,7 @@ def __set__(self, fp_obj, value):\n                                  ' or one or more of %r'\n                                  % (invalid_chars, value, self._perm_chars))\n \n-            sort_key = lambda c: self._perm_val[c]\n+            def sort_key(c): return self._perm_val[c]\n             new_value = ''.join(sorted(set(value),\n                                        key=sort_key, reverse=True))\n             setattr(fp_obj, self.attribute, new_value)\n@@ -687,3 +687,38 @@ def __enter__(self):\n     def __exit__(self, exc_type, exc_val, exc_tb):\n         return\n \n+\n+def rotate_file(filename, *, keep: int = 5):\n+    \"\"\"\n+    If *filename.ext* exists, it will be moved to *filename.1.ext*, \n+    with all conflicting filenames being moved up by one, dropping any files beyond *keep*.\n+\n+    After rotation, *filename* will be available for creation as a new file.\n+\n+    Fails if *filename* is not a file or if *keep* is not > 0.\n+    \"\"\"\n+    if keep < 1:\n+        raise ValueError(f'expected \"keep\" to be >=1, not {keep}')\n+    if not os.path.exists(filename):\n+        return\n+    if not os.path.isfile(filename):\n+        raise ValueError(f'expected {filename} to be a file')\n+\n+    fn_root, fn_ext = os.path.splitext(filename)\n+    kept_names = []\n+    for i in range(1, keep + 1):\n+        if fn_ext:\n+            kept_names.append(f'{fn_root}.{i}{fn_ext}')\n+        else:\n+            kept_names.append(f'{fn_root}.{i}')\n+\n+    fns = [filename] + kept_names\n+    for orig_name, kept_name in reversed(list(zip(fns, fns[1:]))):\n+        if not os.path.exists(orig_name):\n+            continue\n+        os.rename(orig_name, kept_name)\n+\n+    if os.path.exists(kept_names[-1]):\n+        os.remove(kept_names[-1])\n+\n+    return"
+        },
+        {
+          "filename": "tests/test_fileutils.py",
+          "status": "modified",
+          "additions": 57,
+          "deletions": 1,
+          "patch": "@@ -1,5 +1,9 @@\n import os.path\n \n+\n+\n+\n+\n from boltons import fileutils\n from boltons.fileutils import FilePerms, iter_find_files\n \n@@ -33,4 +37,56 @@ def _to_baseless_list(paths):\n \n     boltons_parent = os.path.dirname(BOLTONS_PATH)\n     assert 'fileutils.py' in _to_baseless_list(iter_find_files(boltons_parent, patterns=['*.py']))\n-    assert 'fileutils.py' not in _to_baseless_list(iter_find_files(boltons_parent, patterns=['*.py'], max_depth=0))\n\\ No newline at end of file\n+    assert 'fileutils.py' not in _to_baseless_list(iter_find_files(boltons_parent, patterns=['*.py'], max_depth=0))\n+\n+\n+def test_rotate_file_no_rotation(tmp_path):\n+    file_path = tmp_path / 'test_file.txt'\n+    fileutils.rotate_file(file_path)\n+    assert not file_path.exists()\n+\n+\n+def test_rotate_file_one_rotation(tmp_path):\n+    file_path = tmp_path / 'test_file.txt'\n+    file_path.write_text('test content')\n+    assert file_path.exists()\n+\n+    fileutils.rotate_file(file_path)\n+    assert not file_path.exists()\n+    assert (tmp_path / 'test_file.1.txt').exists()\n+\n+\n+def test_rotate_file_full_rotation(tmp_path):\n+    file_path = tmp_path / 'test_file.txt'\n+    file_path.write_text('test content 0')\n+    for i in range(1, 5):\n+        cur_path = tmp_path / f'test_file.{i}.txt'\n+        cur_path.write_text(f'test content {i}')\n+        assert cur_path.exists()\n+\n+    fileutils.rotate_file(file_path, keep=5)\n+    assert not file_path.exists()\n+\n+    for i in range(1, 5):\n+        cur_path = tmp_path / f'test_file.{i}.txt'\n+        assert cur_path.read_text() == f'test content {i-1}'\n+\n+    assert not (tmp_path / 'test_file.5.txt').exists()\n+\n+def test_rotate_file_full_rotation_no_ext(tmp_path):\n+    file_path = tmp_path / 'test_file'\n+    file_path.write_text('test content 0')\n+    for i in range(1, 5):\n+        cur_path = tmp_path / f'test_file.{i}'\n+        cur_path.write_text(f'test content {i}')\n+        assert cur_path.exists()\n+\n+    fileutils.rotate_file(file_path, keep=5)\n+    assert not file_path.exists()\n+\n+    for i in range(1, 5):\n+        cur_path = tmp_path / f'test_file.{i}'\n+        assert cur_path.read_text() == f'test content {i-1}'\n+\n+    assert not (tmp_path / 'test_file.5').exists()\n+"
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": true,
+      "additions": 93,
+      "deletions": 2
+    },
+    {
+      "change_id": "pr_376",
+      "kind": "pull_request",
+      "number": 376,
+      "sha": "6e428e956e3d3f9faae06c1d4340acbf438b983b",
+      "title": "add support for python 3.13",
+      "body": "This is mainly just declaring official support for 3.13\r\n\r\n- Adds 3.13 to CI and bumps test deps due to [`ast` related deprecations](https://github.com/mahmoud/boltons/actions/runs/12073748189/job/33670473176#step:8:92)\r\n- Replaces use of deprecated `utcnow` / `utcfromtimestamp`: https://github.com/python/cpython/issues/103857. Timezone-aware datetimes are now preferred,  but `isoparse` and `decimal_relative_time` currently  only support naive datetimes (no functional changes here)\r\n- While here, migrate to [`pyproject.toml`](https://packaging.python.org/en/latest/guides/modernize-setup-py-project/), which supersedes `setup.py` and `MANIFEST.in`\r\n",
+      "merged_at": "2024-12-23T17:15:41Z",
+      "url": "https://github.com/mahmoud/boltons/pull/376",
+      "labels": [],
+      "files": [
+        {
+          "filename": ".github/workflows/tests.yaml",
+          "status": "modified",
+          "additions": 5,
+          "deletions": 4,
+          "patch": "@@ -18,9 +18,10 @@ jobs:\n       fail-fast: false\n       matrix:\n         include:\n-          - { name: Linux, python: \"3.12\", os: ubuntu-latest, tox: py312 }\n-          - { name: Windows, python: \"3.12\", os: windows-latest, tox: py312 }\n-          - { name: Mac, python: \"3.12\", os: macos-latest, tox: py312 }\n+          - { name: Linux, python: \"3.13\", os: ubuntu-latest, tox: py313 }\n+          - { name: Windows, python: \"3.13\", os: windows-latest, tox: py313 }\n+          - { name: Mac, python: \"3.13\", os: macos-latest, tox: py313 }\n+          - { name: \"3.12\", python: \"3.12\", os: ubuntu-latest, tox: py312 }\n           - { name: \"3.11\", python: \"3.11\", os: ubuntu-latest, tox: py311 }\n           - { name: \"3.10\", python: \"3.10\", os: ubuntu-latest, tox: py310 }\n           - { name: \"3.9\", python: \"3.9\", os: ubuntu-latest, tox: py39 }\n@@ -46,6 +47,6 @@ jobs:\n         uses: actions/cache@v4\n         with:\n           path: ${{ steps.pip-cache.outputs.dir }}\n-          key: pip|${{ runner.os }}|${{ matrix.python }}|${{ hashFiles('setup.py') }}|${{ hashFiles('requirements/*.txt') }}\n+          key: pip|${{ runner.os }}|${{ matrix.python }}|${{ hashFiles('pyproject.toml') }}|${{ hashFiles('requirements/*.txt') }}\n       - run: pip install tox\n       - run: tox -e ${{ matrix.tox }}"
+        },
+        {
+          "filename": "MANIFEST.in",
+          "status": "removed",
+          "additions": 0,
+          "deletions": 8,
+          "patch": "@@ -1,8 +0,0 @@\n-include CHANGELOG.md\n-include LICENSE\n-include README.md\n-include pytest.ini\n-include tox.ini\n-recursive-include docs/*\n-recursive-include tests/*\n-prune docs/_build"
+        },
+        {
+          "filename": "README.md",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "patch": "@@ -25,7 +25,7 @@ in the same spirit as — and yet conspicuously missing from —\n **[Full and extensive docs are available on Read The Docs.][rtd]** See\n what's new [by checking the CHANGELOG][changelog].\n \n-Boltons is tested against Python 3.7-3.12, as well as PyPy3.\n+Boltons is tested against Python 3.7-3.13, as well as PyPy3.\n \n [stdlib]: https://docs.python.org/3/library/index.html\n [rtd]: https://boltons.readthedocs.org/en/latest/"
+        },
+        {
+          "filename": "boltons/ecoutils.py",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 8,
+          "patch": "@@ -254,14 +254,7 @@\n     RLIMIT_FDS_SOFT, RLIMIT_FDS_HARD = 0, 0\n \n \n-def _get_utc_now():\n-    try:\n-        return datetime.datetime.utcnow()\n-    except Exception:\n-        return datetime.datetime.now(datetime.timezone.utc)\n-\n-\n-START_TIME_INFO = {'time_utc': str(_get_utc_now()),\n+START_TIME_INFO = {'time_utc': str(datetime.datetime.now(datetime.timezone.utc)),\n                    'time_utc_offset': -time.timezone / 3600.0}\n \n "
+        },
+        {
+          "filename": "boltons/timeutils.py",
+          "status": "modified",
+          "additions": 5,
+          "deletions": 5,
+          "patch": "@@ -98,14 +98,14 @@ def isoparse(iso_str):\n     \"\"\"Parses the limited subset of `ISO8601-formatted time`_ strings as\n     returned by :meth:`datetime.datetime.isoformat`.\n \n-    >>> epoch_dt = datetime.utcfromtimestamp(0)\n+    >>> epoch_dt = datetime.fromtimestamp(0, timezone.utc).replace(tzinfo=None)\n     >>> iso_str = epoch_dt.isoformat()\n     >>> print(iso_str)\n     1970-01-01T00:00:00\n     >>> isoparse(iso_str)\n     datetime.datetime(1970, 1, 1, 0, 0)\n \n-    >>> utcnow = datetime.utcnow()\n+    >>> utcnow = datetime.now(timezone.utc).replace(tzinfo=None)\n     >>> utcnow == isoparse(utcnow.isoformat())\n     True\n \n@@ -213,7 +213,7 @@ def decimal_relative_time(d, other=None, ndigits=0, cardinalize=True):\n     localization into other languages and custom phrasing and\n     formatting.\n \n-    >>> now = datetime.utcnow()\n+    >>> now = datetime.now(timezone.utc).replace(tzinfo=None)\n     >>> decimal_relative_time(now - timedelta(days=1, seconds=3600), now)\n     (1.0, 'day')\n     >>> decimal_relative_time(now - timedelta(seconds=0.002), now, ndigits=5)\n@@ -223,7 +223,7 @@ def decimal_relative_time(d, other=None, ndigits=0, cardinalize=True):\n \n     \"\"\"\n     if other is None:\n-        other = datetime.utcnow()\n+        other = datetime.now(timezone.utc).replace(tzinfo=None)\n     diff = other - d\n     diff_seconds = timedelta.total_seconds(diff)\n     abs_diff = abs(diff)\n@@ -252,7 +252,7 @@ def relative_time(d, other=None, ndigits=0):\n     Returns:\n         A short English-language string.\n \n-    >>> now = datetime.utcnow()\n+    >>> now = datetime.now(timezone.utc).replace(tzinfo=None)\n     >>> relative_time(now, ndigits=1)\n     '0 seconds ago'\n     >>> relative_time(now - timedelta(days=1, seconds=36000), ndigits=1)"
+        },
+        {
+          "filename": "docs/index.rst",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "patch": "@@ -68,7 +68,7 @@ consider other integration options. See the :ref:`Integration\n <arch_integration>` section of the architecture document for more\n details.\n \n-Boltons is tested against Python 3.7-3.12, as well as PyPy3.\n+Boltons is tested against Python 3.7-3.13, as well as PyPy3.\n \n .. _MacPorts: https://ports.macports.org/port/py-boltons/summary\n "
+        },
+        {
+          "filename": "pyproject.toml",
+          "status": "added",
+          "additions": 66,
+          "deletions": 0,
+          "patch": "@@ -0,0 +1,66 @@\n+[project]\n+name = \"boltons\"\n+version = \"24.1.1dev\"\n+description = \"When they're not builtins, they're boltons.\"\n+readme = \"README.md\"\n+authors = [{ name = \"Mahmoud Hashemi\", email = \"mahmoud@hatnote.com\" }]\n+classifiers = [\n+    # See: https://pypi.python.org/pypi?:action=list_classifiers\n+    \"Topic :: Utilities\",\n+    \"Intended Audience :: Developers\",\n+    \"License :: OSI Approved :: BSD License\",\n+    \"Topic :: Software Development :: Libraries\",\n+    \"Development Status :: 5 - Production/Stable\",\n+    \"Operating System :: OS Independent\",\n+    # List of python versions and their support status:\n+    # https://en.wikipedia.org/wiki/CPython#Version_history\n+    \"Programming Language :: Python :: 3\",\n+    \"Programming Language :: Python :: 3.7\",\n+    \"Programming Language :: Python :: 3.8\",\n+    \"Programming Language :: Python :: 3.9\",\n+    \"Programming Language :: Python :: 3.10\",\n+    \"Programming Language :: Python :: 3.11\",\n+    \"Programming Language :: Python :: 3.12\",\n+    \"Programming Language :: Python :: 3.13\",\n+    \"Programming Language :: Python :: 3 :: Only\",\n+    \"Programming Language :: Python :: Implementation :: CPython\",\n+    \"Programming Language :: Python :: Implementation :: PyPy\",\n+]\n+requires-python = \">=3.7\"\n+license = { file = \"LICENSE\" }\n+\n+[project.urls]\n+Homepage = \"https://github.com/mahmoud/boltons\"\n+\n+[tool.flit.sdist]\n+include = [\"doc/\", \"tests/\", \"CHANGELOG.md\", \"tox.ini\"]\n+exclude = [\"doc/_build\"]\n+\n+[tool.pytest.ini_options]\n+doctest_optionflags = [\n+    \"ALLOW_UNICODE\",\n+    \"ELLIPSIS\",\n+    \"IGNORE_EXCEPTION_DETAIL\",\n+    \"NORMALIZE_WHITESPACE\",\n+]\n+\n+[build-system]\n+requires = [\"flit_core >=3.2,<4\"]\n+build-backend = \"flit_core.buildapi\"\n+\n+# A brief checklist for release:\n+# * tox\n+# * git commit (if applicable)\n+# * Bump pyproject.toml version off of -dev\n+# * git commit -a -m \"bump version for x.y.z release\"\n+# * rm -rf dist/*\n+# * python -m build\n+# * twine upload dist/*\n+# * bump docs/conf.py version\n+# * git commit\n+# * git tag -a x.y.z -m \"brief summary\"\n+# * write CHANGELOG\n+# * git commit\n+# * bump pyproject.toml version onto n+1 dev\n+# * git commit\n+# * git push"
+        },
+        {
+          "filename": "pytest.ini",
+          "status": "removed",
+          "additions": 0,
+          "deletions": 2,
+          "patch": "@@ -1,2 +0,0 @@\n-[pytest]\n-doctest_optionflags=NORMALIZE_WHITESPACE IGNORE_EXCEPTION_DETAIL ELLIPSIS ALLOW_UNICODE"
+        },
+        {
+          "filename": "requirements-test.txt",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 3,
+          "patch": "@@ -1,4 +1,5 @@\n-coverage==6.5.0\n-pytest==7.2.0\n-pytest-cov==4.0.0\n+coverage==7.2.7\n+pytest==7.4.4; python_version < \"3.8\"\n+pytest==8.3.4; python_version >= \"3.8\"\n+pytest-cov==4.1.0\n tox==4.8.0"
+        },
+        {
+          "filename": "setup.py",
+          "status": "removed",
+          "additions": 0,
+          "deletions": 76,
+          "patch": "@@ -1,76 +0,0 @@\n-\"\"\"Functionality that should be in the standard library. Like\n-builtins, but Boltons.\n-\n-Otherwise known as, \"everyone's util.py,\" but cleaned up and\n-tested.\n-\n-Contains over 250 BSD-licensed utility types and functions that can be\n-used as a package or independently. `Extensively documented on Read\n-the Docs <http://boltons.readthedocs.org>`_.\n-\"\"\"\n-\n-from setuptools import setup\n-\n-\n-__author__ = 'Mahmoud Hashemi'\n-__version__ = '24.1.1dev'\n-__contact__ = 'mahmoud@hatnote.com'\n-__url__ = 'https://github.com/mahmoud/boltons'\n-__license__ = 'BSD'\n-\n-\n-setup(name='boltons',\n-      version=__version__,\n-      description=\"When they're not builtins, they're boltons.\",\n-      long_description=__doc__,\n-      author=__author__,\n-      author_email=__contact__,\n-      url=__url__,\n-      packages=['boltons'],\n-      include_package_data=True,\n-      zip_safe=False,\n-      license=__license__,\n-      platforms='any',\n-      python_requires='>=3.7',\n-      classifiers=[\n-          # See: https://pypi.python.org/pypi?:action=list_classifiers\n-          'Topic :: Utilities',\n-          'Intended Audience :: Developers',\n-          'License :: OSI Approved :: BSD License',\n-          'Topic :: Software Development :: Libraries',\n-          'Development Status :: 5 - Production/Stable',\n-          'Operating System :: OS Independent',\n-          # List of python versions and their support status:\n-          # https://en.wikipedia.org/wiki/CPython#Version_history\n-          'Programming Language :: Python :: 3',\n-          'Programming Language :: Python :: 3.7',\n-          'Programming Language :: Python :: 3.8',\n-          'Programming Language :: Python :: 3.9',\n-          'Programming Language :: Python :: 3.10',\n-          'Programming Language :: Python :: 3.11',\n-          'Programming Language :: Python :: 3.12',\n-          'Programming Language :: Python :: 3 :: Only',\n-          'Programming Language :: Python :: Implementation :: CPython',\n-          'Programming Language :: Python :: Implementation :: PyPy', ]\n-      )\n-\n-\"\"\"\n-A brief checklist for release:\n-\n-* tox\n-* git commit (if applicable)\n-* Bump setup.py version off of -dev\n-* git commit -a -m \"bump version for x.y.z release\"\n-* rm -rf dist/*\n-* python setup.py sdist bdist_wheel\n-* twine upload dist/*\n-* bump docs/conf.py version\n-* git commit\n-* git tag -a x.y.z -m \"brief summary\"\n-* write CHANGELOG\n-* git commit\n-* bump setup.py version onto n+1 dev\n-* git commit\n-* git push\n-\n-\"\"\""
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": false,
+      "additions": 83,
+      "deletions": 108
+    },
+    {
+      "change_id": "pr_377",
+      "kind": "pull_request",
+      "number": 377,
+      "sha": "6a8ac764bb218036258deb771bb73e171f31e395",
+      "title": "Fix incorrect usage of lstrip bug in fileutils tests",
+      "body": "I'm using Arch linux (typical starting statement of an arch user lol), and one of the packages I use depend on boltons (https://aur.archlinux.org/packages/python-boltons). I faced an issue with tests failing causing me to do some manual intervention.\r\n\r\nOn my machine, I have\r\n```python\r\nBOLTONS_PATH = \"/home/theartful/.cache/yay/python-boltons/src/boltons/boltons\"\r\n```\r\n\r\nThe test checks that \"fileutils.py\" can be found using `iter_find_files`, and indeed it is part of `iter_find_files(BOLTONS_PATH, patterns=['*.py'])` as:\r\n```python\r\np = \"/home/theartful/.cache/yay/python-boltons/src/boltons/boltons/fileutils.py\"\r\n```\r\n\r\nThe bug here is that \"lstrip\" doesn't remove the prefix, but instead removes all characters from the left that is part of the string. For example:\r\n```python\r\n>>> BOLTONS_PATH = \"/home/theartful/.cache/yay/python-boltons/src/boltons/boltons\"\r\n>>> p = \"/home/theartful/.cache/yay/python-boltons/src/boltons/boltons/fileutils.py\"\r\n>>> p.lstrip(BOLTONS_PATH)\r\n ileutils.py\r\n```",
+      "merged_at": "2024-12-31T19:59:09Z",
+      "url": "https://github.com/mahmoud/boltons/pull/377",
+      "labels": [],
+      "files": [
+        {
+          "filename": "boltons/strutils.py",
+          "status": "modified",
+          "additions": 15,
+          "deletions": 1,
+          "patch": "@@ -57,7 +57,7 @@\n            'iter_splitlines', 'indent', 'escape_shell_args',\n            'args2cmd', 'args2sh', 'parse_int_list', 'format_int_list',\n            'complement_int_list', 'int_ranges_from_int_list', 'MultiReplace',\n-           'multi_replace', 'unwrap_text']\n+           'multi_replace', 'unwrap_text', 'removeprefix']\n \n \n _punct_ws_str = string.punctuation + string.whitespace\n@@ -1273,3 +1273,17 @@ def unwrap_text(text, ending='\\n\\n'):\n     if ending is None:\n         return all_grafs\n     return ending.join(all_grafs)\n+\n+def removeprefix(text: str, prefix: str) -> str:\n+    r\"\"\"\n+    Remove `prefix` from start of `text` if present.\n+\n+    Backport of `str.removeprefix` for Python versions less than 3.9.\n+\n+    Args:\n+        text: A string to remove the prefix from.\n+        prefix: The string to remove from the beginning of `text`.\n+    \"\"\"\n+    if text.startswith(prefix):\n+        return text[len(prefix):]\n+    return text"
+        },
+        {
+          "filename": "tests/test_fileutils.py",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 1,
+          "patch": "@@ -6,6 +6,7 @@\n \n from boltons import fileutils\n from boltons.fileutils import FilePerms, iter_find_files\n+from boltons.strutils import removeprefix\n \n \n BOLTONS_PATH = os.path.dirname(os.path.abspath(fileutils.__file__))\n@@ -31,7 +32,7 @@ def test_fileperms():\n \n def test_iter_find_files():\n     def _to_baseless_list(paths):\n-        return [p.lstrip(BOLTONS_PATH) for p in paths]\n+        return [removeprefix(p, BOLTONS_PATH).lstrip(os.path.sep) for p in paths]\n \n     assert 'fileutils.py' in _to_baseless_list(iter_find_files(BOLTONS_PATH, patterns=['*.py']))\n "
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": true,
+      "additions": 17,
+      "deletions": 2
+    },
+    {
+      "change_id": "commit_6e0354e0a7",
+      "kind": "commit",
+      "number": null,
+      "sha": "6e0354e0a7ff20ae440bf3fe47ccd79c9c7c973f",
+      "title": "update actions distro for py3.7",
+      "body": "",
+      "merged_at": "2025-02-03T05:34:50Z",
+      "url": "https://github.com/mahmoud/boltons/commit/6e0354e0a7ff20ae440bf3fe47ccd79c9c7c973f",
+      "labels": [],
+      "files": [
+        {
+          "filename": ".github/workflows/tests.yaml",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "patch": "@@ -26,7 +26,7 @@ jobs:\n           - { name: \"3.10\", python: \"3.10\", os: ubuntu-latest, tox: py310 }\n           - { name: \"3.9\", python: \"3.9\", os: ubuntu-latest, tox: py39 }\n           - { name: \"3.8\", python: \"3.8\", os: ubuntu-latest, tox: py38 }\n-          - { name: \"3.7\", python: \"3.7\", os: ubuntu-latest, tox: py37 }\n+          - { name: \"3.7\", python: \"3.7\", os: ubuntu-22.04, tox: py37 }\n           - { name: \"PyPy3\", python: \"pypy-3.9\", os: ubuntu-latest, tox: pypy3 }\n     steps:\n       - uses: actions/checkout@v4"
+        }
+      ],
+      "touches_source": false,
+      "touches_tests": false,
+      "additions": 1,
+      "deletions": 1
+    },
+    {
+      "change_id": "commit_a7d9afd61b",
+      "kind": "commit",
+      "number": null,
+      "sha": "a7d9afd61bb36ed7bc9cd3b13a594db32c1f3cec",
+      "title": "add fsync to atomic_save for correctness",
+      "body": "",
+      "merged_at": "2025-02-03T05:38:50Z",
+      "url": "https://github.com/mahmoud/boltons/commit/a7d9afd61bb36ed7bc9cd3b13a594db32c1f3cec",
+      "labels": [],
+      "files": [
+        {
+          "filename": "boltons/fileutils.py",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 0,
+          "patch": "@@ -465,6 +465,9 @@ def __enter__(self):\n \n     def __exit__(self, exc_type, exc_val, exc_tb):\n         if self.part_file:\n+            # Ensure data is flushed and synced to disk before closing\n+            self.part_file.flush()\n+            os.fsync(self.part_file.fileno())\n             self.part_file.close()\n         if exc_type:\n             if self.rm_part_on_exc:"
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": false,
+      "additions": 3,
+      "deletions": 0
+    },
+    {
+      "change_id": "commit_354d8ce380",
+      "kind": "commit",
+      "number": null,
+      "sha": "354d8ce3803cd29dd9b87dfd3935c357e3a20182",
+      "title": "ignore rtd venv",
+      "body": "",
+      "merged_at": "2025-02-03T05:47:00Z",
+      "url": "https://github.com/mahmoud/boltons/commit/354d8ce3803cd29dd9b87dfd3935c357e3a20182",
+      "labels": [],
+      "files": [
+        {
+          "filename": ".gitignore",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 0,
+          "patch": "@@ -3,6 +3,7 @@ tmp.py\n htmlcov/\n venv/\n *.py[cod]\n+venv-rtd/\n \n # emacs\n *~"
+        }
+      ],
+      "touches_source": false,
+      "touches_tests": false,
+      "additions": 1,
+      "deletions": 0
+    },
+    {
+      "change_id": "commit_ed747452ae",
+      "kind": "commit",
+      "number": null,
+      "sha": "ed747452aea780e838cedd82faac4cf941e626ac",
+      "title": "write changelog for 25.0.0",
+      "body": "",
+      "merged_at": "2025-02-03T05:57:17Z",
+      "url": "https://github.com/mahmoud/boltons/commit/ed747452aea780e838cedd82faac4cf941e626ac",
+      "labels": [],
+      "files": [
+        {
+          "filename": "CHANGELOG.md",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 0,
+          "patch": "@@ -5,6 +5,15 @@ for an average of one 33-commit release about every 9 weeks. Versions\n are named according to the [CalVer](https://calver.org) versioning\n scheme (`YY.MINOR.MICRO`).\n \n+## 25.0.0\n+\n+_(February 2, 2025)_\n+\n+- Added Python 3.13 support\n+- Replace deprecated `utcnow()`\n+- Add fsync to [`fileutils.atomic_save`][fileutils.atomic_save]\n+- Add [`fileutils.rotate_file`][fileutils.rotate_file]\n+\n ## 24.1.0\n \n _(November 1, 2024)_\n@@ -1064,6 +1073,7 @@ added in this release.\n [excutils.ParsedException]: http://boltons.readthedocs.org/en/latest/excutils.html#boltons.excutils.ParsedException\n [fileutils]: http://boltons.readthedocs.org/en/latest/fileutils.html\n [fileutils.replace]: http://boltons.readthedocs.org/en/latest/fileutils.html#boltons.fileutils.replace\n+[fileutils.rotate_file]: http://boltons.readthedocs.org/en/latest/fileutils.html#boltons.fileutils.rotate_file\n [fileutils.atomic_rename]: http://boltons.readthedocs.org/en/latest/fileutils.html#boltons.fileutils.atomic_rename\n [fileutils.atomic_save]: http://boltons.readthedocs.org/en/latest/fileutils.html#boltons.fileutils.atomic_save\n [fileutils.AtomicSaver]: http://boltons.readthedocs.org/en/latest/fileutils.html#boltons.fileutils.AtomicSaver"
+        },
+        {
+          "filename": "docs/fileutils.rst",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 0,
+          "patch": "@@ -16,6 +16,8 @@ close a few remaining gaps.\n \n .. autofunction:: boltons.fileutils.copytree\n \n+.. autofunction:: boltons.fileutils.rotate_file\n+\n \n Atomic File Saving\n ------------------"
+        },
+        {
+          "filename": "pyproject.toml",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "patch": "@@ -54,7 +54,7 @@ build-backend = \"flit_core.buildapi\"\n # * Bump pyproject.toml version off of -dev\n # * git commit -a -m \"bump version for x.y.z release\"\n # * rm -rf dist/*\n-# * python -m build\n+# * flit build\n # * twine upload dist/*\n # * bump docs/conf.py version\n # * git commit"
+        }
+      ],
+      "touches_source": false,
+      "touches_tests": false,
+      "additions": 13,
+      "deletions": 1
+    },
+    {
+      "change_id": "pr_381",
+      "kind": "pull_request",
+      "number": 381,
+      "sha": "0c88f25323de3ff85bcca844b9ce6cd171a80392",
+      "title": "Fix Table.to_text() sizing",
+      "body": "Table.to_text now measures column contents instead of row length when sizing the individual columns.\r\n\r\nBefore:\r\n![image](https://github.com/user-attachments/assets/7fd6fc15-b269-4ec2-a2dc-a3264e89571e)\r\n\r\nAfter:\r\n![image](https://github.com/user-attachments/assets/d8ebe4f3-8d32-4e45-bacd-89b87a46cb66)\r\n",
+      "merged_at": "2025-02-08T07:55:51Z",
+      "url": "https://github.com/mahmoud/boltons/pull/381",
+      "labels": [],
+      "files": [
+        {
+          "filename": "boltons/tableutils.py",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "patch": "@@ -569,7 +569,7 @@ def to_text(self, with_headers=True, maxlen=None):\n         text_data = [[to_text(cell, maxlen=maxlen) for cell in row]\n                      for row in self._data]\n         for idx in range(self._width):\n-            cur_widths = [len(cur) for cur in text_data]\n+            cur_widths = [len(row[idx]) for row in text_data]\n             if with_headers:\n                 cur_widths.append(len(to_text(headers[idx], maxlen=maxlen)))\n             widths.append(max(cur_widths))"
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": false,
+      "additions": 1,
+      "deletions": 1
+    },
+    {
+      "change_id": "pr_389",
+      "kind": "pull_request",
+      "number": 389,
+      "sha": "f9c4f30511b58c543bda7e4c04193fd480f68b24",
+      "title": "Fix barrellist sort with multiple lists",
+      "body": "The following code in `BarrelList.sort` causes a crash\r\n\r\n```py\r\ndel self.lists[:]\r\nself.lists[0] = tmp_sorted\r\n```\r\n",
+      "merged_at": "2025-10-04T18:21:30Z",
+      "url": "https://github.com/mahmoud/boltons/pull/389",
+      "labels": [],
+      "files": [
+        {
+          "filename": "boltons/listutils.py",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "patch": "@@ -308,7 +308,7 @@ def sort(self):\n                 li.sort()\n             tmp_sorted = sorted(chain.from_iterable(self.lists))\n             del self.lists[:]\n-            self.lists[0] = tmp_sorted\n+            self.lists.append(tmp_sorted)\n             self._balance_list(0)\n \n     def reverse(self):"
+        },
+        {
+          "filename": "tests/test_listutils.py",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 0,
+          "patch": "@@ -51,6 +51,14 @@ def test_barrel_list():\n     bl3[:20:2] = range(0, -10, -1)\n     assert bl3[6] == -3  # some truly tricky stepping/slicing works\n \n+def test_sort_barrel_list():\n+    bl = BarrelList(reversed(range(100000)))\n+    bl.pop(50000)\n+    assert len(bl.lists) > 1\n+    bl.sort()\n+    assert bl[0] == 0\n+    assert bl[-1] == 99999\n+\n # roughly increasing random integers\n # [ord(i) * x for i, x in zip(os.urandom(1024), range(1024))]\n TEST_INTS = [0, 74, 96, 183, 456, 150, 1098, 665, 1752, 1053, 190,"
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": true,
+      "additions": 9,
+      "deletions": 1
+    },
+    {
+      "change_id": "commit_c8c442b98b",
+      "kind": "commit",
+      "number": null,
+      "sha": "c8c442b98b8cff6d0aee61e61e28d4cb0be0ac21",
+      "title": "fix html2text",
+      "body": "",
+      "merged_at": "2025-12-29T20:58:54Z",
+      "url": "https://github.com/mahmoud/boltons/commit/c8c442b98b8cff6d0aee61e61e28d4cb0be0ac21",
+      "labels": [],
+      "files": [
+        {
+          "filename": ".gitignore",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 0,
+          "patch": "@@ -5,6 +5,8 @@ venv/\n *.py[cod]\n venv-rtd/\n \n+nohup.out\n+\n # emacs\n *~\n ._*"
+        },
+        {
+          "filename": "boltons/strutils.py",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 0,
+          "patch": "@@ -570,11 +570,17 @@ def bytes2human(nbytes, ndigits=0):\n \n \n class HTMLTextExtractor(HTMLParser):\n+<<<<<<< Updated upstream\n     def __init__(self):\n         self.reset()\n         self.strict = False\n         self.convert_charrefs = True\n         self.result = []\n+=======\n+    def __init__(self) -> None:\n+        super().__init__(convert_charrefs=True)\n+        self.result: list[str] = []\n+>>>>>>> Stashed changes\n \n     def handle_data(self, d):\n         self.result.append(d)"
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": false,
+      "additions": 8,
+      "deletions": 0
+    },
+    {
+      "change_id": "commit_b47171245c",
+      "kind": "commit",
+      "number": null,
+      "sha": "b47171245cebeb39df55cbac7ae1efb3e29f317e",
+      "title": "fix strutils",
+      "body": "",
+      "merged_at": "2025-12-29T21:04:07Z",
+      "url": "https://github.com/mahmoud/boltons/commit/b47171245cebeb39df55cbac7ae1efb3e29f317e",
+      "labels": [],
+      "files": [
+        {
+          "filename": "boltons/strutils.py",
+          "status": "modified",
+          "additions": 0,
+          "deletions": 8,
+          "patch": "@@ -570,17 +570,9 @@ def bytes2human(nbytes, ndigits=0):\n \n \n class HTMLTextExtractor(HTMLParser):\n-<<<<<<< Updated upstream\n-    def __init__(self):\n-        self.reset()\n-        self.strict = False\n-        self.convert_charrefs = True\n-        self.result = []\n-=======\n     def __init__(self) -> None:\n         super().__init__(convert_charrefs=True)\n         self.result: list[str] = []\n->>>>>>> Stashed changes\n \n     def handle_data(self, d):\n         self.result.append(d)"
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": false,
+      "additions": 0,
+      "deletions": 8
+    },
+    {
+      "change_id": "commit_a7ae0909a6",
+      "kind": "commit",
+      "number": null,
+      "sha": "a7ae0909a6d0aade8eee422011f3e305b30c5db7",
+      "title": "add py314",
+      "body": "",
+      "merged_at": "2025-12-29T21:05:48Z",
+      "url": "https://github.com/mahmoud/boltons/commit/a7ae0909a6d0aade8eee422011f3e305b30c5db7",
+      "labels": [],
+      "files": [
+        {
+          "filename": ".github/workflows/tests.yaml",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 3,
+          "patch": "@@ -18,9 +18,10 @@ jobs:\n       fail-fast: false\n       matrix:\n         include:\n-          - { name: Linux, python: \"3.13\", os: ubuntu-latest, tox: py313 }\n-          - { name: Windows, python: \"3.13\", os: windows-latest, tox: py313 }\n-          - { name: Mac, python: \"3.13\", os: macos-latest, tox: py313 }\n+          - { name: Linux, python: \"3.14\", os: ubuntu-latest, tox: py314 }\n+          - { name: Windows, python: \"3.14\", os: windows-latest, tox: py314 }\n+          - { name: Mac, python: \"3.14\", os: macos-latest, tox: py314 }\n+          - { name: \"3.13\", python: \"3.13\", os: ubuntu-latest, tox: py313 }\n           - { name: \"3.12\", python: \"3.12\", os: ubuntu-latest, tox: py312 }\n           - { name: \"3.11\", python: \"3.11\", os: ubuntu-latest, tox: py311 }\n           - { name: \"3.10\", python: \"3.10\", os: ubuntu-latest, tox: py310 }"
+        },
+        {
+          "filename": "pyproject.toml",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 0,
+          "patch": "@@ -22,6 +22,7 @@ classifiers = [\n     \"Programming Language :: Python :: 3.11\",\n     \"Programming Language :: Python :: 3.12\",\n     \"Programming Language :: Python :: 3.13\",\n+    \"Programming Language :: Python :: 3.14\",\n     \"Programming Language :: Python :: 3 :: Only\",\n     \"Programming Language :: Python :: Implementation :: CPython\",\n     \"Programming Language :: Python :: Implementation :: PyPy\","
+        },
+        {
+          "filename": "tox.ini",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "patch": "@@ -1,5 +1,5 @@\n [tox]\n-envlist = py37,py39,py310,py311,py312,py313,pypy3\n+envlist = py37,py39,py310,py311,py312,py313,py314,pypy3\n [testenv]\n changedir = .tox\n deps = -rrequirements-test.txt"
+        }
+      ],
+      "touches_source": false,
+      "touches_tests": false,
+      "additions": 6,
+      "deletions": 4
+    },
+    {
+      "change_id": "commit_a2af585489",
+      "kind": "commit",
+      "number": null,
+      "sha": "a2af58548936c51a3d859f780e54ba170a6829bb",
+      "title": "Support pytest 9 changes",
+      "body": "Starting from pytest 7, the py.path arguments to pytest's hook functions\nhave been deprecated, replaced with pathlib.Path equivalents. Since\npytest 7 is the minimum version we support, move to using it.",
+      "merged_at": "2025-12-30T17:52:04Z",
+      "url": "https://github.com/mahmoud/boltons/commit/a2af58548936c51a3d859f780e54ba170a6829bb",
+      "labels": [],
+      "files": [
+        {
+          "filename": "tests/conftest.py",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2,
+          "patch": "@@ -5,12 +5,12 @@\n _VERSION_MARKER = re.compile(r'_py(?P<major_version>\\d)(?P<minor_version>\\d)?')\n \n \n-def pytest_ignore_collect(path, config):\n+def pytest_ignore_collect(collection_path, config):\n     \"\"\"\n     Ignore tests that end with _pyX, where X does not equal this\n     interpreter's major version.\n     \"\"\"\n-    filename = path.basename\n+    filename = collection_path.name\n     modulename = filename.split('.', 1)[0]\n     match = _VERSION_MARKER.search(modulename)\n     if not match:"
+        }
+      ],
+      "touches_source": false,
+      "touches_tests": true,
+      "additions": 2,
+      "deletions": 2
+    },
+    {
+      "change_id": "pr_388",
+      "kind": "pull_request",
+      "number": 388,
+      "sha": "1b1d37875f5702a7c86990e3f415093fb360db4d",
+      "title": "feat(strutils): add human_readable_list function to format lists of strings",
+      "body": "Also formatted the imports according to PEP 8.\r\n\r\nCloses #322.",
+      "merged_at": "2025-12-30T19:16:02Z",
+      "url": "https://github.com/mahmoud/boltons/pull/388",
+      "labels": [],
+      "files": [
+        {
+          "filename": "boltons/strutils.py",
+          "status": "modified",
+          "additions": 34,
+          "deletions": 5,
+          "patch": "@@ -36,20 +36,20 @@\n \n \n import builtins\n+import collections\n import re\n+import string\n import sys\n+import typing\n+import unicodedata\n import uuid\n import zlib\n-import string\n-import unicodedata\n-import collections\n from collections.abc import Mapping\n from gzip import GzipFile\n-from html.parser import HTMLParser\n from html import entities as htmlentitydefs\n+from html.parser import HTMLParser\n from io import BytesIO as StringIO\n \n-\n __all__ = ['camel2under', 'under2camel', 'slugify', 'split_punct_ws',\n            'unit_len', 'ordinalize', 'cardinalize', 'pluralize', 'singularize',\n            'asciify', 'is_ascii', 'is_uuid', 'html2text', 'strip_ansi',\n@@ -1285,3 +1285,32 @@ def removeprefix(text: str, prefix: str) -> str:\n     if text.startswith(prefix):\n         return text[len(prefix):]\n     return text\n+\n+def human_readable_list(items: typing.Sequence[str], delimiter: str = ',', conjunction: str = 'and', *, oxford: bool = True) -> str:\n+    \"\"\"\n+    Given a list of strings, return a human readable string with\n+    appropriate delimiters and the conjunction word.\n+\n+    Args:\n+        items: The list of strings to join.\n+        delimiter (optional): The delimiter to use between items.\n+        conjunction (optional): The word to use before the last item.\n+        oxford (optional): Whether to use the Oxford comma/delimiter before\n+            the conjunction in lists of 3+ items.\n+\n+    Returns:\n+        str: The human readable string.\n+    \"\"\"\n+    if not items:\n+        return ''\n+\n+    delimiter = delimiter and delimiter.strip() + ' '\n+    conjunction = conjunction.strip()\n+\n+    if len(items) == 1:\n+        return items[0]\n+\n+    if len(items) == 2:\n+        return f'{items[0]} {conjunction} {items[1]}'\n+\n+    return f'{delimiter.join(items[:-1])}{delimiter if oxford else \" \"}{conjunction} {items[-1]}'"
+        },
+        {
+          "filename": "tests/test_strutils.py",
+          "status": "modified",
+          "additions": 105,
+          "deletions": 0,
+          "patch": "@@ -142,6 +142,111 @@ def test_substitutions_with_regex_chars(self):\n         self.assertEqual(m.sub('The cat.+ is purple'), 'The kedi is mor')\n \n \n+def test_human_readable_list():\n+    \"\"\"Test the human_readable_list function with various inputs.\"\"\"\n+    \n+    # Test empty list\n+    assert strutils.human_readable_list([]) == ''\n+    \n+    # Test single item\n+    assert strutils.human_readable_list(['apple']) == 'apple'\n+    \n+    # Test two items (no Oxford comma applies)\n+    assert strutils.human_readable_list(['apple', 'banana']) == 'apple and banana'\n+    \n+    # Test three items with Oxford comma (default)\n+    assert strutils.human_readable_list(['apple', 'banana', 'cherry']) == 'apple, banana, and cherry'\n+    \n+    # Test three items without Oxford comma\n+    assert strutils.human_readable_list(['apple', 'banana', 'cherry'], oxford=False) == 'apple, banana and cherry'\n+    \n+    # Test four items with Oxford comma\n+    assert strutils.human_readable_list(['apple', 'banana', 'cherry', 'date']) == 'apple, banana, cherry, and date'\n+    \n+    # Test four items without Oxford comma\n+    assert strutils.human_readable_list(['apple', 'banana', 'cherry', 'date'], oxford=False) == 'apple, banana, cherry and date'\n+    \n+    # Test custom delimiter\n+    assert strutils.human_readable_list(['apple', 'banana', 'cherry'], delimiter=';') == 'apple; banana; and cherry'\n+    \n+    # Test custom conjunction\n+    assert strutils.human_readable_list(['apple', 'banana', 'cherry'], conjunction='or') == 'apple, banana, or cherry'\n+    \n+    # Test custom delimiter and conjunction\n+    assert strutils.human_readable_list(['apple', 'banana', 'cherry'], delimiter='|', conjunction='plus') == 'apple| banana| plus cherry'\n+    \n+    # Test custom conjunction without Oxford comma\n+    assert strutils.human_readable_list(['apple', 'banana', 'cherry'], conjunction='or', oxford=False) == 'apple, banana or cherry'\n+    \n+    # Test delimiter with extra spaces (should be stripped)\n+    assert strutils.human_readable_list(['apple', 'banana', 'cherry'], delimiter=' , ') == 'apple, banana, and cherry'\n+    \n+    # Test conjunction with extra spaces (should be stripped)\n+    assert strutils.human_readable_list(['apple', 'banana', 'cherry'], conjunction=' or ') == 'apple, banana, or cherry'\n+    \n+    # Test with empty strings in the list\n+    assert strutils.human_readable_list(['apple', '', 'cherry']) == 'apple, , and cherry'\n+    \n+    # Test with whitespace strings\n+    assert strutils.human_readable_list(['apple', '  ', 'cherry']) == 'apple,   , and cherry'\n+    \n+    # Test with special characters\n+    assert strutils.human_readable_list(['apple & pear', 'banana/plantain', 'cherry-bomb']) == 'apple & pear, banana/plantain, and cherry-bomb'\n+    \n+    # Test with unicode characters\n+    assert strutils.human_readable_list(['🍎', '🍌', '🍒']) == '🍎, 🍌, and 🍒'\n+    \n+    # Test with numbers as strings\n+    assert strutils.human_readable_list(['1', '2', '3']) == '1, 2, and 3'\n+    \n+    # Test edge case with only delimiter character as items\n+    assert strutils.human_readable_list([',', ',', ',']) == ',, ,, and ,'\n+    \n+    # Test long list to ensure pattern consistency\n+    long_list = ['a', 'b', 'c', 'd', 'e', 'f']\n+    assert strutils.human_readable_list(long_list) == 'a, b, c, d, e, and f'\n+    assert strutils.human_readable_list(long_list, oxford=False) == 'a, b, c, d, e and f'\n+\n+    # Edge cases\n+    # Test with empty delimiter\n+    assert strutils.human_readable_list(['apple', 'banana', 'cherry'], delimiter='') == 'applebananaand cherry'\n+    \n+    # Test with empty conjunction\n+    assert strutils.human_readable_list(['apple', 'banana', 'cherry'], conjunction='') == 'apple, banana,  cherry'\n+    \n+    # Test two items with custom delimiter and conjunction\n+    assert strutils.human_readable_list(['apple', 'banana'], delimiter=';', conjunction='or') == 'apple or banana'\n+    \n+    # Test single item with custom parameters (should ignore them)\n+    assert strutils.human_readable_list(['apple'], delimiter='|', conjunction='plus', oxford=False) == 'apple'\n+    \n+    # Test very long strings\n+    long_item1 = 'a' * 100\n+    long_item2 = 'b' * 100\n+    result = strutils.human_readable_list([long_item1, long_item2])\n+    assert result == f'{long_item1} and {long_item2}'\n+\n+\n+def test_human_readable_list_type_annotations():\n+    \"\"\"Test that the function works with different sequence types.\"\"\"\n+    \n+    # Test with tuple\n+    assert strutils.human_readable_list(('apple', 'banana', 'cherry')) == 'apple, banana, and cherry'\n+    \n+    # Test with list (already tested above, but for completeness)\n+    assert strutils.human_readable_list(['apple', 'banana', 'cherry']) == 'apple, banana, and cherry'\n+    \n+    # Test with generator (converted to list for the test)\n+    def fruit_generator():\n+        yield 'apple'\n+        yield 'banana' \n+        yield 'cherry'\n+    \n+    # Convert generator to list since the function expects a Sequence\n+    fruits = list(fruit_generator())\n+    assert strutils.human_readable_list(fruits) == 'apple, banana, and cherry'\n+\n+\n def test_roundzip():\n     aaa = b'a' * 10000\n     assert strutils.gunzip_bytes(strutils.gzip_bytes(aaa)) == aaa"
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": true,
+      "additions": 139,
+      "deletions": 5
+    },
+    {
+      "change_id": "pr_394",
+      "kind": "pull_request",
+      "number": 394,
+      "sha": "17374731bcc404908726a65734f941d789f23a78",
+      "title": "Adds cache option to remap and use in research",
+      "body": "There is a mismatch between the caching of transformed objects in the `remap` function and the need for `research` to traverse all sub trees. For most values this is inconsequential (like atomic ints, etc.) but for small tuples (e.g. `(\"hello\",)`) these get compiled as the same value and return the same `id(...)`. In `remap` these get cached and never get `enter` called on them and thus the hooks for `research` to return the values never gets called.\r\n\r\nIn this fix an option to disable/enable the cache is introduced to the `remap` function which simply disables using transformed values from the cache. Then in the `research` function caching is turned off.\r\n\r\nThe existing `remap` behavior is maintained as caching by default is turned on.\r\n\r\nfixes: #393",
+      "merged_at": "2026-01-28T06:29:52Z",
+      "url": "https://github.com/mahmoud/boltons/pull/394",
+      "labels": [],
+      "files": [
+        {
+          "filename": "boltons/iterutils.py",
+          "status": "modified",
+          "additions": 14,
+          "deletions": 4,
+          "patch": "@@ -1055,8 +1055,14 @@ def default_exit(path, key, old_parent, new_parent, new_items):\n     return ret\n \n \n-def remap(root, visit=default_visit, enter=default_enter, exit=default_exit,\n-          **kwargs):\n+def remap(\n+        root,\n+        visit=default_visit,\n+        enter=default_enter,\n+        exit=default_exit,\n+        cache: bool = True,\n+        **kwargs,\n+):\n     \"\"\"The remap (\"recursive map\") function is used to traverse and\n     transform nested structures. Lists, tuples, sets, and dictionaries\n     are just a few of the data structures nested into heterogeneous\n@@ -1130,6 +1136,10 @@ def remap(root, visit=default_visit, enter=default_enter, exit=default_exit,\n             :class:`namedtuple`, must be recreated from scratch, but\n             use the same type as the new parent passed back from the\n             *enter* function.\n+        cache (bool): Controls whether to cache transformed\n+            objects. Uses object identity for the cache. For example\n+            this is turned off for applications like `research` which\n+            need to traverse all trees.\n         reraise_visit (bool): A pragmatic convenience for the *visit*\n             callable. When set to ``False``, remap ignores any errors\n             raised by the *visit* callback. Items causing exceptions\n@@ -1195,7 +1205,7 @@ def remap(root, visit=default_visit, enter=default_enter, exit=default_exit,\n             registry[id_value] = value\n             if not new_items_stack:\n                 continue\n-        elif id_value in registry:\n+        elif cache and id_value in registry:\n             value = registry[id_value]\n         else:\n             if trace_enter:\n@@ -1388,7 +1398,7 @@ def _enter(path, key, value):\n                 raise\n         return enter(path, key, value)\n \n-    remap(root, enter=_enter)\n+    remap(root, enter=_enter, cache=False)\n     return ret\n \n "
+        },
+        {
+          "filename": "tests/test_iterutils.py",
+          "status": "modified",
+          "additions": 18,
+          "deletions": 0,
+          "patch": "@@ -395,6 +395,24 @@ def broken_query(p, k, v):\n     # empty results with default, reraise=False\n     assert research(root, broken_query) == []\n \n+    # test that different branches with object identical values are\n+    # still traversed and returned\n+    literal_tree = {\n+            \"maybe\" : (\"hello\",),\n+            \"another\" : (\"hello\",),\n+        }\n+\n+    assert id(literal_tree[\"maybe\"]) == id(literal_tree[\"another\"])\n+    assert research(\n+        root=literal_tree,\n+    ) == [\n+        ((None,), literal_tree),\n+        ((\"maybe\",), (\"hello\",)),\n+        ((\"maybe\", 0,), \"hello\"),\n+        ((\"another\",), (\"hello\",)),\n+        ((\"another\", 0,), \"hello\"),\n+    ]\n+\n \n def test_research_custom_enter():\n     # see #368"
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": true,
+      "additions": 32,
+      "deletions": 4
+    },
+    {
+      "change_id": "pr_386",
+      "kind": "pull_request",
+      "number": 386,
+      "sha": "49f381eedbdcd695f7ed95110ebb1088582de7f3",
+      "title": "Extend partition to accept multiple predicates",
+      "body": "This is one I've wished for -- so you can supply N predicates to partition into N+1 buckets",
+      "merged_at": "2026-01-28T06:33:10Z",
+      "url": "https://github.com/mahmoud/boltons/pull/386",
+      "labels": [],
+      "files": [
+        {
+          "filename": "boltons/iterutils.py",
+          "status": "modified",
+          "additions": 38,
+          "deletions": 5,
+          "patch": "@@ -754,10 +754,15 @@ def value_transform(x): return f(x[1])\n     return ret\n \n \n-def partition(src, key=bool):\n+def partition(src, key=bool, *keys):\n     \"\"\"No relation to :meth:`str.partition`, ``partition`` is like\n-    :func:`bucketize`, but for added convenience returns a tuple of\n-    ``(truthy_values, falsy_values)``.\n+    :func:`bucketize`, but for added convenience returns a collection for\n+    each predicate passed.\n+\n+    ``partition`` now accepts multiple *key* functions and will return\n+    ``N + 1`` lists for ``N`` predicates. Each value from *src* is placed\n+    into the first list whose predicate evaluates to ``True`` with values\n+    that match none of the predicates placed in the last list.\n \n     >>> nonempty, empty = partition(['', '', 'hi', '', 'bye'])\n     >>> nonempty\n@@ -772,9 +777,37 @@ def partition(src, key=bool):\n     >>> decimal_digits, hexletters = partition(string.hexdigits, is_digit)\n     >>> ''.join(decimal_digits), ''.join(hexletters)\n     ('0123456789', 'abcdefABCDEF')\n+\n+    Multiple predicates may be supplied to divide into more buckets:\n+\n+    >>> positive, negative, zero = partition(range(-1, 2),\n+    ...                                     lambda i: i > 0,\n+    ...                                     lambda i: i < 0)\n+    >>> positive, negative, zero\n+    ([1], [-1], [0])\n     \"\"\"\n-    bucketized = bucketize(src, key)\n-    return bucketized.get(True, []), bucketized.get(False, [])\n+    if not is_iterable(src):\n+        raise TypeError('expected an iterable')\n+\n+    def _make_key_func(k):\n+        if isinstance(k, str):\n+            return lambda x, k=k: getattr(x, k, False)\n+        if callable(k):\n+            return k\n+        raise TypeError('expected key to be callable or a string')\n+\n+    key_funcs = [_make_key_func(key)] + [_make_key_func(k) for k in keys]\n+    parts = [[] for _ in range(len(key_funcs) + 1)]\n+\n+    for val in src:\n+        for idx, func in enumerate(key_funcs):\n+            if func(val):\n+                parts[idx].append(val)\n+                break\n+        else:\n+            parts[-1].append(val)\n+\n+    return tuple(parts)\n \n \n def unique(src, key=None):"
+        },
+        {
+          "filename": "tests/test_iterutils.py",
+          "status": "modified",
+          "additions": 19,
+          "deletions": 0,
+          "patch": "@@ -598,3 +598,22 @@ def test_windowed_filled():\n \n     assert list(windowed_iter(range(4), 3)) == [(0, 1, 2), (1, 2, 3)]\n     assert list(windowed_iter(range(4), 3, fill=None)) == [(0, 1, 2), (1, 2, 3), (2, 3, None), (3, None, None)]\n+# Tests for partition\n+\n+def test_partition_default():\n+    from boltons.iterutils import partition\n+\n+    nonempty, empty = partition(['', '', 'hi', '', 'bye'])\n+    assert nonempty == ['hi', 'bye']\n+    assert empty == [\"\", \"\", \"\"]\n+\n+\n+def test_partition_multiple():\n+    from boltons.iterutils import partition\n+\n+    items = [2, -1, 0, 3, -2]\n+    positive, negative, zero = partition(items, lambda i: i > 0, lambda i: i < 0)\n+    assert positive == [2, 3]\n+    assert negative == [-1, -2]\n+    assert zero == [0]\n+"
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": true,
+      "additions": 57,
+      "deletions": 5
+    },
+    {
+      "change_id": "pr_395",
+      "kind": "pull_request",
+      "number": 395,
+      "sha": "42586df3dd672c11f5376b8d9a42e26c05cf5543",
+      "title": "Add once decorator to funcutils",
+      "body": "\r\nAdds a once decorator to funcutils that ensures a zero-argument function executes exactly once, caching the result for all subsequent calls.\r\nThread-safe via threading.RLock + functools.cache — concurrent callers block until the first execution completes, then all receive the cached result. Guaranteed single execution even under contention.\r\nUsage\r\nfrom boltons.funcutils import once\r\n@once\r\ndef load_config():\r\n    return parse_config_from_disk()\r\nChanges\r\n- boltons/funcutils.py: Added once decorator with docstring and doctest\r\n- tests/test_funcutils.py: Added tests for single execution, identity of cached result, and thread safety under concurrent access",
+      "merged_at": "2026-03-06T19:50:01Z",
+      "url": "https://github.com/mahmoud/boltons/pull/395",
+      "labels": [],
+      "files": [
+        {
+          "filename": "boltons/funcutils.py",
+          "status": "modified",
+          "additions": 43,
+          "deletions": 0,
+          "patch": "@@ -39,6 +39,7 @@\n import inspect\n import functools\n import itertools\n+import threading\n from inspect import formatannotation\n from types import FunctionType, MethodType\n \n@@ -1004,4 +1005,46 @@ def decorate(func, pre_func=noop, post_func=noop):\n     \"\"\"\n     return None\n \n+\n+\n+_UNSET = object()\n+\n+\n+def once(func):\n+    \"\"\"Decorator that ensures a function is only executed once, caching\n+    the result for all subsequent calls. Thread-safe: concurrent callers\n+    block until the first execution completes, then all receive the\n+    cached result.\n+\n+    The decorated function must take no arguments.\n+\n+    >>> call_count = 0\n+    >>> @once\n+    ... def expensive_setup():\n+    ...     global call_count\n+    ...     call_count += 1\n+    ...     return 'initialized'\n+    >>> expensive_setup()\n+    'initialized'\n+    >>> expensive_setup()\n+    'initialized'\n+    >>> call_count\n+    1\n+    \"\"\"\n+    lock = threading.Lock()\n+    result = _UNSET\n+\n+    @functools.wraps(func)\n+    def wrapper():\n+        nonlocal result\n+        if result is not _UNSET:\n+            return result\n+        with lock:\n+            if result is not _UNSET:\n+                return result\n+            result = func()\n+            return result\n+\n+    return wrapper\n+\n # end funcutils.py"
+        },
+        {
+          "filename": "tests/test_funcutils.py",
+          "status": "modified",
+          "additions": 62,
+          "deletions": 1,
+          "patch": "@@ -1,9 +1,12 @@\n+import threading\n+import time\n from boltons.funcutils import (copy_function,\n                                total_ordering,\n                                format_invocation,\n                                InstancePartial,\n                                CachedInstancePartial,\n-                               noop)\n+                               noop,\n+                               once)\n \n \n class Greeter:\n@@ -82,3 +85,61 @@ def test_noop():\n     assert noop() is None\n     assert noop(1, 2) is None\n     assert noop(a=1, b=2) is None\n+\n+\n+def test_once_executes_only_once():\n+    call_count = 0\n+\n+    @once\n+    def get_value():\n+        nonlocal call_count\n+        call_count += 1\n+        return 42\n+\n+    assert get_value() == 42\n+    assert get_value() == 42\n+    assert get_value() == 42\n+    assert call_count == 1\n+\n+\n+def test_once_caches_result():\n+    @once\n+    def get_list():\n+        return [1, 2, 3]\n+\n+    result1 = get_list()\n+    result2 = get_list()\n+    assert result1 is result2\n+\n+\n+def test_once_thread_safety():\n+    call_count = 0\n+    barrier = threading.Barrier(10)\n+\n+    @once\n+    def slow_computation():\n+        nonlocal call_count\n+        call_count += 1\n+        time.sleep(0.5)\n+        return 99\n+\n+    results = []\n+    errors = []\n+\n+    def worker():\n+        try:\n+            barrier.wait()\n+            results.append(slow_computation())\n+        except Exception as e:\n+            errors.append(e)\n+\n+    threads = [threading.Thread(target=worker) for _ in range(10)]\n+    for t in threads:\n+        t.start()\n+    for t in threads:\n+        t.join()\n+\n+    assert not errors\n+    assert call_count == 1\n+    assert all(r == 99 for r in results)\n+    assert len(results) == 10"
+        },
+        {
+          "filename": "tox.ini",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "patch": "@@ -1,5 +1,5 @@\n [tox]\n-envlist = py37,py39,py310,py311,py312,py313,py314,pypy3\n+envlist = py37,py38,py39,py310,py311,py312,py313,py314,pypy3\n [testenv]\n changedir = .tox\n deps = -rrequirements-test.txt"
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": true,
+      "additions": 106,
+      "deletions": 2
+    },
+    {
+      "change_id": "commit_ce60604a46",
+      "kind": "commit",
+      "number": null,
+      "sha": "ce60604a463eb2c1f84b7756f38d909f404bd1d2",
+      "title": "bit more info in docstring",
+      "body": "",
+      "merged_at": "2026-03-06T19:56:36Z",
+      "url": "https://github.com/mahmoud/boltons/commit/ce60604a463eb2c1f84b7756f38d909f404bd1d2",
+      "labels": [],
+      "files": [
+        {
+          "filename": "boltons/funcutils.py",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 1,
+          "patch": "@@ -1007,7 +1007,6 @@ def decorate(func, pre_func=noop, post_func=noop):\n \n \n \n-_UNSET = object()\n \n \n def once(func):\n@@ -1016,6 +1015,9 @@ def once(func):\n     block until the first execution completes, then all receive the\n     cached result.\n \n+    This is especially useful in cases like logging, where multiple\n+    initializations can cause problems.\n+\n     The decorated function must take no arguments.\n \n     >>> call_count = 0\n@@ -1031,6 +1033,7 @@ def once(func):\n     >>> call_count\n     1\n     \"\"\"\n+    _UNSET = object()\n     lock = threading.Lock()\n     result = _UNSET\n "
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": false,
+      "additions": 4,
+      "deletions": 1
+    },
+    {
+      "change_id": "pr_396",
+      "kind": "pull_request",
+      "number": 396,
+      "sha": "207651ee6055aabd0d9cdeac2e00140cdc208d44",
+      "title": "Add human_readable_list to __all__ in strutils",
+      "body": "The `human_readable_list` function (added in #388) is missing from the `__all__` list in `strutils.py`. This means it won't show up in `dir(boltons.strutils)` or get exported with `from boltons.strutils import *`.\n\nThis adds it to `__all__` alongside the other public functions.\n\nCloses #293\n",
+      "merged_at": "2026-03-06T22:18:37Z",
+      "url": "https://github.com/mahmoud/boltons/pull/396",
+      "labels": [],
+      "files": [
+        {
+          "filename": "boltons/strutils.py",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 1,
+          "patch": "@@ -57,7 +57,8 @@\n            'iter_splitlines', 'indent', 'escape_shell_args',\n            'args2cmd', 'args2sh', 'parse_int_list', 'format_int_list',\n            'complement_int_list', 'int_ranges_from_int_list', 'MultiReplace',\n-           'multi_replace', 'unwrap_text', 'removeprefix']\n+           'multi_replace', 'unwrap_text', 'removeprefix',\n+           'human_readable_list']\n \n \n _punct_ws_str = string.punctuation + string.whitespace"
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": false,
+      "additions": 2,
+      "deletions": 1
+    },
+    {
+      "change_id": "pr_400",
+      "kind": "pull_request",
+      "number": 400,
+      "sha": "80f9eb4296daadad85db5ef6c0fd14e2f3602fa4",
+      "title": "Fix syntax error in MultiReplace example",
+      "body": "",
+      "merged_at": "2026-06-17T20:51:29Z",
+      "url": "https://github.com/mahmoud/boltons/pull/400",
+      "labels": [],
+      "files": [
+        {
+          "filename": "boltons/strutils.py",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "patch": "@@ -1154,7 +1154,7 @@ class MultiReplace:\n         s = strutils.MultiReplace([\n             ('foo', 'zoo'),\n             ('cat', 'hat'),\n-            ('bat', 'kraken)'\n+            ('bat', 'kraken')\n         ])\n         new = s.sub('The foo bar cat ate a bat')\n         new == 'The zoo bar hat ate a kraken'"
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": false,
+      "additions": 1,
+      "deletions": 1
+    },
+    {
+      "change_id": "pr_401",
+      "kind": "pull_request",
+      "number": 401,
+      "sha": "8a2a93d8213e1fa4da30c8167ab1a18caad17a17",
+      "title": "fix(tbutils): avoid IndexError in ParsedException.from_string on truncated tracebacks",
+      "body": "`ParsedException.from_string` raises `IndexError` when the last frame has a source line but no following line (a truncated traceback with no exception line). The anchor-handling added in #332 unconditionally reads `tb_lines[line_no + 1]`, which overruns the list.\n\n```python\nfrom boltons.tbutils import ParsedException\nParsedException.from_string('''Traceback (most recent call last):\n  File \"main.py\", line 3, in <module>\n    print(add(1, 2))''')\n# IndexError: list index out of range\n```\n\nThe anchor lookahead is now bounds-checked and only runs after a source line was consumed (anchors only follow source lines). The main loop also stops once the lines are exhausted instead of relying on an out-of-range access. Added a regression test; existing tbutils tests still pass.",
+      "merged_at": "2026-06-17T20:53:46Z",
+      "url": "https://github.com/mahmoud/boltons/pull/401",
+      "labels": [],
+      "files": [
+        {
+          "filename": "boltons/tbutils.py",
+          "status": "modified",
+          "additions": 5,
+          "deletions": 4,
+          "patch": "@@ -777,7 +777,7 @@ def from_string(cls, tb_str):\n \n         frames = []\n         line_no = start_line\n-        while True:\n+        while line_no < len(tb_lines):\n             frame_line = tb_lines[line_no].strip()\n             frame_match = frame_re.match(frame_line)\n             if frame_match:\n@@ -800,9 +800,10 @@ def from_string(cls, tb_str):\n                 else:\n                     frame_dict['source_line'] = next_line_stripped\n                     line_no += 1\n-                if _underline_re.match(tb_lines[line_no + 1]):\n-                  # To deal with anchors\n-                  line_no += 1\n+                    if (line_no + 1 < len(tb_lines)\n+                            and _underline_re.match(tb_lines[line_no + 1])):\n+                        # To deal with anchors\n+                        line_no += 1\n             else:\n                 break\n             line_no += 1"
+        },
+        {
+          "filename": "tests/test_tbutils_parsed_exc.py",
+          "status": "modified",
+          "additions": 19,
+          "deletions": 1,
+          "patch": "@@ -79,4 +79,22 @@ def test_parsed_exc_with_anchor():\n     # Note: not checking the anchor lines (indices 3, 6) because column details not currently stored in ParsedException\n     _tb_str_lines = _tb_str.splitlines()\n     _tb_str_without_anchor = \"\\n\".join(_tb_str_lines[:3] + _tb_str_lines[4:6] + _tb_str_lines[7:])\n-    assert parsed_tb.to_string() == _tb_str_without_anchor\n\\ No newline at end of file\n+    assert parsed_tb.to_string() == _tb_str_without_anchor\n+\n+\n+def test_parsed_exc_truncated():\n+    \"\"\"a traceback whose last frame has a source line but no following\n+    exception line should parse without raising IndexError\"\"\"\n+    _tb_str = \"\"\"\\\n+Traceback (most recent call last):\n+  File \"main.py\", line 3, in <module>\n+    print(add(1, 2))\"\"\"\n+\n+    parsed_tb = ParsedException.from_string(_tb_str)\n+\n+    assert parsed_tb.exc_type == ''\n+    assert parsed_tb.exc_msg == ''\n+    assert parsed_tb.frames == [{'source_line': 'print(add(1, 2))',\n+                                 'filepath': 'main.py',\n+                                 'lineno': '3',\n+                                 'funcname': '<module>'}]\n\\ No newline at end of file"
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": true,
+      "additions": 24,
+      "deletions": 5
+    },
+    {
+      "change_id": "pr_403",
+      "kind": "pull_request",
+      "number": 403,
+      "sha": "766b5547392fe8d54c1e000098499dc556bb5cb7",
+      "title": "Fix bytes2human rollover at exact powers of 1024",
+      "body": "## What\n\n`bytes2human` doesn't roll over to the next unit at exact powers of 1024:\n\n```python\n>>> from boltons.strutils import bytes2human\n>>> bytes2human(1024)        # expected '1K'\n'1024B'\n>>> bytes2human(1024 ** 2)   # expected '1M'\n'1024K'\n>>> bytes2human(1024 ** 3)   # expected '1G'\n'1024M'\n```\n\nSub-boundary values are fine (`bytes2human(1023) == '1023B'`, `bytes2human(2048) == '2K'`); only the exact boundaries are wrong.\n\n## Why\n\nThe unit-selection loop compares the value against each boundary with `<=`:\n\n```python\nfor (size, symbol), (next_size, next_symbol) in _SIZE_RANGES:\n    if abs_bytes <= next_size:\n        break\n```\n\n`_SIZE_RANGES` pairs each unit with the next one's threshold (`((1, 'B'), (1024, 'K'))`, …). When `abs_bytes` equals a threshold exactly (e.g. `1024`), `<=` breaks on the *smaller* unit, so the value renders as the previous unit × 1024. Using `<` lets exact boundaries advance to the next unit.\n\n## Change\n\n- `<=` → `<` in the boundary comparison (one character).\n- Added a doctest (`bytes2human(1024) -> '1K'`) and a regression test in `tests/test_strutils.py` covering boundaries, sub-boundaries, mid-range, negatives and `ndigits`. The test was verified to fail on the current code and pass with the fix.\n\nNo behavior change for any non-boundary value. `pytest tests/` and `pytest --doctest-modules boltons/strutils.py` both pass. Happy to add a CHANGELOG entry in whatever form you prefer.\n",
+      "merged_at": "2026-06-17T20:55:45Z",
+      "url": "https://github.com/mahmoud/boltons/pull/403",
+      "labels": [],
+      "files": [
+        {
+          "filename": "boltons/strutils.py",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 1,
+          "patch": "@@ -559,10 +559,12 @@ def bytes2human(nbytes, ndigits=0):\n     '95M'\n     >>> bytes2human(0, 2)\n     '0.00B'\n+    >>> bytes2human(1024)\n+    '1K'\n     \"\"\"\n     abs_bytes = abs(nbytes)\n     for (size, symbol), (next_size, next_symbol) in _SIZE_RANGES:\n-        if abs_bytes <= next_size:\n+        if abs_bytes < next_size:\n             break\n     hnbytes = float(nbytes) / size\n     return '{hnbytes:.{ndigits}f}{symbol}'.format(hnbytes=hnbytes,"
+        },
+        {
+          "filename": "tests/test_strutils.py",
+          "status": "modified",
+          "additions": 22,
+          "deletions": 0,
+          "patch": "@@ -252,3 +252,25 @@ def test_roundzip():\n     assert strutils.gunzip_bytes(strutils.gzip_bytes(aaa)) == aaa\n \n     assert strutils.gunzip_bytes(strutils.gzip_bytes(b'')) == b''\n+\n+\n+def test_bytes2human():\n+    b2h = strutils.bytes2human\n+    # Exact powers of 1024 must roll over to the next unit, not show the\n+    # previous unit times 1024.\n+    assert b2h(1024) == '1K'\n+    assert b2h(1024 ** 2) == '1M'\n+    assert b2h(1024 ** 3) == '1G'\n+    assert b2h(1024 ** 4) == '1T'\n+    # Just below a boundary stays in the smaller unit.\n+    assert b2h(1023) == '1023B'\n+    assert b2h(1024 ** 2 - 1, 1) == '1024.0K'\n+    # Ordinary mid-range values are unaffected.\n+    assert b2h(0) == '0B'\n+    assert b2h(2048) == '2K'\n+    assert b2h(128991) == '126K'\n+    # Sign is preserved and negative magnitudes scale like positives.\n+    assert b2h(-1024) == '-1K'\n+    assert b2h(-(1024 ** 2)) == '-1M'\n+    # ndigits controls the fractional part.\n+    assert b2h(1024, 2) == '1.00K'"
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": true,
+      "additions": 25,
+      "deletions": 1
+    },
+    {
+      "change_id": "pr_404",
+      "kind": "pull_request",
+      "number": 404,
+      "sha": "c463d1633a075c398d6ffad7d8653064a615b696",
+      "title": "Fix OrderedMultiDict equality to compare values against plain mappings",
+      "body": "OrderedMultiDict.__eq__ has a branch for comparing against a non-OMD mapping (anything with a keys() method, like a dict). That branch computes other[selfk] == self[selfk] but discards the result, so it only checks that every key of self exists in other and never compares the values. An OMD therefore compares equal to any same-keyed mapping no matter what the values are:\n\n```python\n>>> from boltons.dictutils import OMD\n>>> omd = OMD([(\"a\", 1), (\"b\", 2)])\n>>> omd == {\"a\": 999, \"b\": 2}\nTrue   # should be False\n```\n\nThe existing test_eq does not catch this because its dict case is written as `d == omd`, which dispatches to `dict.__eq__` (OMD subclasses dict), not `OMD.__eq__`. The buggy branch is only reached with the OMD on the left.\n\nFix: compare the values and return False on mismatch. The length check earlier in __eq__ already handles the differing-key-count case.\n\nThe same __eq__ is duplicated in urlutils.OrderedMultiDict (the base class of QueryParamDict), which had the identical bug, so it is fixed there too.\n\nAdded regression tests in test_dictutils.py and test_urlutils.py that put the OMD/QueryParamDict on the left so the branch is actually exercised. Both fail before the change and pass after. Full suite: 433 passed.",
+      "merged_at": "2026-06-17T20:57:15Z",
+      "url": "https://github.com/mahmoud/boltons/pull/404",
+      "labels": [],
+      "files": [
+        {
+          "filename": "boltons/dictutils.py",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 1,
+          "patch": "@@ -358,7 +358,8 @@ def __eq__(self, other):\n         elif hasattr(other, 'keys'):\n             for selfk in self:\n                 try:\n-                    other[selfk] == self[selfk]\n+                    if other[selfk] != self[selfk]:\n+                        return False\n                 except KeyError:\n                     return False\n             return True"
+        },
+        {
+          "filename": "boltons/urlutils.py",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 1,
+          "patch": "@@ -1264,7 +1264,8 @@ def __eq__(self, other):\n         elif hasattr(other, 'keys'):\n             for selfk in self:\n                 try:\n-                    other[selfk] == self[selfk]\n+                    if other[selfk] != self[selfk]:\n+                        return False\n                 except KeyError:\n                     return False\n             return True"
+        },
+        {
+          "filename": "tests/test_dictutils.py",
+          "status": "modified",
+          "additions": 14,
+          "deletions": 0,
+          "patch": "@@ -61,6 +61,20 @@ def test_eq():\n     assert omd != omd3\n \n \n+def test_eq_with_dict():\n+    # OMD on the left dispatches to OMD.__eq__, which has to compare values\n+    # against a plain mapping, not just keys.\n+    omd = OMD([('a', 1), ('b', 2)])\n+    assert omd == {'a': 1, 'b': 2}\n+    assert not (omd != {'a': 1, 'b': 2})\n+\n+    assert omd != {'a': 999, 'b': 2}\n+    assert not (omd == {'a': 999, 'b': 2})\n+\n+    # same number of keys but a different key\n+    assert omd != {'a': 1, 'c': 2}\n+\n+\n def test_copy():\n     for itemset in _ITEMSETS:\n         omd = OMD(itemset)"
+        },
+        {
+          "filename": "tests/test_urlutils.py",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 1,
+          "patch": "@@ -1,7 +1,7 @@\n import pytest\n \n from boltons import urlutils\n-from boltons.urlutils import URL, _URL_RE, find_all_links\n+from boltons.urlutils import URL, QueryParamDict, _URL_RE, find_all_links\n \n \n # fully quoted urls that should round trip\n@@ -95,6 +95,13 @@ def test_query_params(test_url):\n     assert test_url.endswith(qp_text)\n \n \n+def test_query_param_dict_eq_with_dict():\n+    qpd = QueryParamDict([('a', '1'), ('b', '2')])\n+    assert qpd == {'a': '1', 'b': '2'}\n+    assert qpd != {'a': '999', 'b': '2'}\n+    assert not (qpd == {'a': '999', 'b': '2'})\n+\n+\n def test_iri_query():\n     url = URL('http://minerals.mountain.ore/?rock=\\N{SHAMROCK}')\n     assert url.query_params['rock'] == '\\N{SHAMROCK}'"
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": true,
+      "additions": 26,
+      "deletions": 3
+    },
+    {
+      "change_id": "commit_471dad1c6e",
+      "kind": "commit",
+      "number": null,
+      "sha": "471dad1c6e8182baa3337f118a359ef8f768bf3f",
+      "title": "remove unused len(self) call in BarrelList._balance_list",
+      "body": "",
+      "merged_at": "2026-06-17T21:03:32Z",
+      "url": "https://github.com/mahmoud/boltons/commit/471dad1c6e8182baa3337f118a359ef8f768bf3f",
+      "labels": [],
+      "files": [
+        {
+          "filename": "boltons/listutils.py",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "patch": "@@ -121,7 +121,7 @@ def _translate_index(self, index):\n     def _balance_list(self, list_idx):\n         if list_idx < 0:\n             list_idx += len(self.lists)\n-        cur_list, len_self = self.lists[list_idx], len(self)\n+        cur_list = self.lists[list_idx]\n         size_limit = self._cur_size_limit\n         if len(cur_list) > size_limit:\n             half_limit = size_limit // 2"
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": false,
+      "additions": 1,
+      "deletions": 1
+    },
+    {
+      "change_id": "pr_405",
+      "kind": "pull_request",
+      "number": 405,
+      "sha": "b34c53428941cf3d46a6db97b3663ce5a9659834",
+      "title": "Modernize CI: uv/tox-uv, OIDC publish, release skill",
+      "body": "## Summary\n\nMigrate boltons build/CI infrastructure to uv and add automated PyPI publishing via OIDC trusted publisher.\n\n### Commit 1: Modernize CI\n\n- **Single version source**: `__version__` in `boltons/__init__.py`, pyproject.toml uses `dynamic = [\"version\"]` (flit reads it at build time)\n- **uv/tox-uv**: tox.ini uses `requires = tox-uv`, CI uses `astral-sh/setup-uv` + `uvx --with tox-uv tox` — no more pip cache steps\n- **`[dependency-groups]`** in pyproject.toml replaces `requirements-test.txt`\n- **`publish.yml`**: OIDC trusted publishing on bare version tags (`25.1.0`, not `v25.1.0`). Build → publish → verify pipeline with version validation gate\n- **`docs/conf.py`**: reads version from `boltons.__version__` instead of hardcoded strings; removed stale `pprint(os.environ)` debug line\n- **`.gitignore`**: added `.venv/`\n\n### Commit 2: Release skill\n\n- `.omp/skills/release/SKILL.md` — CalVer release flow with pre-flight checks, changelog generation, tagging, post-publish verification, and error recovery\n\n### Prerequisites (done)\n\n- [x] PyPI trusted publisher configured for `mahmoud/boltons`, workflow `publish.yml`, environment `pypi`\n- [x] GitHub `pypi` environment created with 5-minute wait timer\n\n### Verification\n\n- `uv build` produces wheel successfully\n- `uvx --with tox-uv tox -e py314` — 586 tests passed\n- YAML validated\n- `import boltons; boltons.__version__` works\n",
+      "merged_at": "2026-06-19T01:06:07Z",
+      "url": "https://github.com/mahmoud/boltons/pull/405",
+      "labels": [],
+      "files": [
+        {
+          "filename": ".github/workflows/publish.yml",
+          "status": "added",
+          "additions": 79,
+          "deletions": 0,
+          "patch": "@@ -0,0 +1,79 @@\n+name: Publish to PyPI\n+\n+on:\n+  push:\n+    tags:\n+      - \"[0-9]*.[0-9]*.[0-9]*\"\n+\n+jobs:\n+  build:\n+    runs-on: ubuntu-latest\n+    steps:\n+      - uses: actions/checkout@v4\n+      - uses: astral-sh/setup-uv@v5\n+      - uses: actions/setup-python@v5\n+        with:\n+          python-version: \"3.12\"\n+      - name: Validate version\n+        run: |\n+          VERSION=$(sed -n \"s/^__version__ = '\\(.*\\)'/\\1/p\" boltons/__init__.py)\n+          echo \"Package version: $VERSION\"\n+          if echo \"$VERSION\" | grep -qi 'dev'; then\n+            echo \"::error::Version $VERSION contains dev suffix.\"\n+            exit 1\n+          fi\n+          TAG=${GITHUB_REF#refs/tags/}\n+          if [ \"$VERSION\" != \"$TAG\" ]; then\n+            echo \"::error::Tag $TAG does not match __version__ ($VERSION)\"\n+            exit 1\n+          fi\n+      - name: Build package\n+        run: uv build\n+      - uses: actions/upload-artifact@v4\n+        with:\n+          name: dist\n+          path: dist/\n+\n+  publish:\n+    needs: build\n+    runs-on: ubuntu-latest\n+    environment:\n+      name: pypi\n+      url: https://pypi.org/p/boltons\n+    permissions:\n+      id-token: write\n+    steps:\n+      - uses: actions/download-artifact@v4\n+        with:\n+          name: dist\n+          path: dist/\n+      - uses: pypa/gh-action-pypi-publish@release/v1\n+\n+  verify:\n+    needs: publish\n+    runs-on: ubuntu-latest\n+    steps:\n+      - uses: actions/setup-python@v5\n+        with:\n+          python-version: \"3.12\"\n+      - name: Wait for PyPI\n+        run: |\n+          TAG=${GITHUB_REF#refs/tags/}\n+          for i in $(seq 1 30); do\n+            if curl -s -f \"https://pypi.org/pypi/boltons/$TAG/json\" > /dev/null; then\n+              echo \"boltons $TAG available on PyPI\"\n+              break\n+            fi\n+            echo \"Waiting for PyPI propagation (attempt $i/30)...\"\n+            sleep 10\n+          done\n+      - name: Install from PyPI and verify\n+        run: |\n+          TAG=${GITHUB_REF#refs/tags/}\n+          pip install boltons==$TAG --index-url https://pypi.org/simple/\n+          INSTALLED=$(cd /tmp && python -c \"import boltons; print(boltons.__version__)\")\n+          echo \"Installed version: $INSTALLED\"\n+          if [ \"$INSTALLED\" != \"$TAG\" ]; then\n+            echo \"::error::Installed version $INSTALLED does not match tag $TAG\"\n+            exit 1\n+          fi"
+        },
+        {
+          "filename": ".github/workflows/tests.yaml",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 17,
+          "patch": "@@ -31,23 +31,9 @@ jobs:\n           - { name: \"PyPy3\", python: \"pypy-3.9\", os: ubuntu-latest, tox: pypy3 }\n     steps:\n       - uses: actions/checkout@v4\n+      - uses: astral-sh/setup-uv@v5\n       - uses: actions/setup-python@v5\n         with:\n           python-version: ${{ matrix.python }}\n-      - name: update pip\n-        run: |\n-          pip install -U wheel\n-          pip install -U setuptools\n-          python -m pip install -U pip\n-      - name: get pip cache dir\n-        id: pip-cache\n-        shell: bash\n-        run: |\n-          echo \"dir=$(pip cache dir)\" >> \"$GITHUB_OUTPUT\"\n-      - name: cache pip\n-        uses: actions/cache@v4\n-        with:\n-          path: ${{ steps.pip-cache.outputs.dir }}\n-          key: pip|${{ runner.os }}|${{ matrix.python }}|${{ hashFiles('pyproject.toml') }}|${{ hashFiles('requirements/*.txt') }}\n-      - run: pip install tox\n-      - run: tox -e ${{ matrix.tox }}\n+          allow-prereleases: true\n+      - run: uvx --with tox-uv tox -e ${{ matrix.tox }}"
+        },
+        {
+          "filename": ".gitignore",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 0,
+          "patch": "@@ -2,6 +2,7 @@ docs/_build\n tmp.py\n htmlcov/\n venv/\n+.venv/\n *.py[cod]\n venv-rtd/\n "
+        },
+        {
+          "filename": ".omp/skills/release/SKILL.md",
+          "status": "added",
+          "additions": 193,
+          "deletions": 0,
+          "patch": "@@ -0,0 +1,193 @@\n+---\n+name: release\n+description: |\n+\tRelease boltons to PyPI. Handles version bumping (CalVer YY.MINOR.MICRO),\n+\ttagging, pushing, and post-publish verification. Use when asked to\n+\t\"release boltons\", \"cut a release\", \"publish to PyPI\", or \"bump version\".\n+---\n+\n+# Release boltons\n+\n+boltons uses CalVer: `YY.MINOR.MICRO` (e.g. `25.1.0`). The version lives in\n+`boltons/__init__.py` as a `__version__` literal string. During development it\n+carries a `dev` suffix (e.g. `25.0.1dev`). Flit reads this at build time.\n+\n+Tags are bare version numbers (e.g. `25.1.0`, NOT `v25.1.0`). The publish\n+workflow triggers on tags matching `[0-9]*.[0-9]*.[0-9]*`.\n+\n+## Pre-flight checks\n+\n+Before starting, verify ALL of these:\n+\n+1. Working tree is clean (`git status` shows nothing dirty/staged)\n+2. You are on `master` branch\n+3. `boltons/__init__.py` has a `dev` suffix on `__version__`\n+4. All tests pass: `tox -p auto` (or at minimum `pytest tests/ -v`)\n+5. Check what is actually published on PyPI: https://pypi.org/project/boltons/\n+   **PyPI is canonical.** If the intended version already exists on PyPI, it\n+   cannot be re-released -- bump to the next version instead. If a local/GitHub\n+   tag exists for a version that is NOT on PyPI, the prior release failed and\n+   should be retried (see \"Failed release\" under Error recovery).\n+\n+If any check fails, stop and report. Do not proceed with a dirty tree or\n+failing tests.\n+\n+## Release steps\n+\n+### 1. Determine the release version\n+\n+Read `__version__` from `boltons/__init__.py`. Strip the `dev` suffix.\n+Example: `25.0.1dev` becomes `25.0.1`.\n+\n+Ask the user to confirm the version. If they want a different version\n+(e.g. bumping minor instead of micro), use that instead.\n+\n+### 2. Update version for release\n+\n+Edit `boltons/__init__.py`: remove the `dev` suffix from `__version__`.\n+\n+```python\n+# Before\n+__version__ = '25.0.1dev'\n+# After\n+__version__ = '25.0.1'\n+```\n+\n+### 3. Update CHANGELOG.md\n+\n+Add a new section at the top of `CHANGELOG.md` (below the `# boltons Changelog`\n+heading and the intro paragraph) for the release version. Use this format:\n+\n+```markdown\n+## 25.0.1\n+\n+_(Month Day, Year)_\n+\n+- First change description\n+- Second change description\n+```\n+\n+To determine what changed, review the commits since the last tag:\n+\n+```bash\n+git log $(git describe --tags --abbrev=0)..HEAD --pretty=format:'%s' --no-merges\n+```\n+\n+Summarize the user-facing changes as concise bullet points. Omit version bump\n+commits and other release-mechanical commits. Ask the user to confirm or adjust\n+the changelog entry.\n+\n+### 4. Commit the release\n+\n+```bash\n+git commit -am \"boltons version 25.0.1\"\n+```\n+\n+Use the exact format `boltons version X.Y.Z` for the commit message.\n+\n+### 5. Tag the release\n+\n+```bash\n+git tag -a 25.0.1 -m \"short summary of key changes in this release\"\n+```\n+\n+Tags are bare version numbers (no `v` prefix). The tag message should be a\n+short, lowercase, descriptive summary of the release (not just the version\n+number). Examples:\n+\n+- `\"fix omd equality, bytes2human boundary, tbutils crash\"`\n+- `\"python 3.14 support, frozen structures\"`\n+- `\"modernize build system, drop python 3.7\"`\n+\n+### 6. Bump to next dev version\n+\n+Increment the micro version and add `dev` suffix:\n+\n+```python\n+__version__ = '25.0.2dev'\n+```\n+\n+### 7. Commit the dev bump\n+\n+```bash\n+git commit -am \"bump version to 25.0.2dev\"\n+```\n+\n+### 8. Push\n+\n+```bash\n+git push origin master --tags\n+```\n+\n+This triggers two GitHub Actions workflows:\n+- `Tests` (on the push to master)\n+- `Publish to PyPI` (on the tag)\n+\n+The publish workflow validates that `__version__` on the tagged commit does\n+not contain `dev` and matches the tag. It parses `__version__` from the file\n+with `sed` rather than importing the module (the build job does not install\n+dependencies). If either check fails, publishing is blocked.\n+\n+The `pypi` deployment environment has a wait timer. The publish job will show\n+`status: waiting` during this period — it auto-approves after the timer\n+expires.\n+\n+### 9. Create GitHub release\n+\n+```bash\n+gh release create 25.0.1 --title \"25.0.1\" --notes \"<changelog entries>\"\n+```\n+\n+Use the changelog bullet points as the release notes body. Include a\n+`**Full Changelog**` link comparing the previous tag to the new one:\n+`https://github.com/mahmoud/boltons/compare/PREV...NEW` (bare tags).\n+\n+## Post-publish verification\n+\n+After pushing, wait ~2 minutes for PyPI propagation, then verify in a\n+temporary virtualenv **outside the repo** (to avoid the local source tree\n+shadowing the installed package):\n+\n+```bash\n+python3 -m venv /tmp/boltons-verify && source /tmp/boltons-verify/bin/activate\n+pip install boltons==25.0.1 --index-url https://pypi.org/simple/\n+cd /tmp  # MUST leave repo root so local boltons/ does not shadow the install\n+python -c \"import boltons; print(boltons.__version__)\"\n+# Should print: 25.0.1\n+deactivate && rm -rf /tmp/boltons-verify\n+```\n+\n+If `--index-url` fails with 404, wait another minute and retry. PyPI CDN\n+propagation can take 1-5 minutes.\n+\n+Report the results to the user.\n+\n+## Error recovery\n+\n+- **Failed release** (tag exists locally/on GitHub but not on PyPI): PyPI is\n+\tthe source of truth. Delete the stale tag locally and on the remote:\n+\t```bash\n+\tgit tag -d 25.0.1\n+\tgit push origin :refs/tags/25.0.1  # if it was pushed\n+\t```\n+\tThen check `__version__` in `boltons/__init__.py`. If it was already bumped\n+\tpast the failed release (e.g. `25.0.2dev`), reset it to `25.0.1dev` so\n+\tthe release flow strips the suffix to the correct version. Amend or revert\n+\tthe bump commit as needed, then restart the release from step 1.\n+- **Wrong version tagged**: `git tag -d X.Y.Z && git push origin :refs/tags/X.Y.Z`\n+\tthen fix and re-tag.\n+- **Publish workflow failed**: Check the GitHub Actions log. Common causes:\n+\tversion mismatch, dev suffix present, PyPI trusted publisher not configured.\n+- **Tests fail after publish**: The package is already on PyPI. File an issue,\n+\tfix forward with a patch release.\n+\n+## Prerequisites (one-time setup)\n+\n+These must be done once by the repo owner before the first automated release:\n+\n+1. **PyPI trusted publisher**: In PyPI project settings\n+   (https://pypi.org/manage/project/boltons/settings/publishing/), add a new\n+   publisher: GitHub, repository `mahmoud/boltons`, workflow `publish.yml`,\n+   environment `pypi`.\n+2. **GitHub environment**: In repo settings (Settings → Environments), create\n+   an environment named `pypi`. Optionally add a deployment protection timer."
+        },
+        {
+          "filename": "README.md",
+          "status": "modified",
+          "additions": 25,
+          "deletions": 3,
+          "patch": "@@ -25,7 +25,7 @@ in the same spirit as — and yet conspicuously missing from —\n **[Full and extensive docs are available on Read The Docs.][rtd]** See\n what's new [by checking the CHANGELOG][changelog].\n \n-Boltons is tested against Python 3.7-3.13, as well as PyPy3.\n+Boltons is tested against Python 3.7-3.14, as well as PyPy3.\n \n [stdlib]: https://docs.python.org/3/library/index.html\n [rtd]: https://boltons.readthedocs.org/en/latest/\n@@ -95,8 +95,10 @@ library worth mentioning, see the next section!\n \n Found something missing in the standard library that should be in\n `boltons`? Found something missing in `boltons`? First, take a\n-moment to read the very brief [architecture statement][architecture] to make\n-sure the functionality would be a good fit.\n+moment to read the very brief [architecture statement][architecture]\n+to make sure the functionality would be a good fit. It covers the\n+design philosophy, what belongs in boltons, and how modules are\n+organized.\n \n Then, if you are very motivated, submit [a Pull Request][prs]. Otherwise,\n submit a short feature request on [the Issues page][issues], and we will\n@@ -105,3 +107,23 @@ figure something out.\n [architecture]: https://boltons.readthedocs.org/en/latest/architecture.html\n [issues]: https://github.com/mahmoud/boltons/issues\n [prs]: https://github.com/mahmoud/boltons/pulls\n+\n+## Development\n+\n+Install [uv](https://docs.astral.sh/uv/), then set up a dev environment:\n+\n+```bash\n+uv venv && uv pip install -e .\n+```\n+\n+Run the test suite (includes doctests):\n+\n+```bash\n+uvx --with tox-uv tox -e py314\n+```\n+\n+Run all environments in parallel:\n+\n+```bash\n+uvx --with tox-uv tox -p auto\n+```"
+        },
+        {
+          "filename": "boltons/__init__.py",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 0,
+          "patch": "@@ -0,0 +1 @@\n+__version__ = '25.0.1dev'\n\\ No newline at end of file"
+        },
+        {
+          "filename": "docs/conf.py",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 5,
+          "patch": "@@ -14,7 +14,6 @@\n import os\n import sys\n import sphinx\n-from pprint import pprint\n \n # If extensions (or modules to document with autodoc) are in another directory,\n # add these directories to sys.path here. If the directory is relative to the\n@@ -25,8 +24,6 @@\n sys.path.insert(0, PROJECT_PATH)\n sys.path.insert(0, PACKAGE_PATH)\n \n-pprint(os.environ)\n-\n \n def get_mod_stats():\n     # TODO: docstring percentage.\n@@ -99,8 +96,9 @@ def get_mod_stats():\n copyright = '2025, Mahmoud Hashemi'\n author = 'Mahmoud Hashemi'\n \n-version = '25.0'\n-release = '25.0.0'\n+import boltons\n+release = boltons.__version__\n+version = '.'.join(release.split('.')[:2])\n \n if os.name != 'nt':\n     today_fmt = '%B %d, %Y'"
+        },
+        {
+          "filename": "pyproject.toml",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 18,
+          "patch": "@@ -1,6 +1,6 @@\n [project]\n name = \"boltons\"\n-version = \"25.0.1dev\"\n+dynamic = [\"version\"]\n description = \"When they're not builtins, they're boltons.\"\n readme = \"README.md\"\n authors = [{ name = \"Mahmoud Hashemi\", email = \"mahmoud@hatnote.com\" }]\n@@ -37,6 +37,13 @@ Homepage = \"https://github.com/mahmoud/boltons\"\n include = [\"doc/\", \"tests/\", \"CHANGELOG.md\", \"tox.ini\"]\n exclude = [\"doc/_build\"]\n \n+\n+[dependency-groups]\n+dev = [\n+    \"pytest>=7,<8; python_version < '3.8'\",\n+    \"pytest>=8; python_version >= '3.8'\",\n+]\n+\n [tool.pytest.ini_options]\n doctest_optionflags = [\n     \"ALLOW_UNICODE\",\n@@ -48,20 +55,3 @@ doctest_optionflags = [\n [build-system]\n requires = [\"flit_core >=3.2,<4\"]\n build-backend = \"flit_core.buildapi\"\n-\n-# A brief checklist for release:\n-# * tox\n-# * git commit (if applicable)\n-# * Bump pyproject.toml version off of -dev\n-# * git commit -a -m \"bump version for x.y.z release\"\n-# * rm -rf dist/*\n-# * flit build\n-# * flit publish\n-# * bump docs/conf.py version\n-# * git commit\n-# * git tag -a x.y.z -m \"brief summary\"\n-# * write CHANGELOG\n-# * git commit\n-# * bump pyproject.toml version onto n+1 dev\n-# * git commit\n-# * git push"
+        },
+        {
+          "filename": "requirements-test.txt",
+          "status": "removed",
+          "additions": 0,
+          "deletions": 5,
+          "patch": "@@ -1,5 +0,0 @@\n-coverage==7.2.7\n-pytest==7.4.4; python_version < \"3.8\"\n-pytest==8.3.4; python_version >= \"3.8\"\n-pytest-cov==4.1.0\n-tox==4.8.0"
+        },
+        {
+          "filename": "tox.ini",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 3,
+          "patch": "@@ -1,7 +1,8 @@\n [tox]\n envlist = py37,py38,py39,py310,py311,py312,py313,py314,pypy3\n+requires = tox-uv\n+\n [testenv]\n changedir = .tox\n-deps = -rrequirements-test.txt\n-commands = pytest --doctest-modules {envsitepackagesdir}/boltons {toxinidir}/tests {posargs}\n-\n+dependency_groups = dev\n+commands = pytest --doctest-modules {env_site_packages_dir}/boltons {tox_root}/tests {posargs}"
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": false,
+      "additions": 317,
+      "deletions": 51
+    },
+    {
+      "change_id": "pr_406",
+      "kind": "pull_request",
+      "number": 406,
+      "sha": "4aa77cddb5d06def130df6f09aefab4018fa487c",
+      "title": "Fix split_iter maxsplit=0 handling",
+      "body": "## Summary\n\nFix `split_iter(..., maxsplit=0)` so it yields the unsplit input values instead of wrapping the source iterable object itself.\n\nPreviously, the `maxsplit == 0` branch yielded `[src]`. For list inputs this produced an extra nested list, and for iterator inputs it returned the iterator object rather than its values.\n\n## Validation\n\n- Added a regression test covering both list and iterator inputs\n- Confirmed the new test failed before the fix with `[[[1, None, 2]]] != [[1, None, 2]]`\n- Ran `python -m pytest tests/test_iterutils.py::TestSplit::test_maxsplit_zero_returns_unsplit_values tests/test_iterutils.py -q` and confirmed 44 passed\n- Ran `python -m pytest -q` and confirmed 436 passed",
+      "merged_at": "2026-06-19T02:43:59Z",
+      "url": "https://github.com/mahmoud/boltons/pull/406",
+      "labels": [],
+      "files": [
+        {
+          "filename": "boltons/iterutils.py",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "patch": "@@ -158,7 +158,7 @@ def split_iter(src, sep=None, maxsplit=None):\n     if maxsplit is not None:\n         maxsplit = int(maxsplit)\n         if maxsplit == 0:\n-            yield [src]\n+            yield list(src)\n             return\n \n     if callable(sep):"
+        },
+        {
+          "filename": "tests/test_iterutils.py",
+          "status": "modified",
+          "additions": 9,
+          "deletions": 1,
+          "patch": "@@ -4,6 +4,7 @@\n \n from boltons.dictutils import OMD\n from boltons.iterutils import (first,\n+                               split,\n                                pairwise,\n                                pairwise_iter,\n                                windowed,\n@@ -24,6 +25,14 @@\n is_meaning_of_life = lambda x: x == 42\n \n \n+class TestSplit:\n+    def test_maxsplit_zero_returns_unsplit_values(self):\n+        values = [1, None, 2]\n+\n+        assert split(values, maxsplit=0) == [values]\n+        assert split(iter(values), maxsplit=0) == [values]\n+\n+\n class TestFirst:\n     def test_empty_iterables(self):\n         \"\"\"\n@@ -634,4 +643,3 @@ def test_partition_multiple():\n     assert positive == [2, 3]\n     assert negative == [-1, -2]\n     assert zero == [0]\n-"
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": true,
+      "additions": 10,
+      "deletions": 2
+    },
+    {
+      "change_id": "pr_407",
+      "kind": "pull_request",
+      "number": 407,
+      "sha": "25e8d6b18ecba58d358c8f46a5cea554f99bdfb2",
+      "title": "Match list insert before start in BarrelList",
+      "body": "## Summary\n\nMake `BarrelList.insert()` match built-in `list.insert()` when the insertion index is before the start of a multi-bucket `BarrelList`.\n\n`BarrelList` is documented as a `list` subtype with an identical API. Built-in lists clamp very negative insert indexes to the beginning, but `BarrelList` raised `IndexError` after it had been balanced into multiple internal lists.\n\n## Validation\n\n- Added a regression test for inserting with an index far below `-len(bl)` after balancing\n- Confirmed the new test failed before the fix with `IndexError`\n- Ran `python -m pytest tests/test_listutils.py::test_barrel_list_insert_before_start_matches_list tests/test_listutils.py -q` and confirmed 4 passed\n- Ran `python -m pytest -q` and confirmed 436 passed",
+      "merged_at": "2026-06-19T04:22:17Z",
+      "url": "https://github.com/mahmoud/boltons/pull/407",
+      "labels": [],
+      "files": [
+        {
+          "filename": "boltons/listutils.py",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "patch": "@@ -139,7 +139,7 @@ def insert(self, index, item):\n         else:\n             list_idx, rel_idx = self._translate_index(index)\n             if list_idx is None:\n-                raise IndexError()\n+                list_idx, rel_idx = 0, 0\n             self.lists[list_idx].insert(rel_idx, item)\n             self._balance_list(list_idx)\n         return"
+        },
+        {
+          "filename": "tests/test_listutils.py",
+          "status": "modified",
+          "additions": 11,
+          "deletions": 0,
+          "patch": "@@ -51,6 +51,17 @@ def test_barrel_list():\n     bl3[:20:2] = range(0, -10, -1)\n     assert bl3[6] == -3  # some truly tricky stepping/slicing works\n \n+\n+def test_barrel_list_insert_before_start_matches_list():\n+    bl = BarrelList(range(int(1e5)))\n+    bl._balance_list(0)\n+\n+    bl.insert(-int(1e9), 'start')\n+\n+    assert bl[0] == 'start'\n+    assert len(bl) == int(1e5) + 1\n+\n+\n def test_sort_barrel_list():\n     bl = BarrelList(reversed(range(100000)))\n     bl.pop(50000)"
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": true,
+      "additions": 12,
+      "deletions": 1
+    },
+    {
+      "change_id": "commit_fb464991b7",
+      "kind": "commit",
+      "number": null,
+      "sha": "fb464991b718ca7bfabc14555c2947f25e7c79c9",
+      "title": "boltons version 26.0.0",
+      "body": "",
+      "merged_at": "2026-06-19T06:04:47Z",
+      "url": "https://github.com/mahmoud/boltons/commit/fb464991b718ca7bfabc14555c2947f25e7c79c9",
+      "labels": [],
+      "files": [
+        {
+          "filename": "CHANGELOG.md",
+          "status": "modified",
+          "additions": 24,
+          "deletions": 0,
+          "patch": "@@ -5,6 +5,24 @@ for an average of one 33-commit release about every 9 weeks. Versions\n are named according to the [CalVer](https://calver.org) versioning\n scheme (`YY.MINOR.MICRO`).\n \n+## 26.0.0\n+\n+_(June 19, 2026)_\n+\n+- Added [`funcutils.once`][funcutils.once] decorator for one-time function execution\n+- Added [`strutils.human_readable_list`][strutils.human_readable_list] for formatting lists as human-readable strings\n+- Extended [`iterutils.partition`][iterutils.partition] to accept multiple predicates\n+- Added `cache` option to [`iterutils.remap`][iterutils.remap] and [`iterutils.research`][iterutils.research]\n+- Fixed [`iterutils.split`][iterutils.split] `maxsplit=0` wrapping source object instead of its values\n+- Fixed [`listutils.BarrelList`][listutils.BarrelList] `insert()` raising `IndexError` on large negative indices (now clamps like built-in `list`)\n+- Fixed [`listutils.BarrelList`][listutils.BarrelList] `sort()` with multiple internal lists\n+- Fixed [`dictutils.OrderedMultiDict`][dictutils.OrderedMultiDict] equality comparison against plain mappings\n+- Fixed [`strutils.bytes2human`][strutils.bytes2human] rollover at exact powers of 1024\n+- Fixed [`tbutils.ParsedException.from_string`][tbutils.ParsedException] `IndexError` on truncated tracebacks\n+- Fixed [`tableutils.Table.to_text`][tableutils.Table] column sizing\n+- Fixed [`strutils.html2text`][strutils.html2text] handling\n+- Added Python 3.14 support\n+\n ## 25.0.0\n \n _(February 2, 2025)_\n@@ -1090,6 +1108,7 @@ added in this release.\n [funcutils.total_ordering]: http://boltons.readthedocs.org/en/latest/funcutils.html#boltons.funcutils.total_ordering\n [funcutils.update_wrapper]: http://boltons.readthedocs.org/en/latest/funcutils.html#boltons.funcutils.update_wrapper\n [funcutils.wraps]: http://boltons.readthedocs.org/en/latest/funcutils.html#boltons.funcutils.wraps\n+[funcutils.once]: https://boltons.readthedocs.io/en/latest/funcutils.html#boltons.funcutils.once\n [gcutils.GCToggler]: http://boltons.readthedocs.org/en/latest/gcutils.html#boltons.gcutils.GCToggler\n [gcutils.get_all]: http://boltons.readthedocs.org/en/latest/gcutils.html#boltons.gcutils.get_all\n [gcutils.is_tracked]: http://boltons.readthedocs.org/en/latest/gcutils.html#boltons.gcutils.is_tracked\n@@ -1144,6 +1163,7 @@ added in this release.\n [iterutils.same]: http://boltons.readthedocs.org/en/latest/iterutils.html#boltons.iterutils.same\n [iterutils.remap]: http://boltons.readthedocs.org/en/latest/iterutils.html#boltons.iterutils.remap\n [iterutils.research]: http://boltons.readthedocs.org/en/latest/iterutils.html#boltons.iterutils.research\n+[iterutils.partition]: http://boltons.readthedocs.org/en/latest/iterutils.html#boltons.iterutils.partition\n [iterutils.soft_sorted]: http://boltons.readthedocs.org/en/latest/iterutils.html#boltons.iterutils.soft_sorted\n [iterutils.untyped_sorted]: http://boltons.readthedocs.org/en/latest/iterutils.html#boltons.iterutils.untyped_sorted\n [iterutils.split]: http://boltons.readthedocs.org/en/latest/iterutils.html#boltons.iterutils.split\n@@ -1154,6 +1174,7 @@ added in this release.\n [iterutils.unique]: http://boltons.readthedocs.org/en/latest/iterutils.html#boltons.iterutils.unique\n [iterutils.windowed_iter]: http://boltons.readthedocs.org/en/latest/iterutils.html#boltons.iterutils.windowed_iter\n [iterutils.xfrange]: http://boltons.readthedocs.org/en/latest/iterutils.html#boltons.iterutils.xfrange\n+[listutils.BarrelList]: http://boltons.readthedocs.org/en/latest/listutils.html#boltons.listutils.BarrelList\n [jsonutils.JSONLIterator]: http://boltons.readthedocs.org/en/latest/jsonutils.html#boltons.jsonutils.JSONLIterator\n [mathutils.Bits]: http://boltons.readthedocs.org/en/latest/mathutils.html#boltons.mathutils.Bits\n [mathutils.ceil]: http://boltons.readthedocs.org/en/latest/mathutils.html#boltons.mathutils.ceil\n@@ -1179,13 +1200,15 @@ added in this release.\n [strutils]: http://boltons.readthedocs.org/en/latest/strutils.html\n [strutils.HTMLTextExtractor]: http://boltons.readthedocs.org/en/latest/strutils.html#boltons.strutils.HTMLTextExtractor\n [strutils.a10n]: http://boltons.readthedocs.org/en/latest/strutils.html#boltons.strutils.a10n\n+[strutils.bytes2human]: http://boltons.readthedocs.org/en/latest/strutils.html#boltons.strutils.bytes2human\n [strutils.args2cmd]: http://boltons.readthedocs.org/en/latest/strutils.html#boltons.strutils.args2cmd\n [strutils.args2sh]: http://boltons.readthedocs.org/en/latest/strutils.html#boltons.strutils.args2sh\n [strutils.escape_shell_args]: http://boltons.readthedocs.org/en/latest/strutils.html#boltons.strutils.escape_shell_args\n [strutils.find_hashtags]: http://boltons.readthedocs.org/en/latest/strutils.html#boltons.strutils.find_hashtags\n [strutils.gzip_bytes]: http://boltons.readthedocs.org/en/latest/strutils.html#boltons.strutils.gzip_bytes\n [strutils.gunzip_bytes]: http://boltons.readthedocs.org/en/latest/strutils.html#boltons.strutils.gunzip_bytes\n [strutils.html2text]: http://boltons.readthedocs.org/en/latest/strutils.html#boltons.strutils.html2text\n+[strutils.human_readable_list]: http://boltons.readthedocs.org/en/latest/strutils.html#boltons.strutils.human_readable_list\n [strutils.indent]: http://boltons.readthedocs.org/en/latest/strutils.html#boltons.strutils.indent\n [strutils.iter_splitlines]: http://boltons.readthedocs.org/en/latest/strutils.html#boltons.strutils.iter_splitlines\n [strutils.ordinalize]: http://boltons.readthedocs.org/en/latest/strutils.html#boltons.strutils.ordinalize\n@@ -1198,6 +1221,7 @@ added in this release.\n [strutils.int_list_to_int_tuples]: http://boltons.readthedocs.org/en/latest/strutils.html#boltons.strutils.int_list_to_int_tuples\n [strutils.slugify]: http://boltons.readthedocs.org/en/latest/strutils.html#boltons.strutils.slugify\n [strutils.strip_ansi]: http://boltons.readthedocs.org/en/latest/strutils.html#boltons.strutils.strip_ansi\n+[strutils.unwrap_text]: http://boltons.readthedocs.org/en/latest/strutils.html#boltons.strutils.unwrap_text\n [tableutils]: http://boltons.readthedocs.org/en/latest/tableutils.html\n [tableutils.Table]: http://boltons.readthedocs.org/en/latest/tableutils.html#boltons.tableutils.Table\n [tbutils]: http://boltons.readthedocs.org/en/latest/tbutils.html"
+        },
+        {
+          "filename": "boltons/__init__.py",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "patch": "@@ -1 +1 @@\n-__version__ = '25.0.1dev'\n\\ No newline at end of file\n+__version__ = '26.0.0'\n\\ No newline at end of file"
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": false,
+      "additions": 25,
+      "deletions": 1
+    },
+    {
+      "change_id": "commit_609cabe932",
+      "kind": "commit",
+      "number": null,
+      "sha": "609cabe932a1ea1423b24568644945abb1b8bb84",
+      "title": "fix IndexedSet slicing after removals: keep iter_slice bounds in apparent index space (#423)",
+      "body": "Co-authored-by: Andrew Chen <48723787+chuenchen309@users.noreply.github.com>",
+      "merged_at": "2026-07-17T06:36:33Z",
+      "url": "https://github.com/mahmoud/boltons/commit/609cabe932a1ea1423b24568644945abb1b8bb84",
+      "labels": [],
+      "files": [
+        {
+          "filename": "boltons/setutils.py",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 4,
+          "patch": "@@ -392,10 +392,16 @@ def __ixor__(self, *others):\n     def iter_slice(self, start, stop, step=None):\n         \"iterate over a slice of the set\"\n         iterable = self\n-        if start is not None:\n-            start = self._get_real_index(start)\n-        if stop is not None:\n-            stop = self._get_real_index(stop)\n+        # start/stop are apparent (dead-slot-free) indices, the same space\n+        # islice consumes; mapping them through _get_real_index() (item_list\n+        # space) over-counted by the dead slots before each bound. Only\n+        # negatives need normalizing, as islice rejects them.\n+        # NB: a negative step slices the reversed stream with forward bounds\n+        # (x[2:4:-1] == reversed(x)[2:4]), behavior since 2013.\n+        if start is not None and start < 0:\n+            start = max(len(self) + start, 0)\n+        if stop is not None and stop < 0:\n+            stop = max(len(self) + stop, 0)\n         if step is not None and step < 0:\n             step = -step\n             iterable = reversed(self)"
+        },
+        {
+          "filename": "tests/test_setutils.py",
+          "status": "modified",
+          "additions": 34,
+          "deletions": 0,
+          "patch": "@@ -203,3 +203,37 @@ def test_iset_index_method():\n         if i % 3:\n             index = indexed_list.index(i)\n             assert i == indexed_list.pop(index)\n+\n+\n+def test_iset_slice_after_removal():\n+    # PR #423: slice bounds were mapped into item_list space while islice\n+    # consumed the apparent (dead-slot-free) stream, so any removal made\n+    # slices over-count.\n+    x = IndexedSet(range(10))\n+    x.pop(2)  # leaves [0, 1, 3, 4, 5, 6, 7, 8, 9] with a dead slot\n+    assert list(x[1:4]) == [1, 3, 4]\n+    assert list(x[-3:]) == [7, 8, 9]\n+    assert list(x[2:-1]) == [3, 4, 5, 6, 7, 8]\n+    assert isinstance(x[1:4], IndexedSet)\n+\n+\n+def test_iset_slice_agreement():\n+    # Slicing must not depend on dead slots: a set with removals must slice\n+    # identically to a freshly-built set with the same contents (all steps,\n+    # including the reversed-window negative-step semantics), and positive\n+    # steps must match list slicing exactly.\n+    bounds = (None, -12, -9, -5, -1, 0, 1, 4, 8, 9, 12)\n+    steps = (None, 1, 2, 3, -1, -2, -3)\n+    for pops in ([], [2], [0, 1, 2], [7, 8, 9], [0, 3, 6, 9], [1, 2, 5, 6]):\n+        iset = IndexedSet(range(10))\n+        for p in pops:\n+            iset.discard(p)\n+        fresh = IndexedSet(iset)  # same contents, no dead slots\n+        ref = list(iset)\n+        for start in bounds:\n+            for stop in bounds:\n+                for step in steps:\n+                    s = slice(start, stop, step)\n+                    assert list(iset[s]) == list(fresh[s]), (pops, s)\n+                    if step is None or step > 0:\n+                        assert list(iset[s]) == ref[s], (pops, s)"
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": true,
+      "additions": 44,
+      "deletions": 4
+    },
+    {
+      "change_id": "pr_424",
+      "kind": "pull_request",
+      "number": 424,
+      "sha": "d0a284fc7ef1aebceb54798600d73be4eeb76ed8",
+      "title": "Fix IndexedSet slicing after removals and out-of-range negative indexing",
+      "body": "## Summary\n\nFixes two related bugs in `IndexedSet`:\n\n1. **Slicing after removals returns wrong items** (#423): `iter_slice` mapped start/stop through `_get_real_index()` (item_list space) but then fed them to `islice` over `__iter__` (apparent/dead-slot-free space), so any prior removal caused slices to over-count by the number of dead slots before each bound.\n\n2. **Out-of-range negative scalar indices wrap silently**: `__getitem__` normalized negative indices before passing them to `_get_real_index`, which normalized them *again*, so e.g. `x[-10]` on a 9-element set quietly returned `x[-1]` instead of raising `IndexError`, and `pop(-15)` silently removed the wrong element.\n\n## Changes\n\n### Commit 1: slicing fix (adopts #423's approach)\n- **`iter_slice`**: Removed the two `_get_real_index()` calls. Bounds now stay in apparent index space (the space `islice` consumes). Only negatives need explicit normalization since `islice` rejects them. Negative-step reversed-window semantics (`x[2:4:-1] == reversed(x)[2:4]`, in place since 2013) are preserved.\n- **Tests**: `test_iset_slice_after_removal` (direct repro from #423) + `test_iset_slice_agreement` (fuzz: 6 removal patterns × 11×11 bounds × 7 steps, verified against both a fresh-built `IndexedSet` and `list` slicing).\n\n### Commit 2: scalar-index bounds check\n- **`_get_real_index`**: Added bounds check after negative normalization → raises `IndexError` for out-of-range indices.\n- **`__getitem__` scalar path**: Removed the redundant pre-normalization (the wraparound cause) and the now-dead `try/except` re-raise.\n- **Tests**: `test_iset_scalar_index_bounds` + `test_iset_scalar_index_multiple_dead_intervals` (5 dead ranges, interval walk).\n\n## Verification\n- All 9 tests pass (`pytest tests/test_setutils.py`)\n- Doctests pass (`pytest --doctest-modules boltons/setutils.py`)\n- Existing reversed-window pin (line 21: `x[2:4:-1] == IndexedSet([8, 7])`) untouched and green\n\nCo-authored-by: Andrew Chen <48723787+chuenchen309@users.noreply.github.com> (slicing fix adopted from #423)",
+      "merged_at": "2026-07-17T06:36:33Z",
+      "url": "https://github.com/mahmoud/boltons/pull/424",
+      "labels": [],
+      "files": [
+        {
+          "filename": "boltons/setutils.py",
+          "status": "modified",
+          "additions": 13,
+          "deletions": 11,
+          "patch": "@@ -158,6 +158,8 @@ def _cull(self):\n     def _get_real_index(self, index):\n         if index < 0:\n             index += len(self)\n+        if index < 0 or index >= len(self):\n+            raise IndexError('IndexedSet index out of range')\n         if not self.dead_indices:\n             return index\n         real_index = index\n@@ -392,10 +394,16 @@ def __ixor__(self, *others):\n     def iter_slice(self, start, stop, step=None):\n         \"iterate over a slice of the set\"\n         iterable = self\n-        if start is not None:\n-            start = self._get_real_index(start)\n-        if stop is not None:\n-            stop = self._get_real_index(stop)\n+        # start/stop are apparent (dead-slot-free) indices, the same space\n+        # islice consumes; mapping them through _get_real_index() (item_list\n+        # space) over-counted by the dead slots before each bound. Only\n+        # negatives need normalizing, as islice rejects them.\n+        # NB: a negative step slices the reversed stream with forward bounds\n+        # (x[2:4:-1] == reversed(x)[2:4]), behavior since 2013.\n+        if start is not None and start < 0:\n+            start = max(len(self) + start, 0)\n+        if stop is not None and stop < 0:\n+            stop = max(len(self) + stop, 0)\n         if step is not None and step < 0:\n             step = -step\n             iterable = reversed(self)\n@@ -410,14 +418,8 @@ def __getitem__(self, index):\n         else:\n             iter_slice = self.iter_slice(start, stop, step)\n             return self.from_iterable(iter_slice)\n-        if index < 0:\n-            index += len(self)\n         real_index = self._get_real_index(index)\n-        try:\n-            ret = self.item_list[real_index]\n-        except IndexError:\n-            raise IndexError('IndexedSet index out of range')\n-        return ret\n+        return self.item_list[real_index]\n \n     def pop(self, index=None):\n         \"pop(index) -> remove the item at a given index (-1 by default)\""
+        },
+        {
+          "filename": "tests/test_setutils.py",
+          "status": "modified",
+          "additions": 68,
+          "deletions": 0,
+          "patch": "@@ -203,3 +203,71 @@ def test_iset_index_method():\n         if i % 3:\n             index = indexed_list.index(i)\n             assert i == indexed_list.pop(index)\n+\n+\n+def test_iset_slice_after_removal():\n+    # PR #423: slice bounds were mapped into item_list space while islice\n+    # consumed the apparent (dead-slot-free) stream, so any removal made\n+    # slices over-count.\n+    x = IndexedSet(range(10))\n+    x.pop(2)  # leaves [0, 1, 3, 4, 5, 6, 7, 8, 9] with a dead slot\n+    assert list(x[1:4]) == [1, 3, 4]\n+    assert list(x[-3:]) == [7, 8, 9]\n+    assert list(x[2:-1]) == [3, 4, 5, 6, 7, 8]\n+    assert isinstance(x[1:4], IndexedSet)\n+\n+\n+def test_iset_slice_agreement():\n+    # Slicing must not depend on dead slots: a set with removals must slice\n+    # identically to a freshly-built set with the same contents (all steps,\n+    # including the reversed-window negative-step semantics), and positive\n+    # steps must match list slicing exactly.\n+    bounds = (None, -12, -9, -5, -1, 0, 1, 4, 8, 9, 12)\n+    steps = (None, 1, 2, 3, -1, -2, -3)\n+    for pops in ([], [2], [0, 1, 2], [7, 8, 9], [0, 3, 6, 9], [1, 2, 5, 6]):\n+        iset = IndexedSet(range(10))\n+        for p in pops:\n+            iset.discard(p)\n+        fresh = IndexedSet(iset)  # same contents, no dead slots\n+        ref = list(iset)\n+        for start in bounds:\n+            for stop in bounds:\n+                for step in steps:\n+                    s = slice(start, stop, step)\n+                    assert list(iset[s]) == list(fresh[s]), (pops, s)\n+                    if step is None or step > 0:\n+                        assert list(iset[s]) == ref[s], (pops, s)\n+\n+\n+def test_iset_scalar_index_bounds():\n+    # Out-of-range negatives used to wrap silently: __getitem__ normalized\n+    # the index and _get_real_index normalized it AGAIN, so x[-10] on a\n+    # 9-element set returned x[-1], and pop(-15) removed a middle element.\n+    x = IndexedSet(range(10))\n+    x.pop(2)  # len 9, one dead slot\n+    assert x[-1] == 9\n+    assert x[-9] == 0\n+    with raises(IndexError):\n+        x[9]\n+    with raises(IndexError):\n+        x[-10]\n+    with raises(IndexError):\n+        x.pop(-15)\n+    assert 4 in x  # pop(-15) formerly silently removed 4\n+    with raises(IndexError):\n+        IndexedSet()[0]\n+\n+\n+def test_iset_scalar_index_multiple_dead_intervals():\n+    # exercise the _get_real_index interval walk across several dead ranges\n+    iset = IndexedSet(range(100))\n+    for p in (5, 20, 40, 60, 80):\n+        iset.discard(p)\n+    assert len(iset.dead_indices) == 5  # below compaction threshold (100/8)\n+    ref = list(iset)\n+    for i in list(range(-95, 95, 7)) + [0, -1, 94, -95]:\n+        assert iset[i] == ref[i]\n+    with raises(IndexError):\n+        iset[95]\n+    with raises(IndexError):\n+        iset[-96]"
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": true,
+      "additions": 81,
+      "deletions": 11
+    },
+    {
+      "change_id": "pr_408",
+      "kind": "pull_request",
+      "number": 408,
+      "sha": "f5cf8b5d32bf25752b44a11c9d87d2144c7b8919",
+      "title": "Remove listutils test import side effect",
+      "body": "## Summary\n\nRemove the top-level `test_barrel_list()` call from `tests/test_listutils.py`.\n\nPytest already collects and runs `test_barrel_list` normally. Calling it at module import time makes collection/import execute the heavy test once before pytest runs the collected test, which adds an unnecessary side effect and duplicates work.\n\n## Validation\n\n- Confirmed `python -m pytest --collect-only -q tests/test_listutils.py` still collects `test_splay_list`, `test_barrel_list`, and `test_sort_barrel_list`\n- Ran `python -m pytest tests/test_listutils.py -q` and confirmed 3 passed\n- Ran `python -m pytest -q` and confirmed 435 passed",
+      "merged_at": "2026-07-17T08:10:36Z",
+      "url": "https://github.com/mahmoud/boltons/pull/408",
+      "labels": [],
+      "files": [
+        {
+          "filename": "tests/test_listutils.py",
+          "status": "modified",
+          "additions": 0,
+          "deletions": 2,
+          "patch": "@@ -89,8 +89,6 @@ def test_sort_barrel_list():\n              21384, 40145, 26160, 46428, 30360]\n \n \n-test_barrel_list()\n-\n if __name__ == '__main__':\n     _TUNE_SETUP = \"\"\"\\\n from boltons.listutils import BarrelList"
+        }
+      ],
+      "touches_source": false,
+      "touches_tests": true,
+      "additions": 0,
+      "deletions": 2
+    },
+    {
+      "change_id": "pr_409",
+      "kind": "pull_request",
+      "number": 409,
+      "sha": "bba729bf4539afc993a6410bdf8074b28707004a",
+      "title": "Speed up MultiReplace match lookup",
+      "body": "## Summary\n\nUse Match.lastgroup in MultiReplace._get_value() instead of building and scanning match.groupdict() for every replacement match.\n\nMultiReplace compiles each replacement as a named group. The regex engine already exposes the matched group name through match.lastgroup, which avoids allocating a full group dict and scanning all groups per match.\n\n## Benchmark\n\nBenchmark script: 200 replacement patterns, 4,000 matches, mr.sub(text) repeated 20 times per sample.\n\n- Before: best 4.975187s\n- After: best 2.919870s\n- Improvement: 1.70x faster / 41.3% lower best time\n\n## Validation\n\n- python -m pytest tests/test_strutils.py -q (17 passed)\n- python -m pytest -q (435 passed)",
+      "merged_at": "2026-07-17T08:10:57Z",
+      "url": "https://github.com/mahmoud/boltons/pull/409",
+      "labels": [],
+      "files": [
+        {
+          "filename": "boltons/strutils.py",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 3,
+          "patch": "@@ -1214,9 +1214,7 @@ def __init__(self, sub_map, **kwargs):\n \n     def _get_value(self, match):\n         \"\"\"Given a match object find replacement value.\"\"\"\n-        group_dict = match.groupdict()\n-        key = [x for x in group_dict if group_dict[x]][0]\n-        return self.group_map[key]\n+        return self.group_map[match.lastgroup]\n \n     def sub(self, text):\n         \"\"\""
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": false,
+      "additions": 1,
+      "deletions": 3
+    },
+    {
+      "change_id": "pr_410",
+      "kind": "pull_request",
+      "number": 410,
+      "sha": "ebc7a8f776debfa33f0b380b57a444bca75a251b",
+      "title": "Fix copy.copy/copy.deepcopy collapsing OrderedMultiDict values to one",
+      "body": "## Steps\n\n`copy.copy` and `copy.deepcopy` silently collapse an `OrderedMultiDict`'s multiple values per key down to a single value:\n\n```python\nfrom boltons.dictutils import OrderedMultiDict as OMD\nimport copy\no = OMD([('a', 1), ('a', 2)])\ncopy.deepcopy(o)            # OMD([('a', 2)])  -- lost ('a', 1)\ncopy.deepcopy(o) == o       # False\ncopy.copy(o) == o           # False\n```\n\n`pickle` round-trips correctly; only the `copy` module is affected.\n\n## Cause\n\n`OrderedMultiDict` subclasses `dict`, so the inherited `__reduce_ex__` emits a 5-tuple whose `dictitems` element is an iterator over the *underlying* `{key: [values]}` dict. In `copy._reconstruct`, after `__setstate__` has already rebuilt the full multidict, that `dictitems` iterator is replayed via `__setitem__` (`y['a'] = [1, 2]`), which wipes the internal linked list and replaces each key's values with a single value.\n\n`__getstate__`/`__setstate__` already round-trip the complete multi-value state — which is why `pickle` (different setitems/setstate ordering) was unaffected — so the `dictitems` element is both redundant and actively harmful here.\n\n## Fix\n\nAdd `__reduce__` returning a plain `(self.__class__, (), self.__getstate__())` tuple, omitting `dictitems`. Reconstruction now goes purely through `__setstate__`.\n\n`copy.copy`, `copy.deepcopy`, and `pickle` (protocols 0–5) now all preserve every value; deepcopy independence is kept (mutating a copied value doesn't affect the original) and shallow copy still shares. Added a regression test (`test_omd_copy_module`); full suite passes (438).\n\n## Notes\n\nFound by fuzzing the copy/pickle round-trip. This pull request was prepared with the assistance of AI, under my direction and review.\n",
+      "merged_at": "2026-07-17T08:11:07Z",
+      "url": "https://github.com/mahmoud/boltons/pull/410",
+      "labels": [],
+      "files": [
+        {
+          "filename": "boltons/dictutils.py",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 0,
+          "patch": "@@ -180,6 +180,14 @@ def __setstate__(self, state):\n         self.clear()\n         self.update_extend(state)\n \n+    def __reduce__(self):\n+        # The default dict-subclass reduce includes a dictitems iterator\n+        # whose entries are reapplied via __setitem__ after __setstate__,\n+        # collapsing each key's multiple values down to a single value.\n+        # __getstate__/__setstate__ already round-trip the full (multi) state,\n+        # so omit dictitems by returning a plain (callable, args, state) tuple.\n+        return (self.__class__, (), self.__getstate__())\n+\n     def _clear_ll(self):\n         try:\n             _map = self._map"
+        },
+        {
+          "filename": "tests/test_dictutils.py",
+          "status": "modified",
+          "additions": 24,
+          "deletions": 1,
+          "patch": "@@ -96,11 +96,34 @@ def test_omd_pickle():\n \n     nonempty = OMD([('a', 1), ('b', 2), ('b', 3)])\n \n-    roundtripped = pickle.loads(pickle.dumps(nonempty)) \n+    roundtripped = pickle.loads(pickle.dumps(nonempty))\n     assert roundtripped == nonempty\n     assert roundtripped.getlist('b') == [2, 3]\n \n \n+def test_omd_copy_module():\n+    # copy.copy / copy.deepcopy must preserve multiple values per key. The\n+    # inherited dict __reduce_ex__ used to reapply a dictitems iterator after\n+    # __setstate__, collapsing each key down to a single value.\n+    import copy\n+\n+    omd = OMD([('a', 1), ('a', 2), ('b', 3)])\n+\n+    shallow = copy.copy(omd)\n+    assert shallow == omd\n+    assert shallow.getlist('a') == [1, 2]\n+\n+    deep = copy.deepcopy(omd)\n+    assert deep == omd\n+    assert deep.getlist('a') == [1, 2]\n+\n+    # deepcopy must not share mutable values with the original\n+    nested = OMD([('x', [1]), ('x', [2])])\n+    nested_copy = copy.deepcopy(nested)\n+    nested_copy.getlist('x')[0].append(99)\n+    assert nested.getlist('x') == [[1], [2]]\n+\n+\n \n def test_clear():\n     for itemset in _ITEMSETS:"
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": true,
+      "additions": 32,
+      "deletions": 1
+    },
+    {
+      "change_id": "pr_416",
+      "kind": "pull_request",
+      "number": 416,
+      "sha": "55dfe5077bcb5fa76611b5f2a557ea6c442ad87c",
+      "title": "fix(fileutils): accept os.PathLike in AtomicSaver",
+      "body": "`AtomicSaver.__init__` assigned `dest_path` directly to `self.dest_path` and later concatenated it as a string (`dest_path + '.part'`), which raises `TypeError` when a `pathlib.Path` is passed.\n\n`iter_find_files` called `.split()` on the `directory` argument, which also fails for `pathlib.Path`.\n\n**Changes:**\n- `AtomicSaver.__init__`: convert `dest_path` via `os.fspath()` at the top of the method, and use `self.dest_path` (the already-converted str) when building the `.part` path\n- `iter_find_files`: convert `directory` via `os.fspath()` before calling `.split()`\n- Add `test_atomicsaver_pathlike` and `test_iter_find_files_pathlike` to the test suite\n\nCloses #383",
+      "merged_at": "2026-07-17T08:11:19Z",
+      "url": "https://github.com/mahmoud/boltons/pull/416",
+      "labels": [],
+      "files": [
+        {
+          "filename": "boltons/fileutils.py",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 2,
+          "patch": "@@ -386,7 +386,7 @@ class AtomicSaver:\n \n     # TODO: option to abort if target file modify date has changed since start?\n     def __init__(self, dest_path, **kwargs):\n-        self.dest_path = dest_path\n+        self.dest_path = os.fspath(dest_path)\n         self.overwrite = kwargs.pop('overwrite', True)\n         self.file_perms = kwargs.pop('file_perms', None)\n         self.overwrite_part = kwargs.pop('overwrite_part', False)\n@@ -400,7 +400,7 @@ def __init__(self, dest_path, **kwargs):\n         self.dest_path = os.path.abspath(self.dest_path)\n         self.dest_dir = os.path.dirname(self.dest_path)\n         if not self.part_filename:\n-            self.part_path = dest_path + '.part'\n+            self.part_path = self.dest_path + '.part'\n         else:\n             self.part_path = os.path.join(self.dest_dir, self.part_filename)\n         self.mode = 'w+' if self.text_mode else 'w+b'\n@@ -530,6 +530,7 @@ def iter_find_files(directory, patterns, ignored=None, include_dirs=False, max_d\n     elif isinstance(ignored, str):\n         ignored = [ignored]\n     ign_re = re.compile('|'.join([fnmatch.translate(p) for p in ignored]))\n+    directory = os.fspath(directory)\n     start_depth = len(directory.split(os.path.sep))\n     for root, dirs, files in os.walk(directory):\n         if max_depth is not None and (len(root.split(os.path.sep)) - start_depth) > max_depth:"
+        },
+        {
+          "filename": "tests/test_fileutils.py",
+          "status": "modified",
+          "additions": 15,
+          "deletions": 2,
+          "patch": "@@ -1,6 +1,5 @@\n import os.path\n-\n-\n+import pathlib\n \n \n \n@@ -30,6 +29,20 @@ def test_fileperms():\n     assert int(FilePerms()) == 0\n \n \n+def test_atomicsaver_pathlike(tmp_path):\n+    dest = tmp_path / 'output.bin'\n+    with fileutils.AtomicSaver(dest) as f:\n+        f.write(b'pathlike works')\n+    assert dest.read_bytes() == b'pathlike works'\n+\n+\n+def test_iter_find_files_pathlike():\n+    boltons_path = pathlib.Path(BOLTONS_PATH)\n+    results = list(iter_find_files(boltons_path, patterns=['*.py']))\n+    basenames = [os.path.basename(p) for p in results]\n+    assert 'fileutils.py' in basenames\n+\n+\n def test_iter_find_files():\n     def _to_baseless_list(paths):\n         return [removeprefix(p, BOLTONS_PATH).lstrip(os.path.sep) for p in paths]"
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": true,
+      "additions": 18,
+      "deletions": 4
+    },
+    {
+      "change_id": "pr_418",
+      "kind": "pull_request",
+      "number": 418,
+      "sha": "1e61524a798ea73632029a013a7686036d5c126f",
+      "title": "fix(strutils): stop singularize() mangling words ending in 'ss'",
+      "body": "## Summary\n\n`strutils.singularize()` corrupts words that are already singular and end in a double `s` (`glass`, `boss`, `class`, `kiss`, `address`, `business`, ...), returning `glas`, `bos`, `clas`, `kis`, `addres`, `busines`.\n\n```python\n>>> from boltons.strutils import singularize\n>>> singularize('glass')\n'glas'      # expected 'glass'\n>>> singularize('boss')\n'bos'       # expected 'boss'\n>>> singularize('address')\n'addres'    # expected 'address'\n```\n\n## Root cause\n\n`singularize()` ends with a catch-all that strips the final character from any word ending in `s` that didn't match the `-ies` / `-ses` branches:\n\n```python\nelif word.endswith('es') and word[-3] == 's':\n    singular = word[:-2]\nelse:\n    singular = word[:-1]      # <-- 'glass' -> 'glas'\n```\n\nNo English plural ends in `ss`. The plural of these words ends in `sses` (`glass` -> `glasses`), which is **already** handled correctly by the preceding `word.endswith('es') and word[-3] == 's'` branch. Only words that are *already singular* and end in `ss` fall through to the blind `word[:-1]`.\n\nThis also violated the idempotency implied by the function's own docstring (`singularize('Glasses') == 'Glass'`): feeding that canonical singular back in produced `'Glas'`, and applying `singularize()` defensively to an already-singular word degraded it further (`'boss'` -> `'bos'` -> `'bo'`).\n\n## Fix\n\nAdd an `elif word.endswith('ss')` guard before the final fallback that returns the word unchanged (+7 lines). Because the `-sses` branch runs first, real plurals are unaffected.\n\n## Before / after\n\n| input | before | after |\n|-------|--------|-------|\n| `glass` | `glas` | `glass` |\n| `boss` | `bos` | `boss` |\n| `class` | `clas` | `class` |\n| `kiss` | `kis` | `kiss` |\n| `address` | `addres` | `address` |\n| `business` | `busines` | `business` |\n| `glasses` (plural) | `glass` | `glass` *(unchanged)* |\n| `bosses` (plural) | `boss` | `boss` *(unchanged)* |\n| `chances`, `cats`, `activities` | correct | correct *(unchanged)* |\n\nThe single-`s` ambiguous cases (e.g. `bus`) are intentionally left alone — they are indistinguishable from a regular plural (`cats` -> `cat`) without a dictionary, so this PR does not touch them.\n\n## Tests\n\nAdded `test_singularize_double_s` covering the double-`s` singular words, case preservation (`Glass`, `BOSS`), the still-correct `-sses` plurals, and idempotency.\n\nProven to guard the bug (regression test fails on unpatched source, passes with the fix):\n\n```\n# source fix stashed, test kept:\n>   assert singularize('glass') == 'glass'\nE   AssertionError: assert 'glas' == 'glass'\n1 failed\n\n# fix restored:\n1 passed\n```\n\nFull suite: **438 passed** (was 437). All 28 `strutils` docstring doctests pass. No linter is configured in CI; the change is pure stdlib control flow valid on every supported Python (3.7-3.14).\n",
+      "merged_at": "2026-07-17T08:11:30Z",
+      "url": "https://github.com/mahmoud/boltons/pull/418",
+      "labels": [],
+      "files": [
+        {
+          "filename": "boltons/strutils.py",
+          "status": "modified",
+          "additions": 7,
+          "deletions": 0,
+          "patch": "@@ -227,6 +227,13 @@ def singularize(word):\n         singular = word[:-3] + 'y'\n     elif word.endswith('es') and word[-3] == 's':\n         singular = word[:-2]\n+    elif word.endswith('ss'):\n+        # Words ending in a double 's' (glass, boss, kiss) are already\n+        # singular; their plurals end in 'sses' and are handled above. Do\n+        # not blindly strip the trailing 's', which would produce 'glas',\n+        # 'bos', 'kis' and break idempotency (singularize('Glasses') ==\n+        # 'Glass', but 'Glass' must stay 'Glass').\n+        return orig_word\n     else:\n         singular = word[:-1]\n     return _match_case(orig_word, singular)"
+        },
+        {
+          "filename": "tests/test_strutils.py",
+          "status": "modified",
+          "additions": 25,
+          "deletions": 0,
+          "patch": "@@ -274,3 +274,28 @@ def test_bytes2human():\n     assert b2h(-(1024 ** 2)) == '-1M'\n     # ndigits controls the fractional part.\n     assert b2h(1024, 2) == '1.00K'\n+\n+\n+def test_singularize_double_s():\n+    singularize = strutils.singularize\n+    # Words ending in a double 's' are already singular (their plurals end\n+    # in 'sses'), so singularize must not strip the trailing 's' and produce\n+    # 'glas'/'bos'/'kis'. Regression for the branch that blindly did word[:-1].\n+    assert singularize('glass') == 'glass'\n+    assert singularize('boss') == 'boss'\n+    assert singularize('class') == 'class'\n+    assert singularize('kiss') == 'kiss'\n+    assert singularize('address') == 'address'\n+    assert singularize('business') == 'business'\n+    # Case pattern is preserved, like the rest of singularize().\n+    assert singularize('Glass') == 'Glass'\n+    assert singularize('BOSS') == 'BOSS'\n+    # The real plurals of these words still singularize correctly (the 'sses'\n+    # -> 'ss' branch runs before the new guard, so nothing regresses).\n+    assert singularize('glasses') == 'glass'\n+    assert singularize('bosses') == 'boss'\n+    assert singularize('classes') == 'class'\n+    assert singularize('addresses') == 'address'\n+    # singularize() is now idempotent for these words: feeding its own output\n+    # back in is a no-op (previously 'Glasses' -> 'Glass' -> 'Glas').\n+    assert singularize(singularize('Glasses')) == 'Glass'"
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": true,
+      "additions": 32,
+      "deletions": 0
+    },
+    {
+      "change_id": "pr_427",
+      "kind": "pull_request",
+      "number": 427,
+      "sha": "4c24615af43092468feab118368fcc9ff91feca3",
+      "title": "chore(ci): upgrade actions to latest and pin to commit SHAs",
+      "body": "Upgrades all workflow actions to latest releases (fixes the Node 20 deprecation warning) and pins them to full commit SHAs with # vX.Y.Z comments. Supersedes #426, which pinned the old v4/v5 versions.",
+      "merged_at": "2026-07-17T18:02:28Z",
+      "url": "https://github.com/mahmoud/boltons/pull/427",
+      "labels": [],
+      "files": [
+        {
+          "filename": ".github/workflows/publish.yml",
+          "status": "modified",
+          "additions": 7,
+          "deletions": 7,
+          "patch": "@@ -9,9 +9,9 @@ jobs:\n   build:\n     runs-on: ubuntu-latest\n     steps:\n-      - uses: actions/checkout@v4\n-      - uses: astral-sh/setup-uv@v5\n-      - uses: actions/setup-python@v5\n+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0\n+      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2\n+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0\n         with:\n           python-version: \"3.12\"\n       - name: Validate version\n@@ -29,7 +29,7 @@ jobs:\n           fi\n       - name: Build package\n         run: uv build\n-      - uses: actions/upload-artifact@v4\n+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1\n         with:\n           name: dist\n           path: dist/\n@@ -43,17 +43,17 @@ jobs:\n     permissions:\n       id-token: write\n     steps:\n-      - uses: actions/download-artifact@v4\n+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1\n         with:\n           name: dist\n           path: dist/\n-      - uses: pypa/gh-action-pypi-publish@release/v1\n+      - uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0\n \n   verify:\n     needs: publish\n     runs-on: ubuntu-latest\n     steps:\n-      - uses: actions/setup-python@v5\n+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0\n         with:\n           python-version: \"3.12\"\n       - name: Wait for PyPI"
+        },
+        {
+          "filename": ".github/workflows/tests.yaml",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 3,
+          "patch": "@@ -30,9 +30,9 @@ jobs:\n           - { name: \"3.7\", python: \"3.7\", os: ubuntu-22.04, tox: py37 }\n           - { name: \"PyPy3\", python: \"pypy-3.9\", os: ubuntu-latest, tox: pypy3 }\n     steps:\n-      - uses: actions/checkout@v4\n-      - uses: astral-sh/setup-uv@v5\n-      - uses: actions/setup-python@v5\n+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0\n+      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2\n+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0\n         with:\n           python-version: ${{ matrix.python }}\n           allow-prereleases: true"
+        }
+      ],
+      "touches_source": false,
+      "touches_tests": false,
+      "additions": 10,
+      "deletions": 10
+    },
+    {
+      "change_id": "commit_1d52527175",
+      "kind": "commit",
+      "number": null,
+      "sha": "1d525271754ed7aea7f2347ed16ddbcedb1097a3",
+      "title": "boltons version 26.1.0",
+      "body": "",
+      "merged_at": "2026-07-17T18:32:50Z",
+      "url": "https://github.com/mahmoud/boltons/commit/1d525271754ed7aea7f2347ed16ddbcedb1097a3",
+      "labels": [],
+      "files": [
+        {
+          "filename": "CHANGELOG.md",
+          "status": "modified",
+          "additions": 11,
+          "deletions": 0,
+          "patch": "@@ -5,6 +5,17 @@ for an average of one 33-commit release about every 9 weeks. Versions\n are named according to the [CalVer](https://calver.org) versioning\n scheme (`YY.MINOR.MICRO`).\n \n+## 26.1.0\n+\n+_(July 17, 2026)_\n+\n+- Fixed [`strutils.singularize`][strutils.singularize] mangling words ending in 'ss'\n+- Fixed [`fileutils.AtomicSaver`][fileutils.AtomicSaver] to accept `os.PathLike`\n+- Fixed `copy.copy`/`copy.deepcopy` collapsing [`dictutils.OrderedMultiDict`][dictutils.OrderedMultiDict] values\n+- Sped up [`strutils.MultiReplace`][strutils.MultiReplace] match lookup\n+- Fixed [`setutils.IndexedSet`][setutils.IndexedSet] out-of-range negative indexing wrapping around\n+- Fixed [`setutils.IndexedSet`][setutils.IndexedSet] slicing after removals\n+\n ## 26.0.0\n \n _(June 19, 2026)_"
+        },
+        {
+          "filename": "boltons/__init__.py",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "patch": "@@ -1 +1 @@\n-__version__ = '26.0.1dev'\n\\ No newline at end of file\n+__version__ = '26.1.0'\n\\ No newline at end of file"
+        }
+      ],
+      "touches_source": true,
+      "touches_tests": false,
+      "additions": 12,
+      "deletions": 1
+    }
+  ]
+}

@@ -1,0 +1,194 @@
+{
+  "dataset_id": "cattrs_v2510_to_v2610",
+  "frozen_at": "2026-08-01",
+  "source": "https://github.com/python-attrs/cattrs",
+  "transport": "authenticated GitHub API tarball download",
+  "evidence_kind": "executable_behavioral_contract",
+  "starter_repo_digest": "d50e26c3b4582e41ea1ec98b02eb8a3e761d00b68909f470bd14c444ff89d21e",
+  "reference_repo_digest": "f41408460a046a3619533e81409b1bff78f2f352aaaf57458a6defaf3e301a26",
+  "hidden_suite_hash": "73d96420ffd4a95cbad0bead8847ce892309b5942ad6c7c33953121a5ea65397",
+  "evaluator_environment_hash": "e1af84e85d8591c4b59b449e12ce126c4c38452621368652a9f0c4cf81db5a47",
+  "qualification_hash": "e89860423d143b4951a4be2f55120f771a48c6edecc5733de056d9073ae24ad6",
+  "qualification_result_hash": "c76334d36b92f199ea52136114e5d2e7d349fd2dabcf49ffc1a2bf88c78029a2",
+  "result_hash": "c76334d36b92f199ea52136114e5d2e7d349fd2dabcf49ffc1a2bf88c78029a2",
+  "agent_filesystem_isolation_required": true,
+  "agent_filesystem_isolation_status": "required_not_verified_by_pack",
+  "contamination_status": "probes_defined_not_executed",
+  "manual_runtime_test_caveat": "The recorded starter and reference outcomes cover this Pack's own behavioral contracts. The upstream project's full test suite was not run and is not claimed by this receipt.",
+  "starter": {
+    "tag": "v25.1.0",
+    "commit": "9122f10a5cdbb7d1c2449e39fabbaf51b8cffe53",
+    "archive_sha256": "225a06ab21612773b810c86a21dc46cd929971cea733aa39c266a4f3cde8f066",
+    "frozen_files_with_public_smoke": 161,
+    "frozen_bytes": 1105984,
+    "repo_digest": "d50e26c3b4582e41ea1ec98b02eb8a3e761d00b68909f470bd14c444ff89d21e"
+  },
+  "reference": {
+    "tag": "v26.1.0",
+    "commit": "fd887b7b268d5e2b550beafe0cbde5e6f514646b",
+    "archive_sha256": "471da7889f5fe30c8a7595bdae5f7ce14a19debbf519cd70c41f545ed86365dd",
+    "frozen_files_with_public_smoke": 170,
+    "frozen_bytes": 1331743,
+    "repo_digest": "f41408460a046a3619533e81409b1bff78f2f352aaaf57458a6defaf3e301a26"
+  },
+  "github_archive": {
+    "changes_recorded": 37,
+    "path": "provenance/github"
+  },
+  "demands": {
+    "public_issues": 12,
+    "heldout_issues": 4,
+    "hidden_contracts": 16,
+    "distinct_upstream_changes": 15,
+    "target_public_issues": 12,
+    "target_heldout_issues": 4,
+    "target_hidden_contracts": 16
+  },
+  "qualification": {
+    "evidence_kind": "executable_behavioral_contract",
+    "hidden_suite_hash": "73d96420ffd4a95cbad0bead8847ce892309b5942ad6c7c33953121a5ea65397",
+    "evaluator_environment_hash": "e1af84e85d8591c4b59b449e12ce126c4c38452621368652a9f0c4cf81db5a47",
+    "plan_hash": "e89860423d143b4951a4be2f55120f771a48c6edecc5733de056d9073ae24ad6",
+    "qualification_hash": "e89860423d143b4951a4be2f55120f771a48c6edecc5733de056d9073ae24ad6",
+    "qualification_result_hash": "c76334d36b92f199ea52136114e5d2e7d349fd2dabcf49ffc1a2bf88c78029a2",
+    "result_hash": "c76334d36b92f199ea52136114e5d2e7d349fd2dabcf49ffc1a2bf88c78029a2",
+    "starter_passed": 0,
+    "starter_total": 16,
+    "reference_passed": 16,
+    "reference_total": 16,
+    "formal_ready": true
+  },
+  "authoring_report": {
+    "dataset_id": "cattrs_v2510_to_v2610",
+    "public_issues": 12,
+    "heldout_issues": 4,
+    "hidden_contracts": 16,
+    "target": {
+      "public": 12,
+      "heldout": 4,
+      "hidden": 16
+    },
+    "shortfall_reason": "",
+    "candidate_pool": {
+      "harvested_changes": 37,
+      "changes_passing_is_candidate": 24,
+      "authored_from": 15
+    },
+    "heldout_pairing": [
+      {
+        "heldout": "issue_deferred_nested_generic_structuring",
+        "same_family_public": "issue_deferred_generic_unstructuring",
+        "why": "Same capability (resolving deferred annotations for parametrized generics), opposite direction: the public demand covers unstructuring, the held-out one covers structuring, and upstream fixed them in two separate call sites."
+      },
+      {
+        "heldout": "issue_abstract_set_target_type",
+        "same_family_public": "issue_sequence_target_type",
+        "why": "Same capability (an abstract collection annotation must produce the immutable variant), different collection: sequences in the public demand, sets in the held-out one."
+      },
+      {
+        "heldout": "issue_diamond_inheritance_subclasses",
+        "same_family_public": "issue_generic_parent_tagged_union",
+        "why": "Same capability (walking a class hierarchy for the tagged subclass strategy), different degenerate shape: a generic parent in the public demand, a multiply-reachable leaf in the held-out one."
+      },
+      {
+        "heldout": "issue_annotated_override_mappings",
+        "same_family_public": "issue_annotated_override_attrs",
+        "why": "Same capability (per-field settings carried on the field annotation), different modelled shapes: attrs classes and dataclasses in the public demand, TypedDicts and dict-shaped NamedTuples in the held-out one; upstream implemented them in separate hook-factory modules."
+      }
+    ],
+    "rejected_candidates": [
+      {
+        "change_id": "pr_708",
+        "reason": "tomlkit preconf date handling. The evaluator environment has no tomlkit installed, so no contract can exercise cattrs.preconf.tomlkit at all."
+      },
+      {
+        "change_id": "pr_715",
+        "reason": "New cattrs.preconf.tomllib module. The demand would essentially be 'create a module and a factory under exactly this dotted name', so the contract would degrade into a naming check rather than a capability check; the writing side also needs tomli-w, which the evaluator environment does not have."
+      },
+      {
+        "change_id": "pr_714",
+        "reason": "configure_tagged_union with recursive type aliases. A real behavioral fix, but the window already yields two contracts in the include_subclasses / configure_tagged_union family (pr_683 public, pr_713 held-out); adding a third would concentrate the Pack on one subsystem. Kept as a surplus candidate beyond the 16-contract target."
+      },
+      {
+        "change_id": "pr_710",
+        "reason": "Aliases generate rename metadata in generated hooks. End-to-end un/structuring already produces the right keys on the starter; the only difference is the introspection metadata hanging off the generated hook, so a contract would bind to an internal metadata shape rather than to observable conversion behavior."
+      },
+      {
+        "change_id": "pr_705",
+        "reason": "Enum hook factories. Behaviorally equivalent to pr_702, which is already covered; the only genuinely new surface is the cattrs.enums module name, which would make the contract a naming check."
+      },
+      {
+        "change_id": "pr_668 (accept_ints_as_floats=False opt-out)",
+        "reason": "The opt-out half of pr_668. The default-on half is already a public demand; a separate contract could only assert that this specific keyword argument exists, which is a naming check."
+      },
+      {
+        "change_id": "pr_653",
+        "reason": "Enable Python 3.14 - CI matrix plus compatibility shims. No behavior change observable through the public API on the evaluator's interpreter."
+      },
+      {
+        "change_id": "pr_698",
+        "reason": "Drop Python 3.9 support - packaging metadata and version guards only."
+      },
+      {
+        "change_id": "pr_672",
+        "reason": "Dev dependency bump (lockfile plus a small compat tweak). Chore, no user-visible behavior change."
+      },
+      {
+        "change_id": "pr_671",
+        "reason": "Introduce a Justfile and switch CI to uv. Build tooling only."
+      },
+      {
+        "change_id": "pr_676",
+        "reason": "Coverage configuration update. Build tooling only."
+      },
+      {
+        "change_id": "pr_687",
+        "reason": "Split a flaky upstream test in two. Test-suite hygiene, no library change."
+      },
+      {
+        "change_id": "pr_703",
+        "reason": "Add codspeed benchmarking to CI. Infrastructure only."
+      },
+      {
+        "change_id": "pr_704",
+        "reason": "Add enum benchmarks. Benchmarks only, no library change."
+      },
+      {
+        "change_id": "pr_677",
+        "reason": "Docs fix: missing imports in a hook-factory example. Documentation only."
+      },
+      {
+        "change_id": "pr_697",
+        "reason": "Small docs fix. Documentation only."
+      },
+      {
+        "change_id": "pr_689",
+        "reason": "Add a funding field to FUNDING.yml. Repository metadata only."
+      },
+      {
+        "change_id": "commit_0bb472a951",
+        "reason": "Changelog tweak only."
+      },
+      {
+        "change_id": "commit_98940957f3",
+        "reason": "v25.1.1 release commit - changelog only."
+      },
+      {
+        "change_id": "commit_727aa894d4",
+        "reason": "v25.2.0 release commit - changelog only."
+      },
+      {
+        "change_id": "commit_f8663b3a67",
+        "reason": "v25.3.0 release commit - changelog and docs only."
+      },
+      {
+        "change_id": "commit_62f3afd240",
+        "reason": "Changelog correction only."
+      },
+      {
+        "change_id": "commit_fd887b7b26",
+        "reason": "v26.1.0 release commit - changelog and 'NEXT' to version-number substitutions in docstrings and docs."
+      }
+    ]
+  }
+}

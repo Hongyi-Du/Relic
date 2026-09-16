@@ -1,0 +1,23 @@
+{
+  "issue_id": "issue_missing_handler_error_payload",
+  "title": "The \"no handler registered\" error cannot be pickled",
+  "issue_type": "bug",
+  "severity": "medium",
+  "component": "error_reporting",
+  "created_tick": 60,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#666",
+  "source_url": "https://github.com/python-attrs/cattrs/pull/666",
+  "created_at": "2025-07-02T21:13:10Z",
+  "labels": [],
+  "release": "v26.1.0",
+  "title_original": "(errors) Correctly set `BaseException.args` and make them pickable",
+  "text_original": "BaseExceptions subclasses need all parameters of their __init__ methods to be passed to BaseExceptions.__init__, see BaseException.args for that. This MR will correct the super().__init__ call. This will also make the Exceptions pickable, which I need for a cache and for multiprocessing.",
+  "text_rewritten": "We run conversion inside a worker pool and cache failures, so every exception we raise has to survive being sent between processes. The \"no handler registered\" error does not: unpickling it dies with a TypeError saying a required positional argument is missing, because the error only ever recorded its message and dropped the type it was raised about. Any exception is supposed to make the values it was constructed from available so the standard rebuild path can reconstruct it. Please make this error carry all of them, so it can be pickled, unpickled, re-raised and caught with the type it was raised about still attached, and its printed text unchanged.",
+  "body": "We run conversion inside a worker pool and cache failures, so every exception we raise has to survive being sent between processes. The \"no handler registered\" error does not: unpickling it dies with a TypeError saying a required positional argument is missing, because the error only ever recorded its message and dropped the type it was raised about. Any exception is supposed to make the values it was constructed from available so the standard rebuild path can reconstruct it. Please make this error carry all of them, so it can be pickled, unpickled, re-raised and caught with the type it was raised about still attached, and its printed text unchanged.",
+  "acceptance_hint": "The \"no handler registered\" error exposes every value it was constructed from, survives a pickle round trip with its type attribute intact, stays raisable and catchable afterwards, and still prints only its message.",
+  "linked_hidden_test_ids": [
+    "hidden_missing_handler_error_payload"
+  ]
+}

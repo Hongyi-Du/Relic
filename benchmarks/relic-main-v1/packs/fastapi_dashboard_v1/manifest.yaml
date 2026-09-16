@@ -1,0 +1,108 @@
+schema_version: org_env_oss_time_machine_pack_v2
+project_id: fastapi_dashboard_v1
+source_project_name: fastapi-auth-visualization
+anonymized_product_name: app
+company_name: app
+product_summary: app, built from the vendor brief for fastapi-auth-visualization. The starter carries
+  the package structure and signatures with every body removed; the reference implementation, held-out
+  demands and hidden contracts stay evaluator-only.
+license: vendor_sample
+starter_ref: skeleton
+reference_ref: 1.0.0
+reference_is_release: true
+frozen_scope: greenfield_skeleton_plus_reference_solution
+runtime_python: '>=3.11'
+runtime_dependencies:
+- fastapi
+- jose
+- passlib
+- pydantic
+- pydantic_settings
+- sqlalchemy
+- starlette
+test_strategy:
+  runner: pytest
+  kind: executable_behavioral_contract
+  rationale: Every contract runs the package through the public surface the brief specifies. The starter
+    exposes that surface already, so a contract fails on behaviour rather than on an import error, and
+    any implementation that behaves correctly earns it.
+evidence_kind: executable_behavioral_contract
+starter_repo_digest: 932f9255641a623fb2739c6896a7ae42b38e04fd65a755e09556b4f40c8a5299
+reference_repo_digest: 94a602a3ee166a9b45c64981487923a9d905324f47ccb3e6ff79244a7da30099
+agent_filesystem_isolation_required: true
+agent_visible:
+  starter_repo: starter_repo
+  public_issues: issues/public
+private_evaluator_only:
+  reference_repo: reference_repo
+  hidden_tests: tests/hidden
+  heldout_issues: issues/heldout
+entrypoints:
+  cli:
+    command: &id001
+    - python
+    - -m
+    - pytest
+    - tests/public
+    - -q
+    - --confcutdir=tests/public
+  smoke:
+    command: *id001
+public_tests:
+  command: *id001
+  dependencies: &id002
+  - fastapi==0.115.0
+  - uvicorn[standard]==0.30.6
+  - pydantic==2.9.2
+  - pydantic-settings==2.5.2
+  - email-validator==2.2.0
+  - SQLAlchemy==2.0.35
+  - psycopg2-binary==2.9.9
+  - passlib[bcrypt]==1.7.4
+  - bcrypt==4.0.1
+  - python-jose[cryptography]==3.3.0
+  - python-multipart==0.0.12
+  - pytest==8.3.3
+  - pytest-asyncio==0.24.0
+  - httpx==0.27.2
+hidden_tests:
+  command:
+  - python
+  - -m
+  - pytest
+  - tests/hidden
+  - -q
+  - --confcutdir=tests/hidden
+  dependencies: *id002
+issue_stream:
+  schedule: by_tick
+  first_tick: 12
+  interval_ticks: 12
+evaluation:
+  primary_metrics:
+  - hidden_test_pass_rate
+  - causal_fix_rate
+  - issue_fix_rate
+  - regression_pass_rate
+  secondary_metrics:
+  - public_test_pass_rate
+  - heldout_transfer_rate
+controls:
+  default: none
+component_map:
+  app_surface:
+  - app/__init__.py
+  # config carries get_settings, which deps.py calls while the module is being
+  # imported, so the package does not import until it is written and every
+  # merge waits behind test_package_imports. No issue named it, and an agent
+  # can only edit what some issue reaches, so the one piece of work that
+  # unblocks all the others was the one piece nobody could be asked to do.
+  # It belongs to the surface the brief describes, so it is reachable here.
+  - app/config.py
+  auth:
+  - app/db.py
+  - app/models.py
+  charts:
+  - app/routers/charts.py
+  roles:
+  - app/main.py

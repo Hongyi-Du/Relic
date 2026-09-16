@@ -1,0 +1,26 @@
+{
+  "issue_id": "issue_word_singularization",
+  "title": "Singularizing a word that ends in a double s chops off a letter",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "text_utilities",
+  "candidate_path_hints": [
+    "boltons/strutils.py"
+  ],
+  "created_tick": 144,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#418",
+  "source_url": "https://github.com/mahmoud/boltons/pull/418",
+  "created_at": "2026-07-17T08:11:30Z",
+  "labels": [],
+  "release": "26.1.0",
+  "title_original": "fix(strutils): stop singularize() mangling words ending in 'ss'",
+  "text_original": "## Summary\n\n`strutils.singularize()` corrupts words that are already singular and end in a double `s` (`glass`, `boss`, `class`, `kiss`, `address`, `business`, ...), returning `glas`, `bos`, `clas`, `kis`, `addres`, `busines`.\n\n```python\n>>> from boltons.strutils import singularize\n>>> singularize('glass')\n'glas'      # expected 'glass'\n>>> singularize('boss')\n'bos'       # expected 'boss'\n>>> singularize('address')\n'addres'    # expected 'address'\n```\n\n## Root cause\n\n`singularize()` ends with a catch-all that strips the final character from any word ending in `s` that didn't match the `-ies` / `-ses` branches:\n\n```python\nelif word.endswith('es') and word[-3] == 's':\n    singular = word[:-2]\nelse:\n    singular = word[:-1]      # <-- 'glass' -> 'glas'\n```\n\nNo English plural ends in `ss`. The plural of these words ends in `sses` (`glass` -> `glasses`), which is **already** handled correctly by the preceding `word.endswith('es') and word[-3] == 's'` branch. Only words that are *already singular* and end in `ss` fall through to the blind `word[:-1]`.\n\nThis also violated the idempotency implied by the function's own docstring (`singularize('Glasses') == 'Glass'`): feeding that canonical singular back in produced `'Glas'`, and applying `singularize()` defensively to an already-singular word degraded it further (`'boss'` -> `'bos'` -> `'bo'`).\n\n## Fix\n\nAdd an `elif word.endswith('ss')` guard before the final fallback that returns the word unchanged (+7 lines). Because the `-sses` branch runs first, real plurals are unaffected.\n\n## Before / after\n\n| input | before | after |\n|-------|--------|-------|\n| `glass` | `glas` | `glass` |\n| `boss` | `bos` | `boss` |\n| `class` | `clas` | `class` |\n| `kiss` | `kis` | `kiss` |\n| `address` | `addres` | `address` |\n| `business` | `busines` | `business` |\n| `glasses` (plural) | `glass` | `glass` *(unchanged)* |\n| `bosses` (plural) | `boss` | `boss` *(unchanged)* |\n| `chances`, `cats`, `activities` | correct | correct *(unchanged)* |\n\nThe single-`s` ambiguous cases (e.g. `bus`) are intentionally left alone — they are indistinguishable from a regular plural (`cats` -> `cat`) without a dictionary, so this PR does not touch them.\n\n## Tests\n\nAdded `test_singularize_double_s` covering the double-`s` singular words, case preservation (`Glass`, `BOSS`), the still-correct `-sses` plurals, and idempotency.\n\nProven to guard the bug (regression test fails on unpatched source, passes with the fix):\n\n```\n# source fix stashed, test kept:\n>   assert singularize('glass') == 'glass'\nE   AssertionError: assert 'glas' == 'glass'\n1 failed\n\n# fix restored:\n1 passed\n```\n\nFull suite: **438 passed** (was 437). All 28 `strutils` docstring doctests pass. No linter is configured in CI; the change is pure stdlib control flow valid on every supported Python (3.7-3.14).",
+  "text_rewritten": "The word-form helper mangles words that are already singular and happen to end in a doubled s: \"glass\" becomes \"glas\", \"boss\" becomes \"bos\", \"address\" becomes \"addres\", \"class\" becomes \"clas\". We normalize user-supplied labels through it, so the labels come out misspelled in the UI.\n\nIt also means the operation is not idempotent: running it over an already normalized label corrupts the label a second time. Words ending in a doubled s should come back unchanged with their casing preserved, while genuine plurals keep being reduced exactly as they are today.",
+  "body": "The word-form helper mangles words that are already singular and happen to end in a doubled s: \"glass\" becomes \"glas\", \"boss\" becomes \"bos\", \"address\" becomes \"addres\", \"class\" becomes \"clas\". We normalize user-supplied labels through it, so the labels come out misspelled in the UI.\n\nIt also means the operation is not idempotent: running it over an already normalized label corrupts the label a second time. Words ending in a doubled s should come back unchanged with their casing preserved, while genuine plurals keep being reduced exactly as they are today.",
+  "acceptance_hint": "singularize leaves words ending in a doubled 's' unchanged with their casing preserved and is idempotent, while regular plurals such as 'cats', 'parties' and 'classes' still reduce as before.",
+  "linked_hidden_test_ids": [
+    "hidden_word_singularization"
+  ]
+}

@@ -1,0 +1,312 @@
+{
+  "task": "mini-blobstore",
+  "steps": [
+    {
+      "step": "1-content-addressing",
+      "starter": {
+        "returncode": 1,
+        "scores": {
+          "correctness": 0.0,
+          "code_quality": 0.5,
+          "reasoning": 0.0,
+          "efficiency": 1.0,
+          "weighted_total": 0.25,
+          "release_pass": 0.0
+        },
+        "summary": {
+          "tests": 7,
+          "passed": 0,
+          "failed": 7
+        },
+        "stderr_tail": ""
+      },
+      "oracle": {
+        "returncode": 0,
+        "scores": {
+          "correctness": 1.0,
+          "code_quality": 1.0,
+          "reasoning": 1.0,
+          "efficiency": 1.0,
+          "weighted_total": 1.0,
+          "release_pass": 1.0
+        },
+        "summary": {
+          "tests": 7,
+          "passed": 7,
+          "failed": 0
+        },
+        "stderr_tail": ""
+      },
+      "passed": true
+    },
+    {
+      "step": "2-manifest-store",
+      "starter": {
+        "returncode": 1,
+        "scores": {
+          "correctness": 0.1429,
+          "code_quality": 0.75,
+          "reasoning": 1.0,
+          "efficiency": 1.0,
+          "weighted_total": 0.5215,
+          "release_pass": 0.0
+        },
+        "summary": {
+          "tests": 7,
+          "passed": 1,
+          "failed": 6
+        },
+        "stderr_tail": ""
+      },
+      "oracle": {
+        "returncode": 0,
+        "scores": {
+          "correctness": 1.0,
+          "code_quality": 1.0,
+          "reasoning": 1.0,
+          "efficiency": 1.0,
+          "weighted_total": 1.0,
+          "release_pass": 1.0
+        },
+        "summary": {
+          "tests": 7,
+          "passed": 7,
+          "failed": 0
+        },
+        "stderr_tail": ""
+      },
+      "passed": true
+    },
+    {
+      "step": "3-multipart-upload",
+      "starter": {
+        "returncode": 1,
+        "scores": {
+          "correctness": 0.1429,
+          "code_quality": 0.75,
+          "reasoning": 1.0,
+          "efficiency": 1.0,
+          "weighted_total": 0.5215,
+          "release_pass": 0.0
+        },
+        "summary": {
+          "tests": 7,
+          "passed": 1,
+          "failed": 6
+        },
+        "stderr_tail": ""
+      },
+      "oracle": {
+        "returncode": 0,
+        "scores": {
+          "correctness": 1.0,
+          "code_quality": 1.0,
+          "reasoning": 1.0,
+          "efficiency": 1.0,
+          "weighted_total": 1.0,
+          "release_pass": 1.0
+        },
+        "summary": {
+          "tests": 7,
+          "passed": 7,
+          "failed": 0
+        },
+        "stderr_tail": ""
+      },
+      "passed": true
+    },
+    {
+      "step": "4-replication-repair",
+      "starter": {
+        "returncode": 1,
+        "scores": {
+          "correctness": 0.1429,
+          "code_quality": 0.75,
+          "reasoning": 1.0,
+          "efficiency": 1.0,
+          "weighted_total": 0.5215,
+          "release_pass": 0.0
+        },
+        "summary": {
+          "tests": 7,
+          "passed": 1,
+          "failed": 6
+        },
+        "stderr_tail": ""
+      },
+      "oracle": {
+        "returncode": 0,
+        "scores": {
+          "correctness": 1.0,
+          "code_quality": 1.0,
+          "reasoning": 1.0,
+          "efficiency": 1.0,
+          "weighted_total": 1.0,
+          "release_pass": 1.0
+        },
+        "summary": {
+          "tests": 7,
+          "passed": 7,
+          "failed": 0
+        },
+        "stderr_tail": ""
+      },
+      "passed": true
+    },
+    {
+      "step": "5-gc-integrity",
+      "starter": {
+        "returncode": 1,
+        "scores": {
+          "correctness": 0.1429,
+          "code_quality": 0.75,
+          "reasoning": 1.0,
+          "efficiency": 1.0,
+          "weighted_total": 0.5215,
+          "release_pass": 0.0
+        },
+        "summary": {
+          "tests": 7,
+          "passed": 1,
+          "failed": 6
+        },
+        "stderr_tail": ""
+      },
+      "oracle": {
+        "returncode": 0,
+        "scores": {
+          "correctness": 1.0,
+          "code_quality": 1.0,
+          "reasoning": 1.0,
+          "efficiency": 1.0,
+          "weighted_total": 1.0,
+          "release_pass": 1.0
+        },
+        "summary": {
+          "tests": 7,
+          "passed": 7,
+          "failed": 0
+        },
+        "stderr_tail": ""
+      },
+      "passed": true
+    }
+  ],
+  "mutants": [
+    {
+      "name": "trust_existing_digest",
+      "step": "1-content-addressing",
+      "result": {
+        "returncode": 1,
+        "scores": {
+          "correctness": 0.8571,
+          "code_quality": 1.0,
+          "reasoning": 1.0,
+          "efficiency": 1.0,
+          "weighted_total": 0.9285,
+          "release_pass": 0.0
+        },
+        "summary": {
+          "tests": 7,
+          "passed": 6,
+          "failed": 1
+        },
+        "stderr_tail": ""
+      },
+      "rejected": true
+    },
+    {
+      "name": "allow_parent_manifest",
+      "step": "2-manifest-store",
+      "result": {
+        "returncode": 1,
+        "scores": {
+          "correctness": 0.8571,
+          "code_quality": 1.0,
+          "reasoning": 1.0,
+          "efficiency": 1.0,
+          "weighted_total": 0.9285,
+          "release_pass": 0.0
+        },
+        "summary": {
+          "tests": 7,
+          "passed": 6,
+          "failed": 1
+        },
+        "stderr_tail": ""
+      },
+      "rejected": true
+    },
+    {
+      "name": "overwrite_upload_part",
+      "step": "3-multipart-upload",
+      "result": {
+        "returncode": 1,
+        "scores": {
+          "correctness": 0.8571,
+          "code_quality": 1.0,
+          "reasoning": 1.0,
+          "efficiency": 1.0,
+          "weighted_total": 0.9285,
+          "release_pass": 0.0
+        },
+        "summary": {
+          "tests": 7,
+          "passed": 6,
+          "failed": 1
+        },
+        "stderr_tail": ""
+      },
+      "rejected": true
+    },
+    {
+      "name": "corrupt_replica_healthy",
+      "step": "4-replication-repair",
+      "result": {
+        "returncode": 1,
+        "scores": {
+          "correctness": 0.7143,
+          "code_quality": 1.0,
+          "reasoning": 1.0,
+          "efficiency": 1.0,
+          "weighted_total": 0.8572,
+          "release_pass": 0.0
+        },
+        "summary": {
+          "tests": 7,
+          "passed": 5,
+          "failed": 2
+        },
+        "stderr_tail": ""
+      },
+      "rejected": true
+    },
+    {
+      "name": "apply_stale_gc_plan",
+      "step": "5-gc-integrity",
+      "result": {
+        "returncode": 1,
+        "scores": {
+          "correctness": 0.8571,
+          "code_quality": 1.0,
+          "reasoning": 1.0,
+          "efficiency": 1.0,
+          "weighted_total": 0.9285,
+          "release_pass": 0.0
+        },
+        "summary": {
+          "tests": 7,
+          "passed": 6,
+          "failed": 1
+        },
+        "stderr_tail": ""
+      },
+      "rejected": true
+    }
+  ],
+  "isolation": {
+    "passed": true,
+    "returncode": 0
+  },
+  "passed": true
+}

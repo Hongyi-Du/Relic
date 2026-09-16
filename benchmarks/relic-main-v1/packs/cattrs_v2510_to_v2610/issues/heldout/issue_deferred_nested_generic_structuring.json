@@ -1,0 +1,24 @@
+{
+  "issue_id": "issue_deferred_nested_generic_structuring",
+  "title": "Structuring into a parametrized generic fails in modules with deferred annotations",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "generic_type_resolution",
+  "created_tick": 0,
+  "hidden": true,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#688",
+  "source_url": "https://github.com/python-attrs/cattrs/pull/688",
+  "created_at": "2025-10-16T12:18:02Z",
+  "labels": [],
+  "release": "v26.1.0",
+  "title_original": "Fix structuring of nested generics, add test",
+  "text_original": "This mirrors #662 to allow nested generics for structuring nested generic classes. I encountered this issue when composing generic classes describing a REST API's JSON schema. It only seems to happen with string annotations. Without the patch, the included tests will show TypeErrors similar to: TypeError: ...Container[...Inner] is not a module, class, method, or function.",
+  "text_rewritten": "We compose generic models to describe the shape of a REST API's JSON, and every module defers its annotations. Structuring an incoming payload into a parametrized generic dies with `TypeError: ...Frame[...Coordinate] is not a module, class, method, or function.` It happens whether the parameter is filled by a builtin or by another model, and it happens again one level deeper when a generic is nested inside a generic. Non-generic models in the same module structure fine. The annotation resolution step appears to be handed the parametrized form rather than the class it came from.",
+  "body": "We compose generic models to describe the shape of a REST API's JSON, and every module defers its annotations. Structuring an incoming payload into a parametrized generic dies with `TypeError: ...Frame[...Coordinate] is not a module, class, method, or function.` It happens whether the parameter is filled by a builtin or by another model, and it happens again one level deeper when a generic is nested inside a generic. Non-generic models in the same module structure fine. The annotation resolution step appears to be handed the parametrized form rather than the class it came from.",
+  "acceptance_hint": "Structuring a payload into a parametrized generic works under deferred annotations - single- and multi-parameter, filled by builtins or by other models, and nested one generic inside another - while non-generic models are unaffected.",
+  "linked_hidden_test_ids": [
+    "hidden_deferred_nested_generic_structuring"
+  ]
+}

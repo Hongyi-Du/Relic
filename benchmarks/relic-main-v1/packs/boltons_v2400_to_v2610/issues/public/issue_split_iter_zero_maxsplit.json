@@ -1,0 +1,26 @@
+{
+  "issue_id": "issue_split_iter_zero_maxsplit",
+  "title": "Asking for zero splits returns the input wrapped in an extra layer",
+  "issue_type": "bug",
+  "severity": "medium",
+  "component": "iteration_tools",
+  "candidate_path_hints": [
+    "boltons/iterutils.py"
+  ],
+  "created_tick": 120,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#406",
+  "source_url": "https://github.com/mahmoud/boltons/pull/406",
+  "created_at": "2026-06-19T02:43:59Z",
+  "labels": [],
+  "release": "26.1.0",
+  "title_original": "Fix split_iter maxsplit=0 handling",
+  "text_original": "## Summary\n\nFix `split_iter(..., maxsplit=0)` so it yields the unsplit input values instead of wrapping the source iterable object itself.\n\nPreviously, the `maxsplit == 0` branch yielded `[src]`. For list inputs this produced an extra nested list, and for iterator inputs it returned the iterator object rather than its values.\n\n## Validation\n\n- Added a regression test covering both list and iterator inputs\n- Confirmed the new test failed before the fix with `[[[1, None, 2]]] != [[1, None, 2]]`\n- Ran `python -m pytest tests/test_iterutils.py::TestSplit::test_maxsplit_zero_returns_unsplit_values tests/test_iterutils.py -q` and confirmed 44 passed\n- Ran `python -m pytest -q` and confirmed 436 passed",
+  "text_rewritten": "Passing `maxsplit=0` to the iterator-based split helper is supposed to mean \"do not split\", that is, give me one group holding everything. Instead we get one group holding the source object itself: a list input comes back as a list nested inside a list, and a generator input comes back as the generator object, which the caller then has to unwrap.\n\nEvery other split budget yields groups of elements, so this one is inconsistent with the rest of the helper. A zero budget should yield a single group containing the input's elements, for concrete sequences and for one-shot iterators alike, and the other budgets must be untouched.",
+  "body": "Passing `maxsplit=0` to the iterator-based split helper is supposed to mean \"do not split\", that is, give me one group holding everything. Instead we get one group holding the source object itself: a list input comes back as a list nested inside a list, and a generator input comes back as the generator object, which the caller then has to unwrap.\n\nEvery other split budget yields groups of elements, so this one is inconsistent with the rest of the helper. A zero budget should yield a single group containing the input's elements, for concrete sequences and for one-shot iterators alike, and the other budgets must be untouched.",
+  "acceptance_hint": "split and split_iter with maxsplit=0 yield exactly one group holding the input's elements rather than the input object, including for one-shot iterators; larger budgets and the default behave as before.",
+  "linked_hidden_test_ids": [
+    "hidden_split_iter_zero_maxsplit"
+  ]
+}

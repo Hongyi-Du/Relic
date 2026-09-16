@@ -1,0 +1,23 @@
+{
+  "issue_id": "issue_async_lifecycle_callbacks",
+  "title": "Coroutine before / after / before-sleep hooks silently never run",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "async_retry_runtime",
+  "created_tick": 36,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#437",
+  "source_url": "https://github.com/jd/tenacity/pull/437",
+  "created_at": "2024-03-02T07:30:37Z",
+  "labels": [],
+  "release": "9.1.4",
+  "title_original": "Support async actions",
+  "text_original": "Fixes #249 #412. Second PR after breaking down https://github.com/jd/tenacity/pull/433 (follows https://github.com/jd/tenacity/pull/434). After DRYing the `iter()` function, make `AsyncRetrying` support `async` callbacks.",
+  "text_rewritten": "We hand observability hooks to the retry decorator (`before`, `after`, `before_sleep`) so that every attempt emits a span. When the retried function is a coroutine our hooks are coroutine functions too, and absolutely nothing happens: no spans, no log lines, and Python starts printing 'coroutine was never awaited' warnings. The retry loop itself still behaves correctly, it just throws our hook away instead of running it. The very same hooks written as ordinary functions work fine on the asynchronous path, so the loop clearly calls the hook and then discards whatever comes back. Asynchronous code should be able to use asynchronous hooks.",
+  "body": "We hand observability hooks to the retry decorator (`before`, `after`, `before_sleep`) so that every attempt emits a span. When the retried function is a coroutine our hooks are coroutine functions too, and absolutely nothing happens: no spans, no log lines, and Python starts printing 'coroutine was never awaited' warnings. The retry loop itself still behaves correctly, it just throws our hook away instead of running it. The very same hooks written as ordinary functions work fine on the asynchronous path, so the loop clearly calls the hook and then discards whatever comes back. Asynchronous code should be able to use asynchronous hooks.",
+  "acceptance_hint": "On the asynchronous path, coroutine `before` / `after` / `before_sleep` hooks run in the same order and see the same attempt numbers as the equivalent ordinary hooks, and ordinary hooks keep working exactly as they do today.",
+  "linked_hidden_test_ids": [
+    "hidden_async_lifecycle_callbacks"
+  ]
+}

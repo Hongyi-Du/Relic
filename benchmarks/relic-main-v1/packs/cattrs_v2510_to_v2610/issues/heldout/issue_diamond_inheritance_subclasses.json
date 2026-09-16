@@ -1,0 +1,24 @@
+{
+  "issue_id": "issue_diamond_inheritance_subclasses",
+  "title": "A hierarchy with a class reachable by two paths cannot be registered",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "subclass_strategies",
+  "created_tick": 0,
+  "hidden": true,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#713",
+  "source_url": "https://github.com/python-attrs/cattrs/pull/713",
+  "created_at": "2026-01-07T21:25:18Z",
+  "labels": [],
+  "release": "v26.1.0",
+  "title_original": "Tin/diamond-inheritance-strategy",
+  "text_original": "Fix `include_subclasses` when used with `configure_tagged_union` and classes using diamond inheritance. Fixes #685.",
+  "text_rewritten": "Our domain model uses mixin-style multiple inheritance, so one leaf class is reachable from the root through more than one intermediate class. Registering that hierarchy with the subclass strategy and asking for a discriminator tag fails with `AttributeError: type object 'Merge' has no attribute '__args__'`. The same hierarchy registers fine as soon as the multiple-inheritance leaf is removed, so the duplication is what breaks it - the leaf is apparently collected once per path through the hierarchy and the duplicate ends up somewhere that expects a union. Reaching a class twice while walking a hierarchy should just mean it is listed once. After registration, structuring against the root should pick whichever class the discriminator names, including the multiply-reachable one.",
+  "body": "Our domain model uses mixin-style multiple inheritance, so one leaf class is reachable from the root through more than one intermediate class. Registering that hierarchy with the subclass strategy and asking for a discriminator tag fails with `AttributeError: type object 'Merge' has no attribute '__args__'`. The same hierarchy registers fine as soon as the multiple-inheritance leaf is removed, so the duplication is what breaks it - the leaf is apparently collected once per path through the hierarchy and the duplicate ends up somewhere that expects a union. Reaching a class twice while walking a hierarchy should just mean it is listed once. After registration, structuring against the root should pick whichever class the discriminator names, including the multiply-reachable one.",
+  "acceptance_hint": "A hierarchy where a class is reachable from the root by several paths registers with the tag strategy without raising and round-trips every member through its discriminator; single-path hierarchies keep working.",
+  "linked_hidden_test_ids": [
+    "hidden_diamond_inheritance_subclasses"
+  ]
+}

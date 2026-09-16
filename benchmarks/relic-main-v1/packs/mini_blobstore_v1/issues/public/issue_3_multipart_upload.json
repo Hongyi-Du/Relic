@@ -1,0 +1,19 @@
+{
+  "issue_id": "issue_3_multipart_upload",
+  "title": "Step 3 \u2014 Multipart uploads",
+  "issue_type": "feature",
+  "severity": "medium",
+  "component": "3-multipart-upload",
+  "candidate_path_hints": [
+    "blobstore/uploads.py"
+  ],
+  "created_tick": 36,
+  "source": "authored_greenfield_spec",
+  "source_type": "task_step",
+  "source_id": "3-multipart-upload",
+  "body": "# Step 3 \u2014 Multipart uploads\n\nKeep earlier steps working and implement `blobstore.uploads`. Upload sessions\nhave immutable targets, numbered parts, per-part SHA-256, durable metadata, and\nidempotent retries. `complete(upload_id, part_count)` must require contiguous\nparts, concatenate without loading the entire upload twice, publish the final\nobject and target manifest, and make completion retries return the same result.",
+  "acceptance_hint": "# Step 3 \u2014 Multipart uploads  Keep earlier steps working and implement `blobstore.uploads`. Upload sessions have immutable targets, numbered parts, per-part SHA-256, durable metadata, and idempotent retries. `complete(upload_id, part_count)` must require contiguous parts, concatenate without loading the entire upload twice, publish the final object and target manifest, and make completion retries ",
+  "linked_hidden_test_ids": [
+    "hidden_3_multipart_upload"
+  ]
+}

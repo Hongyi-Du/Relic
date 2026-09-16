@@ -1,0 +1,29 @@
+{
+  "issue_id": "issue_consumer_bootstep_imports",
+  "title": "Worker will not start on distributions that dropped the exception-group backport",
+  "issue_type": "compatibility",
+  "severity": "major",
+  "component": "worker_consumer",
+  "created_tick": 24,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#10033",
+  "source_url": "https://github.com/celery/celery/pull/10033",
+  "created_at": "2025-12-22T17:26:19Z",
+  "labels": [
+    "PR Type: Cleanup"
+  ],
+  "release": "v5.6.3",
+  "title_original": "Only use exceptiongroup backport for Python < 3.11",
+  "text_original": "The `exceptiongroup` backport is only relevant for old enough Python versions that some distributions (e.g. Debian) no longer package it.  It seems easy enough to avoid the import where it isn't needed.",
+  "text_rewritten": "Starting a worker on a stock Python 3.11+ environment dies with a ModuleNotFoundError for a third-party exception-group backport. Every bootstep the consumer declares has to be importable on a plain install of our documented runtime, and one of them pulls in a package whose only job is to backfill a language feature Python has shipped natively since 3.11 -- several distributions have stopped packaging it entirely. A stock install of the documented minimum runtime must be able to resolve every default consumer bootstep, and the extra package must only be required on interpreters that genuinely lack the feature.",
+  "body": "Starting a worker on a stock Python 3.11+ environment dies with a ModuleNotFoundError for a third-party exception-group backport. Every bootstep the consumer declares has to be importable on a plain install of our documented runtime, and one of them pulls in a package whose only job is to backfill a language feature Python has shipped natively since 3.11 -- several distributions have stopped packaging it entirely. A stock install of the documented minimum runtime must be able to resolve every default consumer bootstep, and the extra package must only be required on interpreters that genuinely lack the feature.",
+  "acceptance_hint": "Every path in the consumer blueprint's default step list resolves on Python 3.11+ with no exception-group backport installed.",
+  "candidate_path_hints": [
+    "celery/worker/consumer/delayed_delivery.py",
+    "requirements/default.txt"
+  ],
+  "linked_hidden_test_ids": [
+    "hidden_consumer_bootstep_imports"
+  ]
+}

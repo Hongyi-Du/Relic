@@ -1,0 +1,23 @@
+{
+  "issue_id": "issue_trio_native_sleep",
+  "title": "Backoff pauses fail outright when the caller runs on a different async runtime",
+  "issue_type": "compatibility",
+  "severity": "major",
+  "component": "async_retry_runtime",
+  "created_tick": 96,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#463",
+  "source_url": "https://github.com/jd/tenacity/pull/463",
+  "created_at": "2024-06-17T07:33:40Z",
+  "labels": [],
+  "release": "9.1.4",
+  "title_original": "Support Trio out-of-the-box, take 2",
+  "text_original": "I didn't have push rights to #295, so opening a new PR from a new fork. This is just taking @njsmith's PR, merging main, fixing conflicts and making it work with the new code. Release note: If you're using Trio, then `@retry` now works automatically. It's no longer necessary to pass `sleep=trio.sleep`.",
+  "text_rewritten": "Our service runs on Trio. Any retried coroutine with a non-zero wait blows up on its very first backoff pause with 'no running event loop', because the built-in pause is hard-wired to one specific async library. We can work around it by passing that library's sleep function explicitly on every single decorator, but that leaks our choice of event loop into every call site and it is easy to forget one — and when we do forget, the failure only shows up on the first retry, i.e. in production. The library should detect which async library is actually running and pause using that one. Callers who supply their own pause function must stay in full control of it, and code on the previously supported loop must not change at all.",
+  "body": "Our service runs on Trio. Any retried coroutine with a non-zero wait blows up on its very first backoff pause with 'no running event loop', because the built-in pause is hard-wired to one specific async library. We can work around it by passing that library's sleep function explicitly on every single decorator, but that leaks our choice of event loop into every call site and it is easy to forget one — and when we do forget, the failure only shows up on the first retry, i.e. in production. The library should detect which async library is actually running and pause using that one. Callers who supply their own pause function must stay in full control of it, and code on the previously supported loop must not change at all.",
+  "acceptance_hint": "A retried coroutine with a non-zero wait completes under Trio with no sleep function configured anywhere, still completes under asyncio, and an explicitly supplied pause function is still the one that gets used.",
+  "linked_hidden_test_ids": [
+    "hidden_trio_native_sleep"
+  ]
+}

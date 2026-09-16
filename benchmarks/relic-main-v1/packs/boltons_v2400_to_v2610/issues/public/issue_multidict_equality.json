@@ -1,0 +1,27 @@
+{
+  "issue_id": "issue_multidict_equality",
+  "title": "A multi-value dictionary compares equal to a plain dict with different values",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "multidict",
+  "candidate_path_hints": [
+    "boltons/dictutils.py",
+    "boltons/urlutils.py"
+  ],
+  "created_tick": 108,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#404",
+  "source_url": "https://github.com/mahmoud/boltons/pull/404",
+  "created_at": "2026-06-17T20:57:15Z",
+  "labels": [],
+  "release": "26.1.0",
+  "title_original": "Fix OrderedMultiDict equality to compare values against plain mappings",
+  "text_original": "OrderedMultiDict.__eq__ has a branch for comparing against a non-OMD mapping (anything with a keys() method, like a dict). That branch computes other[selfk] == self[selfk] but discards the result, so it only checks that every key of self exists in other and never compares the values. An OMD therefore compares equal to any same-keyed mapping no matter what the values are:\n\n```python\n>>> from boltons.dictutils import OMD\n>>> omd = OMD([(\"a\", 1), (\"b\", 2)])\n>>> omd == {\"a\": 999, \"b\": 2}\nTrue   # should be False\n```\n\nThe existing test_eq does not catch this because its dict case is written as `d == omd`, which dispatches to `dict.__eq__` (OMD subclasses dict), not `OMD.__eq__`. The buggy branch is only reached with the OMD on the left.\n\nFix: compare the values and return False on mismatch. The length check earlier in __eq__ already handles the differing-key-count case.\n\nThe same __eq__ is duplicated in urlutils.OrderedMultiDict (the base class of QueryParamDict), which had the identical bug, so it is fixed there too.\n\nAdded regression tests in test_dictutils.py and test_urlutils.py that put the OMD/QueryParamDict on the left so the branch is actually exercised. Both fail before the change and pass after. Full suite: 433 passed.",
+  "text_rewritten": "We compare a multi-value dictionary against a plain dict both in assertions and in change detection. It reports equality as long as the two have the same set of keys, no matter what the values are — replacing every value with a different string still gives True, so our change detection never fires and our tests never fail.\n\nComparing against another multi-value dictionary does look at values, so only the plain-mapping comparison is broken. Equality against a plain mapping has to compare values as well as keys, and `!=` has to agree with it.",
+  "body": "We compare a multi-value dictionary against a plain dict both in assertions and in change detection. It reports equality as long as the two have the same set of keys, no matter what the values are — replacing every value with a different string still gives True, so our change detection never fires and our tests never fail.\n\nComparing against another multi-value dictionary does look at values, so only the plain-mapping comparison is broken. Equality against a plain mapping has to compare values as well as keys, and `!=` has to agree with it.",
+  "acceptance_hint": "An OrderedMultiDict compared with a plain mapping is equal only when the values match as well as the keys, with != giving the opposite answer; comparisons against another OrderedMultiDict and against non-mappings are unchanged.",
+  "linked_hidden_test_ids": [
+    "hidden_multidict_equality"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "issue_id": "issue_annotated_override_mappings",
+  "title": "Per-field settings on an annotation are ignored for typed dictionaries and named tuples",
+  "issue_type": "feature",
+  "severity": "major",
+  "component": "hook_generation",
+  "created_tick": 0,
+  "hidden": true,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#717",
+  "source_url": "https://github.com/python-attrs/cattrs/pull/717",
+  "created_at": "2026-01-27T22:01:12Z",
+  "labels": [],
+  "release": "v26.1.0",
+  "title_original": "Support overrides in annotated attributes",
+  "text_original": "Customizing un/structuring of _attrs_ classes, dataclasses, TypedDicts and dict NamedTuples is now possible by using `Annotated[T, override()]` on fields. See https://catt.rs/en/stable/customizing.html#using-typing-annotated-t-override for more details.",
+  "text_rewritten": "Not every model in our codebase is a class. The layer that talks to the payment gateway is built out of typed dictionaries, and our geometry helpers are named tuples that we convert as dictionaries using the dict-shaped named-tuple hook factories. Those need exactly the same per-field settings our classes need: one key has to be sent as `from`, another must never leave the process. The existing per-field settings object, `cattrs.override(...)`, attached to the field's own annotation as `Annotated[T, override(...)]`, should be picked up automatically for these two shapes as well, in both directions and with no registration step beyond the named-tuple factories we already register. Fields with no such annotation must keep their own names.",
+  "body": "Not every model in our codebase is a class. The layer that talks to the payment gateway is built out of typed dictionaries, and our geometry helpers are named tuples that we convert as dictionaries using the dict-shaped named-tuple hook factories. Those need exactly the same per-field settings our classes need: one key has to be sent as `from`, another must never leave the process. The existing per-field settings object, `cattrs.override(...)`, attached to the field's own annotation as `Annotated[T, override(...)]`, should be picked up automatically for these two shapes as well, in both directions and with no registration step beyond the named-tuple factories we already register. Fields with no such annotation must keep their own names.",
+  "acceptance_hint": "A field annotated `Annotated[T, override(...)]` in a typed dictionary or in a dict-shaped named tuple is renamed or omitted by any converter in both directions, while unannotated fields keep their names.",
+  "linked_hidden_test_ids": [
+    "hidden_annotated_override_mappings"
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "issue_id": "issue_byte_size_rollover",
+  "title": "Byte sizes render as 1024K instead of 1M at exact boundaries",
+  "issue_type": "bug",
+  "severity": "medium",
+  "component": "text_utilities",
+  "candidate_path_hints": [
+    "boltons/strutils.py"
+  ],
+  "created_tick": 96,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#403",
+  "source_url": "https://github.com/mahmoud/boltons/pull/403",
+  "created_at": "2026-06-17T20:55:45Z",
+  "labels": [],
+  "release": "26.1.0",
+  "title_original": "Fix bytes2human rollover at exact powers of 1024",
+  "text_original": "## What\n\n`bytes2human` doesn't roll over to the next unit at exact powers of 1024:\n\n```python\n>>> from boltons.strutils import bytes2human\n>>> bytes2human(1024)        # expected '1K'\n'1024B'\n>>> bytes2human(1024 ** 2)   # expected '1M'\n'1024K'\n>>> bytes2human(1024 ** 3)   # expected '1G'\n'1024M'\n```\n\nSub-boundary values are fine (`bytes2human(1023) == '1023B'`, `bytes2human(2048) == '2K'`); only the exact boundaries are wrong.\n\n## Why\n\nThe unit-selection loop compares the value against each boundary with `<=`:\n\n```python\nfor (size, symbol), (next_size, next_symbol) in _SIZE_RANGES:\n    if abs_bytes <= next_size:\n        break\n```\n\n`_SIZE_RANGES` pairs each unit with the next one's threshold (`((1, 'B'), (1024, 'K'))`, …). When `abs_bytes` equals a threshold exactly (e.g. `1024`), `<=` breaks on the *smaller* unit, so the value renders as the previous unit × 1024. Using `<` lets exact boundaries advance to the next unit.\n\n## Change\n\n- `<=` → `<` in the boundary comparison (one character).\n- Added a doctest (`bytes2human(1024) -> '1K'`) and a regression test in `tests/test_strutils.py` covering boundaries, sub-boundaries, mid-range, negatives and `ndigits`. The test was verified to fail on the current code and pass with the fix.\n\nNo behavior change for any non-boundary value. `pytest tests/` and `pytest --doctest-modules boltons/strutils.py` both pass. Happy to add a CHANGELOG entry in whatever form you prefer.",
+  "text_rewritten": "The human-readable byte formatter does not switch to the next unit at exact powers of 1024. A megabyte prints as \"1024K\", a gigabyte as \"1024M\", and 1024 bytes as \"1024B\". Anything just below a boundary formats correctly, so it is precisely the round numbers — the ones that dominate our capacity dashboards — that look wrong.\n\nExact boundaries should use the larger unit, and that has to hold for negative sizes and when extra decimal digits are requested as well. Values below a boundary must keep formatting the way they do now.",
+  "body": "The human-readable byte formatter does not switch to the next unit at exact powers of 1024. A megabyte prints as \"1024K\", a gigabyte as \"1024M\", and 1024 bytes as \"1024B\". Anything just below a boundary formats correctly, so it is precisely the round numbers — the ones that dominate our capacity dashboards — that look wrong.\n\nExact boundaries should use the larger unit, and that has to hold for negative sizes and when extra decimal digits are requested as well. Values below a boundary must keep formatting the way they do now.",
+  "acceptance_hint": "bytes2human rolls over to the next unit at each exact power of 1024 (1024 renders as 1K, 1024**2 as 1M, and so on), including for negative counts and with a non-zero digit count, while sub-boundary values are unchanged.",
+  "linked_hidden_test_ids": [
+    "hidden_byte_size_rollover"
+  ]
+}

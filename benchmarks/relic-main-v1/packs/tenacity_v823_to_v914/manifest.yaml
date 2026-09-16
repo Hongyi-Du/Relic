@@ -1,0 +1,163 @@
+schema_version: org_env_oss_time_machine_pack_v2
+project_id: tenacity_v823_to_v914
+source_project_name: tenacity
+anonymized_product_name: tenacity
+company_name: Tenacity
+product_summary: tenacity, a general-purpose retrying library. Agents receive the complete 8.2.3 tag;
+  the 9.1.4 tag, held-out demands and hidden contracts stay evaluator-only.
+license: Apache-2.0
+repo_url: https://github.com/jd/tenacity
+starter_ref: 8.2.3
+starter_commit: 41ed2420cda8ab7650a39900451099f4730266c3
+reference_ref: 9.1.4
+reference_commit: d4e868d6b8368c00b5a1fad54de36c2c8c3a0fb3
+reference_is_release: true
+starter_release_date: ''
+reference_release_date: '2026-02-07'
+freeze_date: '2026-08-01'
+issue_window_start: ''
+issue_window_end: '2026-02-07T10:45:04Z'
+frozen_scope: complete_tag_trees_plus_agent_visible_public_smoke
+github_archive:
+  changes_recorded: 45
+  path: provenance/github
+runtime_python: '>=3.12'
+runtime_dependencies:
+- pytest
+test_strategy:
+  runner: pytest
+  kind: executable_behavioral_contract
+  rationale: Every oracle exercises the frozen library through the public surface that already exists
+    on the starter endpoint, never through a symbol or helper the upstream patch introduced. A candidate
+    that produces the required behavior by another route therefore satisfies the contract, and copying
+    upstream's identifiers earns no credit on its own.
+evidence_kind: executable_behavioral_contract
+starter_repo_digest: 03dd8cb6abb31fa7f9828b9777a3e0510822798409a1511c68da1495342a8a2a
+reference_repo_digest: 58aaf39661e4c4ef42c598f705e159ada3dcd6eac5853615068521e8968f8e7f
+hidden_suite_hash: 6c2940eb14b3762c210e6558ff8c868d8aadb1da1280c821af85305209e6014b
+evaluator_environment_hash: e1af84e85d8591c4b59b449e12ce126c4c38452621368652a9f0c4cf81db5a47
+qualification_hash: 417905dfb19069e7a94af77dfbd2d7f13f292c9bad0f2fa53872e03836302542
+qualification_result_hash: ff7d573b2052cb326458f257e3a8b42554d47f641ed55fcb5e85246e01606483
+result_hash: ff7d573b2052cb326458f257e3a8b42554d47f641ed55fcb5e85246e01606483
+agent_filesystem_isolation_required: true
+agent_filesystem_isolation_status: required_not_verified_by_pack
+agent_filesystem_isolation_requirement: The agent process must receive only the materialized starter workspace.
+  reference_repo, tests/hidden, issues/heldout, contamination and provenance must remain on an evaluator-only
+  filesystem that is not mounted or otherwise readable by the agent.
+contamination_status: probes_defined_not_executed
+contamination_note: Recognition, future-recall and patch-similarity probes are defined, but this Pack
+  records no completed model-specific contamination score or clearance.
+runtime_test_status:
+  behavioral_contracts: qualified_starter_0_of_16_reference_16_of_16
+  upstream_project_suite: not_run
+manual_runtime_test_caveat: The recorded starter and reference outcomes cover this Pack's own behavioral
+  contracts. The upstream project's full test suite was not run and is not claimed by this receipt.
+hidden_test_sources:
+- https://github.com/jd/tenacity/pull/406
+- https://github.com/jd/tenacity/pull/423
+- https://github.com/jd/tenacity/pull/425
+- https://github.com/jd/tenacity/pull/437
+- https://github.com/jd/tenacity/pull/450
+- https://github.com/jd/tenacity/pull/451
+- https://github.com/jd/tenacity/pull/463
+- https://github.com/jd/tenacity/pull/484
+- https://github.com/jd/tenacity/pull/489
+- https://github.com/jd/tenacity/pull/541
+- https://github.com/jd/tenacity/pull/551
+contamination_controls:
+  model_cutoff_policy: pre_reference_cutoff_with_recognition_audit
+  code_anonymized: false
+  audit_tool: tools/oss_time_machine_audit.py
+  heldout_transfer: true
+  recommended_main_experiment_model: pre_2026-02-07_cutoff
+  notes: 'The starter tree is the unmodified upstream release, so the project is recognizable. Recognition
+    is audited rather than assumed away: later patches, reference code, held-out demands and hidden contracts
+    are evaluator-only and never enter product artifacts, perception, search, prompts or normal snapshots.'
+model_cutoff_policy: pre_reference_cutoff_with_recognition_audit
+anonymize:
+  replacements: {}
+agent_visible:
+  starter_repo: starter_repo
+  public_issues: issues/public
+  external_signals: external_signals
+private_evaluator_only:
+  reference_repo: reference_repo
+  hidden_tests: tests/hidden
+  heldout_issues: issues/heldout
+  contamination_probes: contamination
+  github_archive: provenance/github
+entrypoints:
+  cli:
+    command:
+    - python
+    - -m
+    - pytest
+    - tests/public
+    - -q
+  smoke:
+    command:
+    - python
+    - -m
+    - pytest
+    - tests/public
+    - -q
+public_tests:
+  command:
+  - python
+  - -m
+  - pytest
+  - tests/public
+  - -q
+  dependencies:
+  - pytest
+hidden_tests:
+  command:
+  - python
+  - -m
+  - pytest
+  - tests/hidden
+  - -q
+  dependencies:
+  - trio
+issue_stream:
+  schedule: by_tick
+  first_tick: 12
+  interval_ticks: 12
+evaluation:
+  primary_metrics:
+  - hidden_test_pass_rate
+  - causal_fix_rate
+  - issue_fix_rate
+  - regression_pass_rate
+  - release_smoke_ok
+  secondary_metrics:
+  - public_test_pass_rate
+  - heldout_transfer_rate
+  - external_adaptation
+controls:
+  default: none
+component_map:
+  retry_decorator:
+  - tenacity/__init__.py
+  stop_strategies:
+  - tenacity/stop.py
+  - tenacity/__init__.py
+  wait_strategies:
+  - tenacity/wait.py
+  - tenacity/__init__.py
+  retry_predicates:
+  - tenacity/retry.py
+  - tenacity/_asyncio.py
+  async_retry_runtime:
+  - tenacity/_asyncio.py
+  - tenacity/__init__.py
+  retry_statistics:
+  - tenacity/__init__.py
+  logging_callbacks:
+  - tenacity/before_sleep.py
+  - tenacity/after.py
+  - tenacity/before.py
+  - tenacity/_utils.py
+  package_import:
+  - tenacity/__init__.py
+  - tenacity/_asyncio.py

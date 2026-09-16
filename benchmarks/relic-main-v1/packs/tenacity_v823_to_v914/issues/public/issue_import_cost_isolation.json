@@ -1,0 +1,23 @@
+{
+  "issue_id": "issue_import_cost_isolation",
+  "title": "Importing the package alone pays for the async event-loop machinery",
+  "issue_type": "performance",
+  "severity": "medium",
+  "component": "package_import",
+  "created_tick": 60,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#450",
+  "source_url": "https://github.com/jd/tenacity/pull/450",
+  "created_at": "2024-03-14T10:25:38Z",
+  "labels": [],
+  "release": "9.1.4",
+  "title_original": "Lazy import asyncio.sleep as it's expensive",
+  "text_original": "On my system, importing tenacity (_without tornado_) takes 25ms, and asyncio is singlehandedly responsible for 14ms. Some users do not ever use AsyncRetrying (or asyncio in their project generally) and it would be a shame for them to incur a unnecessary import penalty. Full disclaimer: I pursued this change primarily to reduce pip's startup time where asyncio was a nontrivial portion of the import timeline.",
+  "text_rewritten": "We ship a command-line tool where startup latency is visible to the user. Profiling the import graph shows that simply importing this package pulls in Python's asynchronous event-loop machinery, and that is by far the most expensive item in our whole import waterfall — despite the fact that we never touch the asynchronous retry path. The asynchronous entry point should of course still be reachable from the package root for the people who do need it; it just should not force the event-loop modules to load on behalf of everyone else. Deferring that cost until the asynchronous path is actually used would roughly halve our startup time.",
+  "body": "We ship a command-line tool where startup latency is visible to the user. Profiling the import graph shows that simply importing this package pulls in Python's asynchronous event-loop machinery, and that is by far the most expensive item in our whole import waterfall — despite the fact that we never touch the asynchronous retry path. The asynchronous entry point should of course still be reachable from the package root for the people who do need it; it just should not force the event-loop modules to load on behalf of everyone else. Deferring that cost until the asynchronous path is actually used would roughly halve our startup time.",
+  "acceptance_hint": "In a fresh interpreter, importing the package leaves the asyncio machinery absent from `sys.modules`, while the asynchronous retrying entry point and the ordinary synchronous names are still reachable from the package root.",
+  "linked_hidden_test_ids": [
+    "hidden_import_cost_isolation"
+  ]
+}

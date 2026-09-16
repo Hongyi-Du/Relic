@@ -1,0 +1,185 @@
+{
+  "dataset_id": "celery_v560_to_v563",
+  "frozen_at": "2026-08-01",
+  "source": "https://github.com/celery/celery",
+  "transport": "authenticated GitHub API tarball download",
+  "evidence_kind": "executable_behavioral_contract",
+  "starter_repo_digest": "c96c5ab57db91bb5efe81175836a88196d43cb42779d219947cc2e6ac03894c4",
+  "reference_repo_digest": "e0e9b9e5bdead7aaaa9882120b2a338be490fea627d5500166dcd380d0526f78",
+  "hidden_suite_hash": "69915db1c97d8f31d1e8afbf7fae4d1838b3a47b97a13b3496886741f8c5e949",
+  "evaluator_environment_hash": "e1af84e85d8591c4b59b449e12ce126c4c38452621368652a9f0c4cf81db5a47",
+  "qualification_hash": "a32d534121e73eb069b3efdcaef972d56d3a3c1922ada3be9fbe3937da6e046a",
+  "qualification_result_hash": "1468bd9299ac9e8bcd782f6fad80bf609a2e094dc4f280a3e9f47c98cd890500",
+  "result_hash": "1468bd9299ac9e8bcd782f6fad80bf609a2e094dc4f280a3e9f47c98cd890500",
+  "agent_filesystem_isolation_required": true,
+  "agent_filesystem_isolation_status": "required_not_verified_by_pack",
+  "contamination_status": "probes_defined_not_executed",
+  "manual_runtime_test_caveat": "The recorded starter and reference outcomes cover this Pack's own behavioral contracts. The upstream project's full test suite was not run and is not claimed by this receipt.",
+  "starter": {
+    "tag": "v5.6.0",
+    "commit": "cca11164860a1bee6ad8626c27a683b482f741eb",
+    "archive_sha256": "82140113b57399f4136d0b9d755352715d08785a1b80cfbccebd19fc5ec2accd",
+    "frozen_files_with_public_smoke": 813,
+    "frozen_bytes": 5748504,
+    "repo_digest": "c96c5ab57db91bb5efe81175836a88196d43cb42779d219947cc2e6ac03894c4"
+  },
+  "reference": {
+    "tag": "v5.6.3",
+    "commit": "3f4d8d795ad128bd7430cc5dc174a802cded425c",
+    "archive_sha256": "a0e32dfa8e87c86348e376b259d1c81e10294fed63b9d07cb398c0e8880eac19",
+    "frozen_files_with_public_smoke": 817,
+    "frozen_bytes": 5898133,
+    "repo_digest": "e0e9b9e5bdead7aaaa9882120b2a338be490fea627d5500166dcd380d0526f78"
+  },
+  "github_archive": {
+    "changes_recorded": 57,
+    "path": "provenance/github"
+  },
+  "demands": {
+    "public_issues": 12,
+    "heldout_issues": 4,
+    "hidden_contracts": 16,
+    "distinct_upstream_changes": 13,
+    "target_public_issues": 12,
+    "target_heldout_issues": 4,
+    "target_hidden_contracts": 16
+  },
+  "qualification": {
+    "evidence_kind": "executable_behavioral_contract",
+    "hidden_suite_hash": "69915db1c97d8f31d1e8afbf7fae4d1838b3a47b97a13b3496886741f8c5e949",
+    "evaluator_environment_hash": "e1af84e85d8591c4b59b449e12ce126c4c38452621368652a9f0c4cf81db5a47",
+    "plan_hash": "a32d534121e73eb069b3efdcaef972d56d3a3c1922ada3be9fbe3937da6e046a",
+    "qualification_hash": "a32d534121e73eb069b3efdcaef972d56d3a3c1922ada3be9fbe3937da6e046a",
+    "qualification_result_hash": "1468bd9299ac9e8bcd782f6fad80bf609a2e094dc4f280a3e9f47c98cd890500",
+    "result_hash": "1468bd9299ac9e8bcd782f6fad80bf609a2e094dc4f280a3e9f47c98cd890500",
+    "starter_passed": 0,
+    "starter_total": 16,
+    "reference_passed": 16,
+    "reference_total": 16,
+    "formal_ready": true
+  },
+  "authoring_report": {
+    "dataset_id": "celery_v560_to_v563",
+    "public_issues": 12,
+    "heldout_issues": 4,
+    "hidden_contracts": 16,
+    "target": {
+      "public": 12,
+      "heldout": 4,
+      "hidden": 16
+    },
+    "shortfall_reason": "",
+    "rejected_candidates": [
+      {
+        "change_id": "pr_10013",
+        "reason": "needs_broker",
+        "detail": "Redis Sentinel ACL support; the redis client is not installed in the evaluator runtime and SentinelBackend cannot be constructed without it."
+      },
+      {
+        "change_id": "commit_4ec4dcaa84",
+        "reason": "needs_broker",
+        "detail": "Redis pub/sub get_connection signature change; requires the redis client."
+      },
+      {
+        "change_id": "pr_10020",
+        "reason": "needs_django",
+        "detail": "Django fixup pool closing; DjangoWorkerFixup imports django.db at construction time and django is not installed in the evaluator runtime."
+      },
+      {
+        "change_id": "pr_10015",
+        "reason": "needs_django",
+        "detail": "Django connection iteration; same dependency as pr_10020."
+      },
+      {
+        "change_id": "pr_10023",
+        "reason": "needs_django",
+        "detail": "Django prefork detection; same dependency as pr_10020."
+      },
+      {
+        "change_id": "pr_10045",
+        "reason": "needs_django",
+        "detail": "DjangoWorkerFixup recursion fix; same dependency as pr_10020. The pool_cls string hardening from the follow-up pr_10048 is covered instead."
+      },
+      {
+        "change_id": "pr_10100",
+        "reason": "needs_sphinx",
+        "detail": "Sphinx :task: cross-reference role; sphinx is not installed in the evaluator runtime and celery.contrib.sphinx cannot be imported."
+      },
+      {
+        "change_id": "pr_10121",
+        "reason": "needs_ephem",
+        "detail": "solar dusk_astronomical horizon sign; celery.schedules.solar imports ephem in its constructor and ephem is not installed. The only alternative would be to assert on the private _horizons table, which is an implementation check."
+      },
+      {
+        "change_id": "pr_10108",
+        "reason": "needs_sqlalchemy",
+        "detail": "date_done column defaults as callables; the model module imports sqlalchemy."
+      },
+      {
+        "change_id": "pr_10098",
+        "reason": "needs_sqlalchemy",
+        "detail": "date_done index; the model module imports sqlalchemy."
+      },
+      {
+        "change_id": "pr_10134",
+        "reason": "needs_sqlalchemy",
+        "detail": "NullPool kwarg filtering; celery.backends.database.session imports sqlalchemy."
+      },
+      {
+        "change_id": "pr_10086",
+        "reason": "windows_unsupported",
+        "detail": "asynpool _sentinel_poll guard; AsynPool is POSIX-only and celery's own suite skips these tests on win32, so the contract would fail on reference too."
+      },
+      {
+        "change_id": "pr_10151",
+        "reason": "windows_unsupported",
+        "detail": "AsynPool.flush rework needs a live prefork pool. The asynloop half of the same PR is covered by issue_event_loop_hub_teardown."
+      },
+      {
+        "change_id": "pr_10165",
+        "reason": "no_contract_possible",
+        "detail": "PEP 649 deferred annotations only differ on Python 3.14+; the evaluator runtime is 3.12 so starter and reference behave identically."
+      },
+      {
+        "change_id": "pr_10187",
+        "reason": "no_contract_possible",
+        "detail": "fun_accepts_kwargs via co_flags; same Python 3.14-only motivation. The only observable 3.12 difference is for functools.wraps wrappers, which is an accidental side effect rather than the required behaviour."
+      },
+      {
+        "change_id": "pr_10179",
+        "reason": "no_contract_possible",
+        "detail": "RPC result-consumer reconnect discriminates, but only reachable by substituting the consumer's private _connection/_consumer attributes, which would bind the contract to the current class layout."
+      },
+      {
+        "change_id": "pr_10189",
+        "reason": "no_contract_possible",
+        "detail": "reconnect_on_error extraction into BaseResultConsumer is a refactor of pr_10179 with the same reachability problem."
+      },
+      {
+        "change_id": "pr_10155",
+        "reason": "no_contract_possible",
+        "detail": "Docstring and reference-doc wording for the on_after_finalize signal; no runtime behaviour changes."
+      },
+      {
+        "change_id": "pr_10133",
+        "reason": "no_contract_possible",
+        "detail": "Missing space in an s3 backend error message; a contract would assert the exact wording, which is an implementation check, and boto3 is not installed."
+      },
+      {
+        "change_id": "pr_10037",
+        "reason": "chore",
+        "detail": "Release preparation for v5.6.1."
+      },
+      {
+        "change_id": "pr_10049",
+        "reason": "chore",
+        "detail": "Release preparation for v5.6.2."
+      },
+      {
+        "change_id": "pr_10221",
+        "reason": "chore",
+        "detail": "Release preparation for v5.6.3."
+      }
+    ]
+  }
+}

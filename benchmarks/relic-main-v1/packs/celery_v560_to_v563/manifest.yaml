@@ -1,0 +1,174 @@
+schema_version: org_env_oss_time_machine_pack_v2
+project_id: celery_v560_to_v563
+source_project_name: celery
+anonymized_product_name: celery
+company_name: Celery
+product_summary: Celery, a distributed task queue. Agents receive the complete v5.6.0 tag; the v5.6.3
+  tag, held-out demands and hidden contracts stay evaluator-only.
+license: BSD-3-Clause
+repo_url: https://github.com/celery/celery
+starter_ref: v5.6.0
+starter_commit: cca11164860a1bee6ad8626c27a683b482f741eb
+reference_ref: v5.6.3
+reference_commit: 3f4d8d795ad128bd7430cc5dc174a802cded425c
+reference_is_release: true
+starter_release_date: '2025-11-30'
+reference_release_date: '2026-03-26'
+freeze_date: '2026-08-01'
+issue_window_start: '2025-11-30T17:40:27Z'
+issue_window_end: '2026-03-26T12:21:23Z'
+frozen_scope: complete_tag_trees_plus_agent_visible_public_smoke
+github_archive:
+  changes_recorded: 57
+  path: provenance/github
+runtime_python: '>=3.12'
+runtime_dependencies:
+- pytest
+test_strategy:
+  runner: pytest
+  kind: executable_behavioral_contract
+  rationale: Every oracle exercises the frozen library through the public surface that already exists
+    on the starter endpoint, never through a symbol or helper the upstream patch introduced. A candidate
+    that produces the required behavior by another route therefore satisfies the contract, and copying
+    upstream's identifiers earns no credit on its own.
+evidence_kind: executable_behavioral_contract
+starter_repo_digest: 6cf79b55e48881a3513a3046589e0bb52d1ffc8eea44b9695d556d5511743524
+reference_repo_digest: e0e9b9e5bdead7aaaa9882120b2a338be490fea627d5500166dcd380d0526f78
+hidden_suite_hash: 69915db1c97d8f31d1e8afbf7fae4d1838b3a47b97a13b3496886741f8c5e949
+evaluator_environment_hash: e1af84e85d8591c4b59b449e12ce126c4c38452621368652a9f0c4cf81db5a47
+qualification_hash: a32d534121e73eb069b3efdcaef972d56d3a3c1922ada3be9fbe3937da6e046a
+qualification_result_hash: 1468bd9299ac9e8bcd782f6fad80bf609a2e094dc4f280a3e9f47c98cd890500
+result_hash: 1468bd9299ac9e8bcd782f6fad80bf609a2e094dc4f280a3e9f47c98cd890500
+agent_filesystem_isolation_required: true
+agent_filesystem_isolation_status: required_not_verified_by_pack
+agent_filesystem_isolation_requirement: The agent process must receive only the materialized starter workspace.
+  reference_repo, tests/hidden, issues/heldout, contamination and provenance must remain on an evaluator-only
+  filesystem that is not mounted or otherwise readable by the agent.
+contamination_status: probes_defined_not_executed
+contamination_note: Recognition, future-recall and patch-similarity probes are defined, but this Pack
+  records no completed model-specific contamination score or clearance.
+runtime_test_status:
+  behavioral_contracts: qualified_starter_0_of_16_reference_16_of_16
+  upstream_project_suite: not_run
+manual_runtime_test_caveat: The recorded starter and reference outcomes cover this Pack's own behavioral
+  contracts. The upstream project's full test suite was not run and is not claimed by this receipt.
+hidden_test_sources:
+- https://github.com/celery/celery/pull/10033
+- https://github.com/celery/celery/pull/10048
+- https://github.com/celery/celery/pull/10095
+- https://github.com/celery/celery/pull/10123
+- https://github.com/celery/celery/pull/10124
+- https://github.com/celery/celery/pull/10137
+- https://github.com/celery/celery/pull/10159
+- https://github.com/celery/celery/pull/10171
+- https://github.com/celery/celery/pull/10184
+- https://github.com/celery/celery/pull/10190
+- https://github.com/celery/celery/pull/10218
+- https://github.com/celery/celery/pull/9869
+- https://github.com/celery/celery/pull/9986
+contamination_controls:
+  model_cutoff_policy: pre_reference_cutoff_with_recognition_audit
+  code_anonymized: false
+  audit_tool: tools/oss_time_machine_audit.py
+  heldout_transfer: true
+  recommended_main_experiment_model: pre_2026-03-26_cutoff
+  notes: 'The starter tree is the unmodified upstream release, so the project is recognizable. Recognition
+    is audited rather than assumed away: later patches, reference code, held-out demands and hidden contracts
+    are evaluator-only and never enter product artifacts, perception, search, prompts or normal snapshots.'
+model_cutoff_policy: pre_reference_cutoff_with_recognition_audit
+anonymize:
+  replacements: {}
+agent_visible:
+  starter_repo: starter_repo
+  public_issues: issues/public
+  external_signals: external_signals
+private_evaluator_only:
+  reference_repo: reference_repo
+  hidden_tests: tests/hidden
+  heldout_issues: issues/heldout
+  contamination_probes: contamination
+  github_archive: provenance/github
+entrypoints:
+  cli:
+    command:
+    - python
+    - -m
+    - pytest
+    - tests/public
+    - -q
+  smoke:
+    command:
+    - python
+    - -m
+    - pytest
+    - tests/public
+    - -q
+public_tests:
+  command:
+  - python
+  - -m
+  - pytest
+  - tests/public
+  - -q
+  dependencies:
+  - pytest
+hidden_tests:
+  command:
+  - python
+  - -m
+  - pytest
+  - tests/hidden
+  - -q
+  dependencies:
+  - click
+  - kombu
+issue_stream:
+  schedule: by_tick
+  first_tick: 12
+  interval_ticks: 12
+evaluation:
+  primary_metrics:
+  - hidden_test_pass_rate
+  - causal_fix_rate
+  - issue_fix_rate
+  - regression_pass_rate
+  - release_smoke_ok
+  secondary_metrics:
+  - public_test_pass_rate
+  - heldout_transfer_rate
+  - external_adaptation
+controls:
+  default: none
+component_map:
+  canvas:
+  - celery/canvas.py
+  task_api:
+  - celery/app/task.py
+  task_execution:
+  - celery/app/trace.py
+  - celery/worker/request.py
+  beat_scheduler:
+  - celery/beat.py
+  - celery/worker/components.py
+  - celery/contrib/testing/worker.py
+  worker_control:
+  - celery/worker/control.py
+  worker_event_loop:
+  - celery/worker/loops.py
+  worker_consumer:
+  - celery/worker/consumer/consumer.py
+  - celery/worker/consumer/delayed_delivery.py
+  - requirements/default.txt
+  worker_shutdown:
+  - celery/apps/worker.py
+  - celery/__init__.py
+  result_backend:
+  - celery/app/defaults.py
+  - celery/backends/base.py
+  - celery/backends/database/__init__.py
+  - celery/backends/database/session.py
+  cli:
+  - celery/bin/base.py
+  - celery/bin/control.py
+  - celery/bin/events.py
+  - celery/bin/graph.py

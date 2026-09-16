@@ -1,0 +1,19 @@
+{
+  "issue_id": "issue_2_manifest_store",
+  "title": "Step 2 \u2014 Named manifests",
+  "issue_type": "feature",
+  "severity": "major",
+  "component": "2-manifest-store",
+  "candidate_path_hints": [
+    "blobstore/manifests.py"
+  ],
+  "created_tick": 24,
+  "source": "authored_greenfield_spec",
+  "source_type": "task_step",
+  "source_id": "2-manifest-store",
+  "body": "# Step 2 \u2014 Named manifests\n\nKeep Step 1 working and implement `blobstore.manifests`. Provide\n`ManifestStore(root, objects)` with `create`, `get`, `delete`, `iter_names`,\nand `referenced_ids`. Validate safe hierarchical names, object IDs, existence,\nand digest integrity before publishing canonical JSON atomically. Duplicate\nidentical creation is idempotent; conflicting replacement is rejected.",
+  "acceptance_hint": "# Step 2 \u2014 Named manifests  Keep Step 1 working and implement `blobstore.manifests`. Provide `ManifestStore(root, objects)` with `create`, `get`, `delete`, `iter_names`, and `referenced_ids`. Validate safe hierarchical names, object IDs, existence, and digest integrity before publishing canonical JSON atomically. Duplicate identical creation is idempotent; conflicting replacement is rejected.",
+  "linked_hidden_test_ids": [
+    "hidden_2_manifest_store"
+  ]
+}

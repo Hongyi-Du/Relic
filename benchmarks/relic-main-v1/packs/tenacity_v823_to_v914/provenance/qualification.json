@@ -1,0 +1,189 @@
+{
+  "dataset_id": "tenacity_v823_to_v914",
+  "product_name": "tenacity",
+  "starter_ref": "8.2.3",
+  "reference_ref": "9.1.4",
+  "evidence_kind": "executable_behavioral_contract",
+  "starter_repo_digest": "03dd8cb6abb31fa7f9828b9777a3e0510822798409a1511c68da1495342a8a2a",
+  "reference_repo_digest": "58aaf39661e4c4ef42c598f705e159ada3dcd6eac5853615068521e8968f8e7f",
+  "hidden_suite_hash": "6c2940eb14b3762c210e6558ff8c868d8aadb1da1280c821af85305209e6014b",
+  "evaluator_environment_hash": "e1af84e85d8591c4b59b449e12ce126c4c38452621368652a9f0c4cf81db5a47",
+  "qualification_hash": "417905dfb19069e7a94af77dfbd2d7f13f292c9bad0f2fa53872e03836302542",
+  "qualification_result_hash": "ff7d573b2052cb326458f257e3a8b42554d47f641ed55fcb5e85246e01606483",
+  "result_hash": "ff7d573b2052cb326458f257e3a8b42554d47f641ed55fcb5e85246e01606483",
+  "agent_filesystem_isolation_required": true,
+  "agent_filesystem_isolation_status": "required_not_verified_by_pack",
+  "contamination_status": "probes_defined_not_executed",
+  "manual_runtime_test_caveat": "The recorded starter and reference outcomes cover this Pack's own behavioral contracts. The upstream project's full test suite was not run and is not claimed by this receipt.",
+  "formal_ready": true,
+  "blocking_reasons": [],
+  "plan_hash": "417905dfb19069e7a94af77dfbd2d7f13f292c9bad0f2fa53872e03836302542",
+  "evaluator_environment": {
+    "schema_version": "org_env_pack_evaluator_environment_v1",
+    "runner": "pytest",
+    "plugin_autoload": "disabled",
+    "network": "none",
+    "python_version": "3.12.13",
+    "platform": "windows/amd64",
+    "requirements_lock": "benchmarks/org_env_pack_expansion/evaluator-windows-requirements.lock",
+    "requirements_lock_sha256": "630ea63f19075ce84676aa304a596545cffb182ab8537fb8223c185c4dcefd5d",
+    "hash": "e1af84e85d8591c4b59b449e12ce126c4c38452621368652a9f0c4cf81db5a47"
+  },
+  "qualification_result": {
+    "dataset_id": "tenacity_v823_to_v914",
+    "evidence_kind": "executable_behavioral_contract",
+    "qualification_hash": "417905dfb19069e7a94af77dfbd2d7f13f292c9bad0f2fa53872e03836302542",
+    "starter_hidden_passed": 0,
+    "starter_hidden_total": 16,
+    "reference_hidden_passed": 16,
+    "reference_hidden_total": 16,
+    "formal_ready": true,
+    "blocking_reasons": []
+  },
+  "oracles": [
+    {
+      "test_id": "hidden_wrapped_defaults_preserved",
+      "issue_ids": [
+        "issue_wrapped_defaults_preserved"
+      ],
+      "introduced_in": "9.1.4",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_stop_before_deadline",
+      "issue_ids": [
+        "issue_stop_before_deadline"
+      ],
+      "introduced_in": "9.1.4",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_async_lifecycle_callbacks",
+      "issue_ids": [
+        "issue_async_lifecycle_callbacks"
+      ],
+      "introduced_in": "9.1.4",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_async_retry_predicate",
+      "issue_ids": [
+        "issue_async_retry_predicate"
+      ],
+      "introduced_in": "9.1.4",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_import_cost_isolation",
+      "issue_ids": [
+        "issue_import_cost_isolation"
+      ],
+      "introduced_in": "9.1.4",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_async_callable_object_dispatch",
+      "issue_ids": [
+        "issue_async_callable_object_dispatch"
+      ],
+      "introduced_in": "9.1.4",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_async_retry_strategy_objects",
+      "issue_ids": [
+        "issue_async_retry_strategy_objects"
+      ],
+      "introduced_in": "9.1.4",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_trio_native_sleep",
+      "issue_ids": [
+        "issue_trio_native_sleep"
+      ],
+      "introduced_in": "9.1.4",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_wrapped_statistics_attribute",
+      "issue_ids": [
+        "issue_wrapped_statistics_attribute"
+      ],
+      "introduced_in": "9.1.4",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_random_exponential_lower_bound",
+      "issue_ids": [
+        "issue_random_exponential_lower_bound"
+      ],
+      "introduced_in": "9.1.4",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_before_sleep_log_formatting",
+      "issue_ids": [
+        "issue_before_sleep_log_formatting"
+      ],
+      "introduced_in": "9.1.4",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_wait_from_exception",
+      "issue_ids": [
+        "issue_wait_from_exception"
+      ],
+      "introduced_in": "9.1.4",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_async_wait_stop_strategies",
+      "issue_ids": [
+        "issue_async_wait_stop_strategies"
+      ],
+      "introduced_in": "9.1.4",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_async_retry_error_callback",
+      "issue_ids": [
+        "issue_async_retry_error_callback"
+      ],
+      "introduced_in": "9.1.4",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_after_log_precision",
+      "issue_ids": [
+        "issue_after_log_precision"
+      ],
+      "introduced_in": "9.1.4",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_sync_callable_async_sleep",
+      "issue_ids": [
+        "issue_sync_callable_async_sleep"
+      ],
+      "introduced_in": "9.1.4",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    }
+  ]
+}

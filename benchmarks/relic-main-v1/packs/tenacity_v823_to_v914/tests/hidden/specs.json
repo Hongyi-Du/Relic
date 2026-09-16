@@ -1,0 +1,354 @@
+[
+  {
+    "test_id": "hidden_wrapped_defaults_preserved",
+    "name": "a retry wrapper reports the argument defaults of the callable it wraps",
+    "rel_path": "test_wrapped_defaults_preserved.py",
+    "issue_ids": [
+      "issue_wrapped_defaults_preserved"
+    ],
+    "expected_behavior": "__defaults__ and __kwdefaults__ read off a retry-decorated callable (sync or async) equal what the undecorated callable reports, while the usual wrapper metadata stays intact",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "9.1.4",
+    "source_pr": "https://github.com/jd/tenacity/pull/406",
+    "source_commit": "310058274ed22a345e9c3917c97b4afd6363d5a5",
+    "reference_release": "9.1.4",
+    "source_url": "https://github.com/jd/tenacity/pull/406",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_wrapped_defaults_preserved.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_stop_before_deadline",
+    "name": "a deadline-bounded stop condition gives up before overrunning its budget",
+    "rel_path": "test_stop_before_deadline.py",
+    "issue_ids": [
+      "issue_stop_before_deadline"
+    ],
+    "expected_behavior": "stop_before_delay(D) stops at the last attempt whose elapsed time plus the upcoming pause is still under D, so total requested delay never reaches D; stop_after_delay keeps overrunning and stop_after_attempt is unchanged",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "9.1.4",
+    "source_pr": "https://github.com/jd/tenacity/pull/423",
+    "source_commit": "99e7482e8b027f0521315e0f7830a0badae5c561",
+    "reference_release": "9.1.4",
+    "source_url": "https://github.com/jd/tenacity/pull/423",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_stop_before_deadline.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_async_lifecycle_callbacks",
+    "name": "coroutine before/after/before-sleep hooks are awaited on the async path",
+    "rel_path": "test_async_lifecycle_callbacks.py",
+    "issue_ids": [
+      "issue_async_lifecycle_callbacks"
+    ],
+    "expected_behavior": "coroutine before / after / before_sleep hooks run in the same order and with the same attempt numbers as the equivalent plain hooks, which keep working",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "9.1.4",
+    "source_pr": "https://github.com/jd/tenacity/pull/437",
+    "source_commit": "bfa2c800ea17d5cbfacf51003627ada4a7c3691f",
+    "reference_release": "9.1.4",
+    "source_url": "https://github.com/jd/tenacity/pull/437",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_async_lifecycle_callbacks.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_async_retry_predicate",
+    "name": "a coroutine retry predicate decides the async loop instead of being treated as truthy",
+    "rel_path": "test_async_retry_predicate.py",
+    "issue_ids": [
+      "issue_async_retry_predicate"
+    ],
+    "expected_behavior": "an async retried function with a coroutine retry= predicate stops as soon as the predicate resolves to false and returns the last result, exactly like a plain predicate",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "9.1.4",
+    "source_pr": "https://github.com/jd/tenacity/pull/437",
+    "source_commit": "bfa2c800ea17d5cbfacf51003627ada4a7c3691f",
+    "reference_release": "9.1.4",
+    "source_url": "https://github.com/jd/tenacity/pull/437",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_async_retry_predicate.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_import_cost_isolation",
+    "name": "a bare package import does not load the asyncio machinery",
+    "rel_path": "test_import_cost_isolation.py",
+    "issue_ids": [
+      "issue_import_cost_isolation"
+    ],
+    "expected_behavior": "in a fresh interpreter, importing the package leaves asyncio out of sys.modules while the asynchronous retrying entry point and the synchronous names stay reachable from the package root",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "9.1.4",
+    "source_pr": "https://github.com/jd/tenacity/pull/450",
+    "source_commit": "cb15300d9b4358d9bdb6cfd33d433368700b3abe",
+    "reference_release": "9.1.4",
+    "source_url": "https://github.com/jd/tenacity/pull/450",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_import_cost_isolation.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_async_callable_object_dispatch",
+    "name": "a callable object whose call is a coroutine is dispatched to the async retry path",
+    "rel_path": "test_async_callable_object_dispatch.py",
+    "issue_ids": [
+      "issue_async_callable_object_dispatch"
+    ],
+    "expected_behavior": "decorating an instance whose __call__ is a coroutine produces an awaitable that retries the body until it succeeds; plain sync and plain async targets keep their existing dispatch",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "9.1.4",
+    "source_pr": "https://github.com/jd/tenacity/pull/451",
+    "source_commit": "21137e79ea6d59907b3b8d236c275c5190a612fe",
+    "reference_release": "9.1.4",
+    "source_url": "https://github.com/jd/tenacity/pull/451",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_async_callable_object_dispatch.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_async_retry_strategy_objects",
+    "name": "predicate retry strategies accept coroutines and compose with the synchronous ones",
+    "rel_path": "test_async_retry_strategy_objects.py",
+    "issue_ids": [
+      "issue_async_retry_strategy_objects"
+    ],
+    "expected_behavior": "tenacity.asyncio.retry provides retry_if_result / retry_if_exception over coroutine predicates, and combining a synchronous strategy with an asynchronous one via | yields a strategy the async loop evaluates; purely synchronous composition is unchanged",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "9.1.4",
+    "source_pr": "https://github.com/jd/tenacity/pull/451",
+    "source_commit": "21137e79ea6d59907b3b8d236c275c5190a612fe",
+    "reference_release": "9.1.4",
+    "source_url": "https://github.com/jd/tenacity/pull/451",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_async_retry_strategy_objects.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_trio_native_sleep",
+    "name": "the built-in backoff pause follows whichever async library is running",
+    "rel_path": "test_trio_native_sleep.py",
+    "issue_ids": [
+      "issue_trio_native_sleep"
+    ],
+    "expected_behavior": "a retried coroutine with a non-zero wait completes under Trio with no sleep function configured, still completes under asyncio, and an explicitly supplied pause function is still the one used",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "9.1.4",
+    "source_pr": "https://github.com/jd/tenacity/pull/463",
+    "source_commit": "ade0567151ea6c9494fbca94c777ab729922e527",
+    "reference_release": "9.1.4",
+    "source_url": "https://github.com/jd/tenacity/pull/463",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_trio_native_sleep.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_wrapped_statistics_attribute",
+    "name": "a decorated function publishes the statistics of its own last run",
+    "rel_path": "test_wrapped_statistics_attribute.py",
+    "issue_ids": [
+      "issue_wrapped_statistics_attribute"
+    ],
+    "expected_behavior": "fn.statistics reports the attempts the latest call took (sync and async) and is refreshed per call, while fn.retry stays the patchable configuration object and retry_with keeps working",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "9.1.4",
+    "source_pr": "https://github.com/jd/tenacity/pull/484",
+    "source_commit": "31fe2d0cf2505bffd0cf1ffda8c7e30450ce709f",
+    "reference_release": "9.1.4",
+    "source_url": "https://github.com/jd/tenacity/pull/484",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_wrapped_statistics_attribute.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_random_exponential_lower_bound",
+    "name": "the randomised exponential backoff window is bounded below as well as above",
+    "rel_path": "test_random_exponential_lower_bound.py",
+    "issue_ids": [
+      "issue_random_exponential_lower_bound"
+    ],
+    "expected_behavior": "every pause produced by the randomised exponential strategy configured with min M and max X lies in [M, X], the window still widens with the attempt number, and the deterministic exponential strategy is unchanged",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "9.1.4",
+    "source_pr": "https://github.com/jd/tenacity/pull/425",
+    "source_commit": "a662bbb487cd6d34541824589f8e8c7a1f7791bb",
+    "reference_release": "9.1.4",
+    "source_url": "https://github.com/jd/tenacity/pull/425",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_random_exponential_lower_bound.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_before_sleep_log_formatting",
+    "name": "the pre-sleep log line renders the upcoming delay as a readable number",
+    "rel_path": "test_before_sleep_log_formatting.py",
+    "issue_ids": [
+      "issue_before_sleep_log_formatting"
+    ],
+    "expected_behavior": "a combined wait of 0.1 + 0.2 logs 'in 0.3 seconds' by default, a supplied sec_format renders the delay with it, and the rest of the line is unchanged",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "9.1.4",
+    "source_pr": "https://github.com/jd/tenacity/pull/489",
+    "source_commit": "012dc0d77e527c6940d90300dcbe7ba8a3830ba4",
+    "reference_release": "9.1.4",
+    "source_url": "https://github.com/jd/tenacity/pull/489",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_before_sleep_log_formatting.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_wait_from_exception",
+    "name": "the backoff delay can be derived from the exception that was raised",
+    "rel_path": "test_wait_from_exception.py",
+    "issue_ids": [
+      "issue_wait_from_exception"
+    ],
+    "expected_behavior": "wait_exception(predicate) passes the raised exception to the predicate once per failed attempt and uses the returned number as that attempt's pause; the established wait strategies are untouched",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "9.1.4",
+    "source_pr": "https://github.com/jd/tenacity/pull/541",
+    "source_commit": "815c34fec2c8d64fe2bc8a6bdd79bfb41f1938c6",
+    "reference_release": "9.1.4",
+    "source_url": "https://github.com/jd/tenacity/pull/541",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_wait_from_exception.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_async_wait_stop_strategies",
+    "name": "coroutine wait and stop strategies steer the async retry loop",
+    "rel_path": "test_async_wait_stop_strategies.py",
+    "issue_ids": [
+      "issue_async_wait_stop_strategies"
+    ],
+    "expected_behavior": "a coroutine wait= strategy determines each pause and a coroutine stop= strategy decides when to give up, matching what the equivalent plain callables produce",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "9.1.4",
+    "source_pr": "https://github.com/jd/tenacity/pull/437",
+    "source_commit": "bfa2c800ea17d5cbfacf51003627ada4a7c3691f",
+    "reference_release": "9.1.4",
+    "source_url": "https://github.com/jd/tenacity/pull/437",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_async_wait_stop_strategies.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_async_retry_error_callback",
+    "name": "a coroutine give-up callback supplies the caller's fallback value",
+    "rel_path": "test_async_retry_error_callback.py",
+    "issue_ids": [
+      "issue_async_retry_error_callback"
+    ],
+    "expected_behavior": "when the attempt budget is exhausted on the async path, a coroutine retry_error_callback runs and the value it produces is what the caller receives; a plain callback behaves the same way",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "9.1.4",
+    "source_pr": "https://github.com/jd/tenacity/pull/437",
+    "source_commit": "bfa2c800ea17d5cbfacf51003627ada4a7c3691f",
+    "reference_release": "9.1.4",
+    "source_url": "https://github.com/jd/tenacity/pull/437",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_async_retry_error_callback.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_after_log_precision",
+    "name": "the post-attempt log line preserves the magnitude of the elapsed time",
+    "rel_path": "test_after_log_precision.py",
+    "issue_ids": [
+      "issue_after_log_precision"
+    ],
+    "expected_behavior": "an elapsed time of 0.0025 s round-trips out of the rendered line to within a tenth of a percent, a sub-millisecond elapsed time is not rendered as zero, and an explicit seconds format is honoured verbatim",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "9.1.4",
+    "source_pr": "https://github.com/jd/tenacity/pull/489",
+    "source_commit": "012dc0d77e527c6940d90300dcbe7ba8a3830ba4",
+    "reference_release": "9.1.4",
+    "source_url": "https://github.com/jd/tenacity/pull/489",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_after_log_precision.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_sync_callable_async_sleep",
+    "name": "an awaitable pause function makes the whole retry loop awaitable",
+    "rel_path": "test_sync_callable_async_sleep.py",
+    "issue_ids": [
+      "issue_sync_callable_async_sleep"
+    ],
+    "expected_behavior": "with an awaitable pause function a synchronous retried callable yields an awaitable whose pauses are actually performed; with a blocking pause function the call stays synchronous and unchanged",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "9.1.4",
+    "source_pr": "https://github.com/jd/tenacity/pull/551",
+    "source_commit": "24415ebbca6ecafdf870af06441656dd96149d1d",
+    "reference_release": "9.1.4",
+    "source_url": "https://github.com/jd/tenacity/pull/551",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_sync_callable_async_sleep.py",
+      "-q"
+    ]
+  }
+]

@@ -1,0 +1,23 @@
+{
+  "issue_id": "issue_converter_alias_default",
+  "title": "No way to tell a converter once that it should key on field aliases",
+  "issue_type": "feature",
+  "severity": "major",
+  "component": "converter_configuration",
+  "created_tick": 24,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#660",
+  "source_url": "https://github.com/python-attrs/cattrs/pull/660",
+  "created_at": "2025-06-26T07:26:11Z",
+  "labels": [],
+  "release": "v26.1.0",
+  "title_original": "Extract use_alias from converter by default",
+  "text_original": "Based on the discussion in #596, adds a `use_alias` argument to `Converter` (similar to `forbid_extra_keys') whose value is taken as default when structuring/unstructuring without specifying the corresponding argument to the method calls.",
+  "text_rewritten": "Our wire format uses the field aliases rather than the field names, and today that decision has to be restated for every single model we register a generated hook for. One missed model and half the payload silently uses the wrong keys. Other whole-converter policies (rejecting unknown keys, omitting defaults, detailed validation) can be set once on the converter; this one cannot. Please add the same kind of switch: `Converter(use_alias=...)`, defaulting to False so nothing changes for existing users, and `Converter.copy(use_alias=...)` so a copy can inherit or flip it. When it is on, both structuring and unstructuring should key on aliases for every model handled by that converter without any per-model configuration.",
+  "body": "Our wire format uses the field aliases rather than the field names, and today that decision has to be restated for every single model we register a generated hook for. One missed model and half the payload silently uses the wrong keys. Other whole-converter policies (rejecting unknown keys, omitting defaults, detailed validation) can be set once on the converter; this one cannot. Please add the same kind of switch: `Converter(use_alias=...)`, defaulting to False so nothing changes for existing users, and `Converter.copy(use_alias=...)` so a copy can inherit or flip it. When it is on, both structuring and unstructuring should key on aliases for every model handled by that converter without any per-model configuration.",
+  "acceptance_hint": "`Converter(use_alias=True)` makes both directions key on field aliases for every model, a plain copy of it keeps that setting, `copy(use_alias=False)` turns it off, and a default converter still keys on field names.",
+  "linked_hidden_test_ids": [
+    "hidden_converter_alias_default"
+  ]
+}

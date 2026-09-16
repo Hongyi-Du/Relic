@@ -1,0 +1,136 @@
+schema_version: org_env_oss_time_machine_pack_v2
+project_id: traffic_watch_v1
+source_project_name: traffic-violation-detection
+anonymized_product_name: traffic_violation_system
+company_name: traffic_violation_system
+product_summary: traffic_violation_system, built from the vendor brief for traffic-violation-detection.
+  The starter carries the package structure and signatures with every body removed; the reference implementation,
+  held-out demands and hidden contracts stay evaluator-only.
+license: vendor_sample
+starter_ref: skeleton
+reference_ref: 1.0.0
+reference_is_release: true
+frozen_scope: greenfield_skeleton_plus_reference_solution
+runtime_python: '>=3.11'
+runtime_dependencies:
+- cv2
+- flask
+- numpy
+test_strategy:
+  runner: pytest
+  kind: executable_behavioral_contract
+  rationale: Every contract runs the package through the public surface the brief specifies. The starter
+    exposes that surface already, so a contract fails on behaviour rather than on an import error, and
+    any implementation that behaves correctly earns it.
+evidence_kind: executable_behavioral_contract
+starter_repo_digest: 7799b7ccc408d5bfab26c8f3e62379a9994d8cd5e518efdea227855fff76ecd8
+reference_repo_digest: dfd7f5c8b191adb06d6eaaac5b39497e49144224a9de6918954267434d67ad37
+agent_filesystem_isolation_required: true
+contamination_status: probes_defined_not_executed
+contamination_clearance: false
+model_cutoff_policy: no_upstream_source_authored_for_this_study
+contamination_note: 'There is no upstream project and no public fix to recall: the
+  package is written from the vendor brief for this task. The recall detector still
+  applies and should be run, but the usual source of leakage is absent by construction.'
+agent_visible:
+  starter_repo: starter_repo
+  public_issues: issues/public
+private_evaluator_only:
+  reference_repo: reference_repo
+  hidden_tests: tests/hidden
+  heldout_issues: issues/heldout
+  contamination_probes: contamination
+entrypoints:
+  cli:
+    command: &id001
+    - python
+    - -m
+    - pytest
+    - tests/public
+    - -q
+    - --confcutdir=tests/public
+  smoke:
+    command: *id001
+public_tests:
+  command: *id001
+  dependencies: &id002
+  - pytest==8.3.3
+  - flask==3.0.3
+  - numpy==1.26.4
+  - opencv-python-headless==4.10.0.84
+hidden_tests:
+  command:
+  - python
+  - -m
+  - pytest
+  - tests/hidden
+  - -q
+  - --confcutdir=tests/hidden
+  dependencies: *id002
+issue_stream:
+  schedule: by_tick
+  first_tick: 12
+  interval_ticks: 12
+evaluation:
+  primary_metrics:
+  - hidden_test_pass_rate
+  - causal_fix_rate
+  - issue_fix_rate
+  - regression_pass_rate
+  secondary_metrics:
+  - public_test_pass_rate
+  - heldout_transfer_rate
+controls:
+  default: none
+component_map:
+  config:
+  - traffic_violation_system/config.py
+  # Ordered by where the work is, not alphabetically. The chooser used to open
+  # each issue's first file, and six of the seven public issues listed
+  # alerts.py first, so across twelve arm-runs alerts.py took 263 revisions
+  # while pipeline.py took one per arm -- and alerts.py is among the least
+  # changed files in the reference (+267 bytes against pipeline.py's +5524).
+  # The six contracts living in the untouched files were never once reached.
+  #
+  # rules.py carries 2110 bytes of the reference's violation logic and was
+  # named by no component at all, so nothing could reach it either.
+  dashboard:
+  - traffic_violation_system/dashboard.py
+  - traffic_violation_system/__init__.py
+  ocr_and_reports:
+  - traffic_violation_system/reports.py
+  - traffic_violation_system/pipeline.py
+  - traffic_violation_system/detection.py
+  - traffic_violation_system/violations.py
+  - traffic_violation_system/alerts.py
+  pipeline_helmet_seatbelt:
+  - traffic_violation_system/pipeline.py
+  - traffic_violation_system/rules.py
+  - traffic_violation_system/detection.py
+  - traffic_violation_system/violations.py
+  - traffic_violation_system/alerts.py
+  pipeline_reckless:
+  - traffic_violation_system/rules.py
+  - traffic_violation_system/pipeline.py
+  - traffic_violation_system/detection.py
+  - traffic_violation_system/violations.py
+  - traffic_violation_system/alerts.py
+  pipeline_red_light:
+  - traffic_violation_system/pipeline.py
+  - traffic_violation_system/rules.py
+  - traffic_violation_system/detection.py
+  - traffic_violation_system/violations.py
+  - traffic_violation_system/alerts.py
+  pipeline_speed_wrongway:
+  - traffic_violation_system/rules.py
+  - traffic_violation_system/pipeline.py
+  - traffic_violation_system/detection.py
+  - traffic_violation_system/violations.py
+  - traffic_violation_system/alerts.py
+  storage_alerts:
+  - traffic_violation_system/storage.py
+  - traffic_violation_system/alerts.py
+  - traffic_violation_system/violations.py
+  tracking:
+  - traffic_violation_system/tracking.py
+  - traffic_violation_system/detection.py

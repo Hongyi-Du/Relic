@@ -1,0 +1,34 @@
+{
+  "retry_decorator": [
+    "tenacity/__init__.py"
+  ],
+  "stop_strategies": [
+    "tenacity/stop.py",
+    "tenacity/__init__.py"
+  ],
+  "wait_strategies": [
+    "tenacity/wait.py",
+    "tenacity/__init__.py"
+  ],
+  "retry_predicates": [
+    "tenacity/retry.py",
+    "tenacity/_asyncio.py"
+  ],
+  "async_retry_runtime": [
+    "tenacity/_asyncio.py",
+    "tenacity/__init__.py"
+  ],
+  "retry_statistics": [
+    "tenacity/__init__.py"
+  ],
+  "logging_callbacks": [
+    "tenacity/before_sleep.py",
+    "tenacity/after.py",
+    "tenacity/before.py",
+    "tenacity/_utils.py"
+  ],
+  "package_import": [
+    "tenacity/__init__.py",
+    "tenacity/_asyncio.py"
+  ]
+}

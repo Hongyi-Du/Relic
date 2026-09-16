@@ -1,0 +1,32 @@
+{
+  "issue_id": "issue_event_loop_timer_cleanup",
+  "title": "Worker stays alive but stops consuming after repeated broker reconnects",
+  "issue_type": "bug",
+  "severity": "critical",
+  "component": "worker_event_loop",
+  "created_tick": 0,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#10218",
+  "source_url": "https://github.com/celery/celery/pull/10218",
+  "created_at": "2026-03-26T05:24:38Z",
+  "labels": [
+    "Component: Kombu",
+    "Component: Redis Broker",
+    "Worker",
+    "redis-py"
+  ],
+  "release": "v5.6.3",
+  "title_original": "fix: clear the timer while catch the exception",
+  "text_original": "## Summary\r\n\r\nFix `asynloop` to clear stale hub timer entries after a connection error, preventing a rapid restart loop that causes the worker to stop consuming tasks.\r\n\r\nCloses #10205. Companion fix to celery/kombu#2498.\r\n\r\n---\r\n\r\n## Root cause\r\n\r\nWhen the Redis connection drops, `maybe_restore_messages` — a periodic timer callback registered via `call_repeatedly(10, ...)` — fires and raises `redis.exceptions.ConnectionError` while trying to acquire a distributed lock. Because that exception class is in `hub.propagate_errors`, it escapes `fire_timers` and crashes the entire event loop in `asynloop`.\r\n\r\n`asynloop`'s exception handler already calls `hub.reset()` to clean up stale file descriptors, but `hub.reset()` does **not** clear `hub.timer._queue`. The periodic timer reschedules itself (via `call_repeatedly`'s `finally` block) even when it raises, so the stale entry stays in the queue.\r\n\r\nOn top of that, `register_with_event_loop` is called on every reconnect and appends a **new** timer entry for `maybe_restore_messages` without cancelling the old one. After N reconnects, there are N entries in the queue. Each one fires during the reconnect window, raises again, and triggers another restart — producing the \"worker alive but not consuming\" symptom.\r\n\r\n## Fix\r\n\r\nAdd `hub.timer.clear()` after `hub.reset()` in `asynloop`'s exception handler. This discards all stale timer entries so they cannot re-crash the loop during reconnect. All hub timers (`maybe_restore_messages`, heartbeat, autoscale, etc.) are re-registered by `register_with_event_loop` when `blueprint.start()` is called after reconnect, so clearing them here is safe.\r\n\r\nThe clear is intentionally skipped on graceful shutdown (`WorkerShutdown` / `WorkerTerminate` extend `SystemExit`, not `Exception`) so that timers keep firing while the pool drains.\r\n\r\n```python\r\n# celery/worker/loops.py\r\nexcept Exception:\r\n    try:\r\n        hub.reset()\r\n        hub.timer.clear()   # ← new\r\n    except Exception as exc:\r\n        logger.exception('Error cleaning up after event loop: %r', exc)\r\n    raise\r\n```\r\n\r\n## Related\r\n\r\n- Companion kombu PR: celery/kombu#2498— catches connection errors in `maybe_restore_messages` / `maybe_check_subclient_health` and cancels stale timer refs in `register_with_event_loop`\r\n- celery/kombu#2492 — fixes a related \"catatonic worker\" race condition in `_on_disconnect`\r\n",
+  "text_rewritten": "After a broker outage the worker reports itself alive but never consumes again. Each reconnect registers a fresh set of periodic callbacks against the event hub, and the ones registered against the previous, now-dead connection are never removed. Every one of them fires during the reconnect window, raises against the broken connection and knocks the loop over again -- a restart loop that never converges. A loop that aborts because the connection failed must leave no periodic callbacks behind; reconnecting registers them again. Discarding them has to happen even when the rest of the cleanup fails, and a loop that exits normally must leave its timers running so heartbeats continue while the pool drains.",
+  "body": "After a broker outage the worker reports itself alive but never consumes again. Each reconnect registers a fresh set of periodic callbacks against the event hub, and the ones registered against the previous, now-dead connection are never removed. Every one of them fires during the reconnect window, raises against the broken connection and knocks the loop over again -- a restart loop that never converges. A loop that aborts because the connection failed must leave no periodic callbacks behind; reconnecting registers them again. Discarding them has to happen even when the rest of the cleanup fails, and a loop that exits normally must leave its timers running so heartbeats continue while the pool drains.",
+  "acceptance_hint": "After an aborted consumer loop the hub's timer holds no periodic callbacks and was cleared exactly once; a graceful exit leaves them in place.",
+  "candidate_path_hints": [
+    "celery/worker/loops.py"
+  ],
+  "linked_hidden_test_ids": [
+    "hidden_event_loop_timer_cleanup"
+  ],
+  "hidden": true
+}

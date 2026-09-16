@@ -1,0 +1,23 @@
+{
+  "issue_id": "issue_async_retry_strategy_objects",
+  "title": "No predicate retry strategies for async code, and no way to combine them with the existing ones",
+  "issue_type": "feature",
+  "severity": "major",
+  "component": "retry_predicates",
+  "created_tick": 84,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#451",
+  "source_url": "https://github.com/jd/tenacity/pull/451",
+  "created_at": "2024-06-12T12:20:23Z",
+  "labels": [],
+  "release": "9.1.4",
+  "title_original": "Add async strategies",
+  "text_original": "Third and last PR after breaking down https://github.com/jd/tenacity/pull/433 (follows https://github.com/jd/tenacity/pull/437). After DRYing the `iter()` function and making `AsyncRetrying` support `async` callbacks, add new `async` strategies (basically a copy-paste) and improve typing. Release note: Added the ability to use async functions for retries. This way, you can now use asyncio coroutines for retry strategy predicates.",
+  "text_rewritten": "The result and exception predicate strategies are the readable way to express a retry policy, but their predicates have to be ordinary functions. Ours need to await something — a feature-flag lookup and a shared cache — so on the asynchronous path we are forced down to a raw `retry=` callable and have to rediscover how to inspect the outcome by hand, and once we do that we can no longer use `|` or `&` to combine it with the ordinary exception-type strategy we already rely on. Please provide asynchronous counterparts of the predicate strategies in a `tenacity.asyncio.retry` module: `retry_if_result(predicate)` and `retry_if_exception(predicate)` taking coroutine predicates over the returned value and the raised exception respectively, plus `retry_any(*strategies)` and `retry_all(*strategies)`. Combining an existing synchronous strategy with one of the new asynchronous ones through `|` or `&` must produce something the asynchronous retry loop can evaluate, in either operand order. Combining two synchronous strategies has to keep working exactly as it does today.",
+  "body": "The result and exception predicate strategies are the readable way to express a retry policy, but their predicates have to be ordinary functions. Ours need to await something — a feature-flag lookup and a shared cache — so on the asynchronous path we are forced down to a raw `retry=` callable and have to rediscover how to inspect the outcome by hand, and once we do that we can no longer use `|` or `&` to combine it with the ordinary exception-type strategy we already rely on. Please provide asynchronous counterparts of the predicate strategies in a `tenacity.asyncio.retry` module: `retry_if_result(predicate)` and `retry_if_exception(predicate)` taking coroutine predicates over the returned value and the raised exception respectively, plus `retry_any(*strategies)` and `retry_all(*strategies)`. Combining an existing synchronous strategy with one of the new asynchronous ones through `|` or `&` must produce something the asynchronous retry loop can evaluate, in either operand order. Combining two synchronous strategies has to keep working exactly as it does today.",
+  "acceptance_hint": "`retry_if_result` and `retry_if_exception` from `tenacity.asyncio.retry` accept coroutine predicates and drive an asynchronous retried function correctly; a synchronous strategy combined with an asynchronous one through `|` produces a strategy the asynchronous loop evaluates; purely synchronous composition is unchanged.",
+  "linked_hidden_test_ids": [
+    "hidden_async_retry_strategy_objects"
+  ]
+}

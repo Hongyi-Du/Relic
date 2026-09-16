@@ -1,0 +1,82 @@
+[
+  {
+    "post_id": "ext_seed_ct_1",
+    "author_id": "ext_user_lin",
+    "topic": "generic_type_resolution",
+    "content_summary": "Our whole codebase defers annotations and anything generic falls over at conversion time with a TypeError about the parametrized form. Non-generic models are fine, so we pin the old release for now.",
+    "stance": -0.4,
+    "credibility": 0.6,
+    "reach": 40,
+    "created_tick": 6
+  },
+  {
+    "post_id": "ext_seed_ct_2",
+    "author_id": "ext_user_mara",
+    "topic": "converter_configuration",
+    "content_summary": "Every whole-converter policy can be set once except the one we actually need, keying on aliases. We restate it per model and someone always forgets one.",
+    "stance": -0.2,
+    "credibility": 0.55,
+    "reach": 25,
+    "created_tick": 18
+  },
+  {
+    "post_id": "ext_seed_ct_3",
+    "author_id": "ext_user_devi",
+    "topic": "collection_hooks",
+    "content_summary": "Annotating a field as a read-only collection does not stop us getting a mutable one back, so our models are unhashable and callers mutate them. Mostly a documentation surprise, but it bites.",
+    "stance": -0.25,
+    "credibility": 0.5,
+    "reach": 30,
+    "created_tick": 42
+  },
+  {
+    "post_id": "ext_seed_ct_4",
+    "author_id": "ext_user_tomas",
+    "topic": "error_reporting",
+    "content_summary": "We run conversion in a worker pool. Errors coming back over the process boundary cannot be rebuilt, and the extra-keys message reshuffles its field names every run so our log dedup is useless.",
+    "stance": -0.35,
+    "credibility": 0.65,
+    "reach": 35,
+    "created_tick": 66
+  },
+  {
+    "post_id": "ext_seed_ct_5",
+    "author_id": "ext_user_priya",
+    "topic": "union_strategies",
+    "content_summary": "A plain JSON number gets rejected by a field typed as float even though the pass-through set includes both numeric types. Every type checker disagrees with that.",
+    "stance": -0.3,
+    "credibility": 0.6,
+    "reach": 28,
+    "created_tick": 84
+  },
+  {
+    "post_id": "ext_seed_ct_6",
+    "author_id": "ext_user_kenji",
+    "topic": "subclass_strategies",
+    "content_summary": "The subclass registry is great until the hierarchy is generic or uses mixins, then registering it just raises an AttributeError. Nice library otherwise.",
+    "stance": -0.15,
+    "credibility": 0.55,
+    "reach": 22,
+    "created_tick": 108
+  },
+  {
+    "post_id": "ext_seed_ct_7",
+    "author_id": "ext_user_sofia",
+    "topic": "enum_handling",
+    "content_summary": "Our enums carry tuples as member values and nothing round-trips - the payload still holds live enum objects and reading it back raises. Plain string enums are fine.",
+    "stance": -0.3,
+    "credibility": 0.6,
+    "reach": 26,
+    "created_tick": 132
+  },
+  {
+    "post_id": "ext_seed_ct_8",
+    "author_id": "ext_user_ade",
+    "topic": "hook_generation",
+    "content_summary": "Would love to describe per-field serialization next to the field instead of in a separate registered hook. Right now adding a field silently changes the payload shape.",
+    "stance": 0.1,
+    "credibility": 0.5,
+    "reach": 32,
+    "created_tick": 144
+  }
+]

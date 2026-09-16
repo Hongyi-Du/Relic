@@ -1,0 +1,21 @@
+{
+  "issue_id": "issue_retry",
+  "title": "Retry is not implemented",
+  "issue_type": "feature",
+  "severity": "medium",
+  "component": "retry",
+  "created_tick": 96,
+  "source": "vendor_task_brief",
+  "source_type": "requirements_document",
+  "source_id": "telegram-automation-tool",
+  "labels": [],
+  "release": "1.0.0",
+  "body": "`tg_automation.analysis.analyze_interactions(group_id, since=None, until=None, source=..., now=None)` returns a list of `UserInteraction` dataclass records with fields `user_id: int`, `username: str`, `messages_sent: int`, `reactions_given: int`, `last_active_at: datetime | None`, `active_days: int`, plus an `as_dict()` method whose keys match those field names. On the `UserInteraction` dataclass, `last_active_at` defaults to `None` and the integer counters `messages_sent`, `reactions_given`, and `active_days` each default to `0`, so callers may construct records by supplying only `user_id` and `username`. `last_active_at` is the maximum activity timestamp within the `[since, until)` window across every tracked `kind`, so both `\"message\"` and `\"reaction\"` events contribute; it is not limited to the timestamp of the last message alone. The window is the half-open interval `[since, until)` and defaults to the trailing 30 days when unspecified; passing `since >= until` or omitting `source` raises `ValueError`. The data source supplies messages via `iter_messages(group_id, since, until)` yielding dicts with `sender_id`, `username`, `kind` (`\"message\"` or `\"reaction\"`), optional `count` (default 1 for reactions), and `date` (ISO 8601, UTC); `active_days` counts distinct UTC calendar days containing any activity. Network failures from the source are retried via the shared retry helper.\n\n`growth bulk-invite --group <id> --csv <path>`: implemented as `tg_automation.growth.schedule_bulk_invites(group_id, csv_path, client)`, which reads a CSV that must contain a `username` column (a missing column raises `ValueError`) and calls `client.invite_user(group_id, username)` for each row, returning a list of `InviteResult` dataclass records with `group_id`, `username`, `status` (`\"invited\"` or `\"skipped\"`), and `error` (set when not invited). Each invite is wrapped in the retry helper so `FloodWaitError` and `NetworkError` are absorbed. In `schedule_bulk_invites`, any exception raised by `client.invite_user`, including exceptions outside `FloodWaitError`/`NetworkError` and including the case where `NetworkError` retries are exhausted, is logged and appended as an `InviteResult` with `status=\"skipped\"` and `error=str(exc)`, so a single bad row never aborts the remaining rows. When a row is skipped because retries are exhausted or because any other invite exception was raised, the `error` field carries the string representation of the underlying exception (`str(exc)`), which therefore includes the failing username as raised by the client.\n\nLong-running tasks (bulk analysis, bulk invites) survive Telegram `FloodWaitError` by sleeping for exactly the requested seconds and resuming, and survive transient network drops by retrying the failed call with exponential backoff (delay doubling from a `base_delay` of 1.0s) up to 5 attempts before logging and skipping the affected target. Both exceptions are exposed at `tg_automation.retry.FloodWaitError` (carrying a `seconds` attribute) and `tg_automation.retry.NetworkError`, and a `retry_with_backoff(fn, *, max_attempts=5, base_delay=1.0, sleep=time.sleep)` helper implements the policy. `tg_automation.retry` imports `time` as a module attribute and `retry_with_backoff` resolves its `sleep` callable at call time, falling back to `tg_automation.retry.time.sleep` when the caller does not pass one, so tests can redirect sleeps by monkeypatching `tg_automation.retry.time.sleep`.",
+  "acceptance_hint": "3 executable checks over the retry surface.",
+  "linked_hidden_test_ids": [
+    "hidden_retry"
+  ],
+  "candidate_path_hints": [
+    "tg_automation/retry.py"
+  ]
+}

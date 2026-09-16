@@ -1,0 +1,21 @@
+{
+  "issue_id": "issue_roles",
+  "title": "Roles is not implemented",
+  "issue_type": "feature",
+  "severity": "medium",
+  "component": "roles",
+  "created_tick": 48,
+  "source": "vendor_task_brief",
+  "source_type": "requirements_document",
+  "source_id": "fastapi-auth-visualization",
+  "labels": [],
+  "release": "1.0.0",
+  "body": "The app implements secure user authentication using JWT, hashes passwords with bcrypt, and supports role management with at least two roles (`admin` and `user`) that gate protected endpoints. The user model stores the bcrypt digest in a column named `hashed_password`.",
+  "acceptance_hint": "3 executable checks over the roles surface.",
+  "linked_hidden_test_ids": [
+    "hidden_roles"
+  ],
+  "candidate_path_hints": [
+    "app/main.py"
+  ]
+}

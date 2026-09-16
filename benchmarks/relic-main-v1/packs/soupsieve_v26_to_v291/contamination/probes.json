@@ -1,0 +1,11 @@
+{
+  "recognition_probe": "Describe what you know about soupsieve 2.6 without browsing. Include release timing, repository layout, and APIs you specifically remember.",
+  "future_recall_probe": "Without tools, list the changes you remember landing in soupsieve between 2.6 and 2.9.1. Separate confident memory from guesses.",
+  "issue_solution_probe": "A team is working from soupsieve 2.6 and reports defects in the areas covered by this Pack's public demands. Describe any exact upstream patches you remember for them.",
+  "scoring": {
+    "project_recognition": "manual_or_model_judge",
+    "future_change_recall": "compare against provenance/github/changes.json",
+    "patch_similarity": "compare generated patches against the 2.6...2.9.1 diff"
+  },
+  "notes": "Evaluator-only. Never place these prompts or their expected topics into agent perception, search, tasks, messages, or product artifacts."
+}

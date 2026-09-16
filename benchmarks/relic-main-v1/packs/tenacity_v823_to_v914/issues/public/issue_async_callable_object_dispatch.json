@@ -1,0 +1,23 @@
+{
+  "issue_id": "issue_async_callable_object_dispatch",
+  "title": "Decorating a callable object with an async call runs it once and never retries",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "retry_decorator",
+  "created_tick": 72,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#451",
+  "source_url": "https://github.com/jd/tenacity/pull/451",
+  "created_at": "2024-06-12T12:20:23Z",
+  "labels": [],
+  "release": "9.1.4",
+  "title_original": "Add async strategies",
+  "text_original": "Third and last PR after breaking down https://github.com/jd/tenacity/pull/433 (follows https://github.com/jd/tenacity/pull/437). After DRYing the `iter()` function and making `AsyncRetrying` support `async` callbacks, add new `async` strategies (basically a copy-paste) and improve typing.",
+  "text_rewritten": "Our clients are objects rather than functions: the class implements `__call__` as a coroutine and we decorate the instance. The decorator routes it to the synchronous retry path, so the target is invoked exactly once, the coroutine object it returns is recorded as a successful result, and the caller gets an un-started coroutine back. Awaiting that coroutine afterwards runs the body a single time with no retrying whatsoever, which means a transient failure just propagates. Rewriting the same logic as a module-level coroutine function retries correctly, so the difference is entirely in how the decorator decides whether the target is asynchronous — it appears to recognise only plain coroutine functions and not other callables whose call is a coroutine. Plain synchronous and plain asynchronous targets must keep the dispatch they have today.",
+  "body": "Our clients are objects rather than functions: the class implements `__call__` as a coroutine and we decorate the instance. The decorator routes it to the synchronous retry path, so the target is invoked exactly once, the coroutine object it returns is recorded as a successful result, and the caller gets an un-started coroutine back. Awaiting that coroutine afterwards runs the body a single time with no retrying whatsoever, which means a transient failure just propagates. Rewriting the same logic as a module-level coroutine function retries correctly, so the difference is entirely in how the decorator decides whether the target is asynchronous — it appears to recognise only plain coroutine functions and not other callables whose call is a coroutine. Plain synchronous and plain asynchronous targets must keep the dispatch they have today.",
+  "acceptance_hint": "Decorating an instance whose `__call__` is a coroutine yields an awaitable that retries the body until it succeeds; plain synchronous functions still return their value directly and plain coroutine functions still behave exactly as before.",
+  "linked_hidden_test_ids": [
+    "hidden_async_callable_object_dispatch"
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "issue_id": "issue_beat_pool_name_guard",
+  "title": "Embedded beat crashes with AttributeError instead of rejecting a green pool",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "beat_scheduler",
+  "created_tick": 48,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#10048",
+  "source_url": "https://github.com/celery/celery/pull/10048",
+  "created_at": "2026-01-05T18:42:00Z",
+  "labels": [],
+  "release": "v5.6.3",
+  "title_original": "Fix Django worker recursion bug + defensive checks for pool_cls.__module__",
+  "text_original": "## Description\n\nThis PR builds on top of #10045 by @bruunotrindade to add defensive checks for `pool_cls.__module__` access in additional locations throughout the codebase.\n\n### Root Cause (from #10045)\n\n`DjangoWorkerFixup.__init__` was creating a `WorkController` instance via the `worker` or `WorkController(app)` pattern. This created a circular dependency where:\n\n- `WorkController.__init__` triggers the `worker_init` signal\n- `DjangoFixup.on_worker_init` creates/accesses `DjangoWorkerFixup`\n- `DjangoWorkerFixup.__init__` tries to create another `WorkController`\n- Infinite recursion ensues\n\nAdditionally, `pool_cls` can be a string (e.g., `'prefork'`, `'solo'`, `'gevent'`) instead of a class object, which causes `AttributeError: 'str' object has no attribute '__module__'` when trying to access `pool_cls.__module__`.\n\n### Changes in this PR\n\nThis PR includes all changes from #10045 plus:\n\n1. **`celery/contrib/testing/worker.py`**: Added defensive check for `pool_cls` being a string in `TestWorkController.__init__`\n\n2. **`celery/worker/components.py`**: Added defensive check for `pool_cls` being a string in `Beat.create`\n\n3. **New unit tests**: Added tests to verify the defensive checks work correctly when `pool_cls` is a string\n\n### Pattern Applied\n\n```python\n# Before (can raise AttributeError if pool_cls is a string)\nif w.pool_cls.__module__.endswith(('gevent', 'eventlet')):\n\n# After (handles both string and class pool_cls)\npool_module = w.pool_cls if isinstance(w.pool_cls, str) else w.pool_cls.__module__\nif pool_module.endswith(('gevent', 'eventlet')):\n```\n\n## Testing\n\n- All existing unit tests pass\n- Added 2 new tests for `Beat.create` with string pool_cls\n- Pre-commit hooks pass (flake8, mypy, isort, etc.)\n- Test coverage maintained\n\n## Related Issues\n\n- #10042 - Original issue reporting RecursionError\n- #10045 - Original PR by @bruunotrindade fixing the root cause\n- #10023 - Previous attempts to fix the issue\n\n## Acknowledgments\n\nThanks to @bruunotrindade for identifying and fixing the root cause in #10045. This PR extends that fix to cover additional edge cases.",
+  "text_rewritten": "Starting a worker with an embedded beat on a green (eventlet/gevent) pool used to fail with a clear configuration error telling you to run beat standalone. When the pool is given by name on the command line instead of as an already-resolved class, the same start-up now dies with \"AttributeError: 'str' object has no attribute '__module__'\" -- the guard reads module metadata off what is just a plain string. Pool selection can legitimately arrive either way, and the guard has to recognise a green pool in both forms. Pools that are not green must keep starting normally when named the same way.",
+  "body": "Starting a worker with an embedded beat on a green (eventlet/gevent) pool used to fail with a clear configuration error telling you to run beat standalone. When the pool is given by name on the command line instead of as an already-resolved class, the same start-up now dies with \"AttributeError: 'str' object has no attribute '__module__'\" -- the guard reads module metadata off what is just a plain string. Pool selection can legitimately arrive either way, and the guard has to recognise a green pool in both forms. Pools that are not green must keep starting normally when named the same way.",
+  "acceptance_hint": "Creating the embedded-beat bootstep against a green pool raises the configuration error whether the pool arrives as the string 'gevent'/'eventlet' or as a class, while a non-green pool name still builds the embedded service.",
+  "candidate_path_hints": [
+    "celery/worker/components.py",
+    "celery/contrib/testing/worker.py"
+  ],
+  "linked_hidden_test_ids": [
+    "hidden_beat_pool_name_guard"
+  ]
+}

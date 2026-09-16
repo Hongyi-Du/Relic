@@ -1,0 +1,28 @@
+{
+  "issue_id": "issue_chain_step_dispatch_no_mutation",
+  "title": "Chain steps go missing when a message is retried or redelivered",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "task_execution",
+  "created_tick": 120,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#10159",
+  "source_url": "https://github.com/celery/celery/pull/10159",
+  "created_at": "2026-03-09T11:06:27Z",
+  "labels": [
+    "Component: Canvas"
+  ],
+  "release": "v5.6.3",
+  "title_original": "fix(trace): dispatch chain/callbacks on dedup fast-path for redelivered tasks",
+  "text_original": "## Description\r\n\r\nFixes #9835\r\n\r\nWhen using `acks_late=True` with `worker_deduplicate_successful_tasks=True`, the deduplication fast-path in `build_tracer()` returns immediately for redelivered tasks that are already `SUCCESS` in the backend — without dispatching the chain or callbacks. If the original worker crashed after storing `SUCCESS` but before the broker ack, the redelivered message hits this fast-path and the chain is permanently lost.\r\n\r\nAdditionally, `chain.pop()` mutates `task_request.chain` in-place, which can lose chain steps on retry or redelivery within the same worker process.\r\n\r\n## Changes\r\n\r\n**`celery/app/trace.py`**\r\n\r\n- **Dedup fast-path dispatches chain/callbacks**: When the backend-dedup path detects `SUCCESS` for a redelivered task, it now retrieves the stored result and dispatches any pending callbacks and chain steps using the same logic as the normal success path (callbacks first, then chain).\r\n- **Children guard**: Checks `_get_task_meta().get('children')` before dispatching — if children are already recorded, the original execution already dispatched successfully, so re-dispatch is skipped.\r\n- **`successful_requests` guard**: Adds the task to `successful_requests` only after successful dispatch, so a dispatch failure allows retry on next redelivery.\r\n- **Non-mutating chain access**: Replaces `chain.pop()` with `chain[-1]` / `chain[:-1]` to avoid mutating `task_request.chain` in-place.\r\n\r\n**`t/unit/tasks/test_trace.py`**\r\n\r\n- 11 new tests covering: backend-dedup chain dispatch, multi-element chains, callback dispatch, combined chain+callbacks, in-memory dedup (correctly skips), chain mutation, children guard, dispatch failure logging, and `successful_requests` bookkeeping.\r\n\r\n## Checklist\r\n\r\n- [x] Make sure any change or new feature has a unit and/or integration test.\r\n      11 new unit tests added in `t/unit/tasks/test_trace.py`, 55 total pass.\r\n- [x] Make sure unit test coverage does not decrease.\r\n      `pytest --cov=celery.app.trace` reports **91%** on `celery/app/trace.py`.\r\n- [x] Run `pre-commit` against the code.\r\n      `pre-commit run --all-files` — all hooks pass (pyupgrade, flake8, yesqa, codespell, isort, mypy).\r\n- [x] Build api docs to make sure everything is OK.\r\n      No new public API added — changes are internal to `build_tracer()` closure.\r\n- [x] Build configcheck.\r\n      No new configuration options added.\r\n- [x] Run `bandit` to make sure there's no security issues.\r\n      `bandit -b bandit.json celery/app/trace.py` — no issues identified.\r\n- [x] Confirm `isort` on any new or modified imports.\r\n      `isort celery/app/trace.py t/unit/tasks/test_trace.py --diff` — no changes needed.",
+  "text_rewritten": "When a task that is part of a chain is retried or redelivered inside the same worker process, part of the chain silently disappears -- the workflow stops partway with nothing logged anywhere. Dispatching the next step consumes the pending-chain list carried on the request instead of reading from it, so a second pass over the same request sees a shorter chain than the first. The request is the only record of what still has to run and has to survive being handled more than once: tracing the same request twice must dispatch the same remainder both times. The task's own result must still be recorded exactly as it is today.",
+  "body": "When a task that is part of a chain is retried or redelivered inside the same worker process, part of the chain silently disappears -- the workflow stops partway with nothing logged anywhere. Dispatching the next step consumes the pending-chain list carried on the request instead of reading from it, so a second pass over the same request sees a shorter chain than the first. The request is the only record of what still has to run and has to survive being handled more than once: tracing the same request twice must dispatch the same remainder both times. The task's own result must still be recorded exactly as it is today.",
+  "acceptance_hint": "Tracing a task whose request carries a pending chain leaves that list unchanged, tracing the same request twice dispatches the same remainder, and the task's own result is still recorded.",
+  "candidate_path_hints": [
+    "celery/app/trace.py"
+  ],
+  "linked_hidden_test_ids": [
+    "hidden_chain_step_dispatch_no_mutation"
+  ]
+}

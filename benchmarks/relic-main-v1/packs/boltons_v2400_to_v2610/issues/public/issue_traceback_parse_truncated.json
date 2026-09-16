@@ -1,0 +1,26 @@
+{
+  "issue_id": "issue_traceback_parse_truncated",
+  "title": "Parsing a traceback taken from a log crashes when the tail is missing",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "traceback_tools",
+  "candidate_path_hints": [
+    "boltons/tbutils.py"
+  ],
+  "created_tick": 84,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#401",
+  "source_url": "https://github.com/mahmoud/boltons/pull/401",
+  "created_at": "2026-06-17T20:53:46Z",
+  "labels": [],
+  "release": "26.1.0",
+  "title_original": "fix(tbutils): avoid IndexError in ParsedException.from_string on truncated tracebacks",
+  "text_original": "`ParsedException.from_string` raises `IndexError` when the last frame has a source line but no following line (a truncated traceback with no exception line). The anchor-handling added in #332 unconditionally reads `tb_lines[line_no + 1]`, which overruns the list.\n\n```python\nfrom boltons.tbutils import ParsedException\nParsedException.from_string('''Traceback (most recent call last):\n  File \"main.py\", line 3, in <module>\n    print(add(1, 2))''')\n# IndexError: list index out of range\n```\n\nThe anchor lookahead is now bounds-checked and only runs after a source line was consumed (anchors only follow source lines). The main loop also stops once the lines are exhausted instead of relying on an out-of-range access. Added a regression test; existing tbutils tests still pass.",
+  "text_rewritten": "We feed traceback text scraped out of log files into the traceback-parsing helper. Whenever the captured text stops after the last source line — no closing \"SomeError: message\" line, because the log was rotated or the field was truncated — the parser raises IndexError instead of returning what it could read. One truncated record takes down the whole batch.\n\nA clipped traceback should parse into the frames it does contain, including the case where it stops immediately after a frame header. A complete traceback must keep round-tripping to exactly the text it came from.",
+  "body": "We feed traceback text scraped out of log files into the traceback-parsing helper. Whenever the captured text stops after the last source line — no closing \"SomeError: message\" line, because the log was rotated or the field was truncated — the parser raises IndexError instead of returning what it could read. One truncated record takes down the whole batch.\n\nA clipped traceback should parse into the frames it does contain, including the case where it stops immediately after a frame header. A complete traceback must keep round-tripping to exactly the text it came from.",
+  "acceptance_hint": "Parsing a traceback whose text ends before the exception line returns the frames it does contain instead of raising, and a complete traceback still round-trips to the identical text.",
+  "linked_hidden_test_ids": [
+    "hidden_traceback_parse_truncated"
+  ]
+}

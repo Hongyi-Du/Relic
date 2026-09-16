@@ -1,0 +1,23 @@
+{
+  "issue_id": "issue_wait_from_exception",
+  "title": "No way to take the backoff delay from the failure itself",
+  "issue_type": "feature",
+  "severity": "medium",
+  "component": "wait_strategies",
+  "created_tick": 144,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#541",
+  "source_url": "https://github.com/jd/tenacity/pull/541",
+  "created_at": "2025-11-05T06:58:22Z",
+  "labels": [],
+  "release": "9.1.4",
+  "title_original": "feat(wait): add `wait_exception` strategy",
+  "text_original": "Just a small feature I frequently use with HTTP requests, in case you are interested.",
+  "text_rewritten": "When a server answers 429 it tells us exactly how long to wait; when it answers 503 we want our own, longer pause. Today every wait strategy derives the delay from the attempt number or from a constant, so the only way to honour what the server told us is to write a raw callable and rediscover how to pull the exception out of the retry state — and every one of our services has now done that slightly differently, with slightly different bugs. Please add a public wait strategy named `wait_exception(predicate)`, exported from the package root, where `predicate` receives the exception that was raised and returns the number of seconds to pause before the next attempt. All the existing wait strategies must be left untouched.",
+  "body": "When a server answers 429 it tells us exactly how long to wait; when it answers 503 we want our own, longer pause. Today every wait strategy derives the delay from the attempt number or from a constant, so the only way to honour what the server told us is to write a raw callable and rediscover how to pull the exception out of the retry state — and every one of our services has now done that slightly differently, with slightly different bugs. Please add a public wait strategy named `wait_exception(predicate)`, exported from the package root, where `predicate` receives the exception that was raised and returns the number of seconds to pause before the next attempt. All the existing wait strategies must be left untouched.",
+  "acceptance_hint": "`wait_exception(predicate)` calls the predicate once per failed attempt, hands it the raised exception, and uses the number it returns as that attempt's pause; chained and fixed waits behave exactly as before.",
+  "linked_hidden_test_ids": [
+    "hidden_wait_from_exception"
+  ]
+}

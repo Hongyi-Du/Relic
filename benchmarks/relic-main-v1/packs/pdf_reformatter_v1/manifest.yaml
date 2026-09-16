@@ -1,0 +1,90 @@
+schema_version: org_env_oss_time_machine_pack_v2
+project_id: pdf_reformatter_v1
+source_project_name: pdf-overflow-converter
+anonymized_product_name: pdf_reformatter
+company_name: pdf_reformatter
+product_summary: pdf_reformatter, built from the vendor brief for pdf-overflow-converter. The starter
+  carries the package structure and signatures with every body removed; the reference implementation,
+  held-out demands and hidden contracts stay evaluator-only.
+license: vendor_sample
+starter_ref: skeleton
+reference_ref: 1.0.0
+reference_is_release: true
+frozen_scope: greenfield_skeleton_plus_reference_solution
+runtime_python: '>=3.11'
+runtime_dependencies:
+- docx
+- pdfplumber
+- reportlab
+test_strategy:
+  runner: pytest
+  kind: executable_behavioral_contract
+  rationale: Every contract runs the package through the public surface the brief specifies. The starter
+    exposes that surface already, so a contract fails on behaviour rather than on an import error, and
+    any implementation that behaves correctly earns it.
+evidence_kind: executable_behavioral_contract
+starter_repo_digest: aef73cb06cebea6d14cd1a0dcd3cb68e7e7702db71128997688fe58dcb6c2f50
+reference_repo_digest: 2b4d2f3595caca201c1d0c5bcc46bbe731c24f4d3de7685278d4a24c5828ef15
+agent_filesystem_isolation_required: true
+agent_visible:
+  starter_repo: starter_repo
+  public_issues: issues/public
+private_evaluator_only:
+  reference_repo: reference_repo
+  hidden_tests: tests/hidden
+  heldout_issues: issues/heldout
+entrypoints:
+  cli:
+    command: &id001
+    - python
+    - -m
+    - pytest
+    - tests/public
+    - -q
+    - --confcutdir=tests/public
+  smoke:
+    command: *id001
+public_tests:
+  command: *id001
+  dependencies: &id002
+  - pdfplumber==0.11.4
+  - reportlab==4.2.5
+  - python-docx==1.1.2
+  - pypdf==5.1.0
+  - pytest==8.3.3
+hidden_tests:
+  command:
+  - python
+  - -m
+  - pytest
+  - tests/hidden
+  - -q
+  - --confcutdir=tests/hidden
+  dependencies: *id002
+issue_stream:
+  schedule: by_tick
+  first_tick: 12
+  interval_ticks: 12
+evaluation:
+  primary_metrics:
+  - hidden_test_pass_rate
+  - causal_fix_rate
+  - issue_fix_rate
+  - regression_pass_rate
+  secondary_metrics:
+  - public_test_pass_rate
+  - heldout_transfer_rate
+controls:
+  default: none
+component_map:
+  cli:
+  - pdf_reformatter/cli.py
+  extract:
+  - pdf_reformatter/extract.py
+  layout:
+  - pdf_reformatter/extract.py
+  - pdf_reformatter/layout.py
+  writers:
+  - pdf_reformatter/extract.py
+  - pdf_reformatter/layout.py
+  - pdf_reformatter/writers.py

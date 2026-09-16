@@ -1,0 +1,178 @@
+schema_version: org_env_oss_time_machine_pack_v2
+project_id: boltons_v2400_to_v2610
+source_project_name: boltons
+anonymized_product_name: boltons
+company_name: Boltons
+product_summary: boltons, a collection of pure-Python utilities that extend the standard library. Agents
+  receive the complete 24.0.0 tag; the 26.1.0 tag, held-out demands and hidden contracts stay evaluator-only.
+license: BSD-3-Clause
+repo_url: https://github.com/mahmoud/boltons
+starter_ref: 24.0.0
+starter_commit: 992a58c1036fcf4d52cbf3313b6217b7c07b11d9
+reference_ref: 26.1.0
+reference_commit: 1d525271754ed7aea7f2347ed16ddbcedb1097a3
+reference_is_release: true
+starter_release_date: '2024-03-31'
+reference_release_date: '2026-07-17'
+freeze_date: '2026-08-01'
+issue_window_start: '2024-03-31T22:43:26Z'
+issue_window_end: '2026-07-17T18:33:18Z'
+frozen_scope: complete_tag_trees_plus_agent_visible_public_smoke
+github_archive:
+  changes_recorded: 50
+  path: provenance/github
+runtime_python: '>=3.12'
+runtime_dependencies:
+- pytest
+test_strategy:
+  runner: pytest
+  kind: executable_behavioral_contract
+  rationale: Every oracle exercises the frozen library through the public surface that already exists
+    on the starter endpoint, never through a symbol or helper the upstream patch introduced. A candidate
+    that produces the required behavior by another route therefore satisfies the contract, and copying
+    upstream's identifiers earns no credit on its own.
+evidence_kind: executable_behavioral_contract
+starter_repo_digest: e07ee67383526ff6243069c095e39739e2e63ccf927a897784481c17f45bc802
+reference_repo_digest: 9d77826432ca16a94b5bc9979dbb229368013e5c572e39af137b61cb1e3a634a
+hidden_suite_hash: 51b3470be05eab44e69d79c08494947e03778b0724f27f9264e56bd48f4545db
+evaluator_environment_hash: e1af84e85d8591c4b59b449e12ce126c4c38452621368652a9f0c4cf81db5a47
+qualification_hash: 88d63c99ba46f7950f6483dea8534ae72720c2a36896ea4d0788962bf09553c9
+qualification_result_hash: b1a49382871364af5015c3c9f201322fdd42052d381259fc0c570ebffb606265
+result_hash: b1a49382871364af5015c3c9f201322fdd42052d381259fc0c570ebffb606265
+agent_filesystem_isolation_required: true
+agent_filesystem_isolation_status: required_not_verified_by_pack
+agent_filesystem_isolation_requirement: The agent process must receive only the materialized starter workspace.
+  reference_repo, tests/hidden, issues/heldout, contamination and provenance must remain on an evaluator-only
+  filesystem that is not mounted or otherwise readable by the agent.
+contamination_status: probes_defined_not_executed
+contamination_note: Recognition, future-recall and patch-similarity probes are defined, but this Pack
+  records no completed model-specific contamination score or clearance.
+runtime_test_status:
+  behavioral_contracts: qualified_starter_0_of_16_reference_16_of_16
+  upstream_project_suite: not_run
+manual_runtime_test_caveat: The recorded starter and reference outcomes cover this Pack's own behavioral
+  contracts. The upstream project's full test suite was not run and is not claimed by this receipt.
+hidden_test_sources:
+- https://github.com/mahmoud/boltons/commit/609cabe932a1ea1423b24568644945abb1b8bb84
+- https://github.com/mahmoud/boltons/commit/c8c442b98b8cff6d0aee61e61e28d4cb0be0ac21
+- https://github.com/mahmoud/boltons/pull/358
+- https://github.com/mahmoud/boltons/pull/375
+- https://github.com/mahmoud/boltons/pull/381
+- https://github.com/mahmoud/boltons/pull/386
+- https://github.com/mahmoud/boltons/pull/389
+- https://github.com/mahmoud/boltons/pull/394
+- https://github.com/mahmoud/boltons/pull/401
+- https://github.com/mahmoud/boltons/pull/403
+- https://github.com/mahmoud/boltons/pull/404
+- https://github.com/mahmoud/boltons/pull/406
+- https://github.com/mahmoud/boltons/pull/410
+- https://github.com/mahmoud/boltons/pull/416
+- https://github.com/mahmoud/boltons/pull/418
+- https://github.com/mahmoud/boltons/pull/424
+contamination_controls:
+  model_cutoff_policy: pre_reference_cutoff_with_recognition_audit
+  code_anonymized: false
+  audit_tool: tools/oss_time_machine_audit.py
+  heldout_transfer: true
+  recommended_main_experiment_model: pre_2026-07-17_cutoff
+  notes: 'The starter tree is the unmodified upstream release, so the project is recognizable. Recognition
+    is audited rather than assumed away: later patches, reference code, held-out demands and hidden contracts
+    are evaluator-only and never enter product artifacts, perception, search, prompts or normal snapshots.'
+model_cutoff_policy: pre_reference_cutoff_with_recognition_audit
+anonymize:
+  replacements: {}
+agent_visible:
+  starter_repo: starter_repo
+  public_issues: issues/public
+  external_signals: external_signals
+private_evaluator_only:
+  reference_repo: reference_repo
+  hidden_tests: tests/hidden
+  heldout_issues: issues/heldout
+  contamination_probes: contamination
+  github_archive: provenance/github
+entrypoints:
+  cli:
+    command:
+    - python
+    - -m
+    - pytest
+    - tests/public
+    - -q
+    - --confcutdir=tests/public
+  smoke:
+    command:
+    - python
+    - -m
+    - pytest
+    - tests/public
+    - -q
+    - --confcutdir=tests/public
+# --confcutdir stops pytest loading tests/conftest.py, which the frozen 24.0.0
+# starter carries and which declares pytest_ignore_collect(path, config). The
+# path argument was removed in pytest 8, so on a modern runtime pluggy refuses
+# the hook and collection dies before a single test runs. That conftest only
+# skips test files named _pyX for a non-matching interpreter, and tests/public
+# contains none, so not loading it changes nothing about what is measured.
+#
+# Without this the suite cannot start, every run_ci reports a contract break,
+# no PR can merge, and a 336-tick run finishes with zero merges, zero releases
+# and zero completed tasks — which reads as an organizational failure rather
+# than a runtime that postdates the frozen repository by two years.
+public_tests:
+  command:
+  - python
+  - -m
+  - pytest
+  - tests/public
+  - -q
+  - --confcutdir=tests/public
+  dependencies:
+  - pytest
+hidden_tests:
+  command:
+  - python
+  - -m
+  - pytest
+  - tests/hidden
+  - -q
+  - --confcutdir=tests/hidden
+  dependencies:
+  - pytest
+issue_stream:
+  schedule: by_tick
+  first_tick: 12
+  interval_ticks: 12
+evaluation:
+  primary_metrics:
+  - hidden_test_pass_rate
+  - causal_fix_rate
+  - issue_fix_rate
+  - regression_pass_rate
+  - release_smoke_ok
+  secondary_metrics:
+  - public_test_pass_rate
+  - heldout_transfer_rate
+  - external_adaptation
+controls:
+  default: none
+component_map:
+  filesystem_tools:
+  - boltons/fileutils.py
+  type_utilities:
+  - boltons/typeutils.py
+  table_rendering:
+  - boltons/tableutils.py
+  list_containers:
+  - boltons/listutils.py
+  text_utilities:
+  - boltons/strutils.py
+  iteration_tools:
+  - boltons/iterutils.py
+  traceback_tools:
+  - boltons/tbutils.py
+  multidict:
+  - boltons/dictutils.py
+  - boltons/urlutils.py
+  indexed_set:
+  - boltons/setutils.py

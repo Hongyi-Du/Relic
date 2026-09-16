@@ -1,0 +1,27 @@
+{
+  "issue_id": "issue_research_repeated_subtrees",
+  "title": "Searching nested data misses matches inside a repeated sub-object",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "iteration_tools",
+  "candidate_path_hints": [
+    "boltons/iterutils.py"
+  ],
+  "created_tick": 0,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#394",
+  "source_url": "https://github.com/mahmoud/boltons/pull/394",
+  "created_at": "2026-01-28T06:29:52Z",
+  "labels": [],
+  "release": "26.1.0",
+  "title_original": "Adds cache option to remap and use in research",
+  "text_original": "There is a mismatch between the caching of transformed objects in the `remap` function and the need for `research` to traverse all sub trees. For most values this is inconsequential (like atomic ints, etc.) but for small tuples (e.g. `(\"hello\",)`) these get compiled as the same value and return the same `id(...)`. In `remap` these get cached and never get `enter` called on them and thus the hooks for `research` to return the values never gets called.\n\nIn this fix an option to disable/enable the cache is introduced to the `remap` function which simply disables using transformed values from the cache. Then in the `research` function caching is turned off.\n\nThe existing `remap` behavior is maintained as caching by default is turned on.\n\nfixes: #393",
+  "text_rewritten": "When the same sub-object is reachable from more than one place in a nested structure — the same mapping shared by two keys, or two entries pointing at the same list — the recursive search helper only reports the first place it reaches. Our configuration linter therefore reported one offending entry when there were three, and which one it reported depended on iteration order.\n\nA search is supposed to enumerate locations, not distinct objects. Every location where a match occurs should be reported, each with its own path that resolves back to the value. Structures with no repetition must keep returning exactly what they return today.",
+  "body": "When the same sub-object is reachable from more than one place in a nested structure — the same mapping shared by two keys, or two entries pointing at the same list — the recursive search helper only reports the first place it reaches. Our configuration linter therefore reported one offending entry when there were three, and which one it reported depended on iteration order.\n\nA search is supposed to enumerate locations, not distinct objects. Every location where a match occurs should be reported, each with its own path that resolves back to the value. Structures with no repetition must keep returning exactly what they return today.",
+  "acceptance_hint": "research reports one (path, value) result for every location a match occurs at, including repeated references to the same sub-object, each path resolving back to that value; searches over structures without repetition are unchanged.",
+  "linked_hidden_test_ids": [
+    "hidden_research_repeated_subtrees"
+  ],
+  "hidden": true
+}

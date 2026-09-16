@@ -1,0 +1,26 @@
+{
+  "issue_id": "issue_sentinel_copy_identity",
+  "title": "Sentinel markers lose their identity as soon as a structure is copied",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "type_utilities",
+  "candidate_path_hints": [
+    "boltons/typeutils.py"
+  ],
+  "created_tick": 24,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#375",
+  "source_url": "https://github.com/mahmoud/boltons/pull/375",
+  "created_at": "2024-10-17T05:54:38Z",
+  "labels": [],
+  "release": "26.1.0",
+  "title_original": "Sentinel copy return self",
+  "text_original": "",
+  "text_rewritten": "We use the sentinel objects from the type utilities as \"no value supplied\" markers and compare them with `is`. The moment a settings structure holding one goes through `copy.copy` or `copy.deepcopy`, the marker inside the copy is a different object, every `is` check against the original fails, and defaults stop being applied without any error.\n\nA sentinel is meant to be a unique one-of-a-kind marker, so duplicating it is never what anyone wants. Copying one, shallow or deep, should hand back the very same object, including when it is nested inside the structure being copied.",
+  "body": "We use the sentinel objects from the type utilities as \"no value supplied\" markers and compare them with `is`. The moment a settings structure holding one goes through `copy.copy` or `copy.deepcopy`, the marker inside the copy is a different object, every `is` check against the original fails, and defaults stop being applied without any error.\n\nA sentinel is meant to be a unique one-of-a-kind marker, so duplicating it is never what anyone wants. Copying one, shallow or deep, should hand back the very same object, including when it is nested inside the structure being copied.",
+  "acceptance_hint": "Shallow and deep copies of a sentinel — taken directly or nested inside a larger structure — are the identical object, while its falsy truth value, its repr and the fact that separate sentinels are distinct all stay as they are.",
+  "linked_hidden_test_ids": [
+    "hidden_sentinel_copy_identity"
+  ]
+}

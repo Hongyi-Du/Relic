@@ -1,0 +1,178 @@
+{
+  "dataset_id": "boltons_v2400_to_v2610",
+  "frozen_at": "2026-08-01",
+  "source": "https://github.com/mahmoud/boltons",
+  "transport": "authenticated GitHub API tarball download",
+  "evidence_kind": "executable_behavioral_contract",
+  "starter_repo_digest": "e07ee67383526ff6243069c095e39739e2e63ccf927a897784481c17f45bc802",
+  "reference_repo_digest": "9d77826432ca16a94b5bc9979dbb229368013e5c572e39af137b61cb1e3a634a",
+  "hidden_suite_hash": "51b3470be05eab44e69d79c08494947e03778b0724f27f9264e56bd48f4545db",
+  "evaluator_environment_hash": "e1af84e85d8591c4b59b449e12ce126c4c38452621368652a9f0c4cf81db5a47",
+  "qualification_hash": "88d63c99ba46f7950f6483dea8534ae72720c2a36896ea4d0788962bf09553c9",
+  "qualification_result_hash": "b1a49382871364af5015c3c9f201322fdd42052d381259fc0c570ebffb606265",
+  "result_hash": "b1a49382871364af5015c3c9f201322fdd42052d381259fc0c570ebffb606265",
+  "agent_filesystem_isolation_required": true,
+  "agent_filesystem_isolation_status": "required_not_verified_by_pack",
+  "contamination_status": "probes_defined_not_executed",
+  "manual_runtime_test_caveat": "The recorded starter and reference outcomes cover this Pack's own behavioral contracts. The upstream project's full test suite was not run and is not claimed by this receipt.",
+  "starter": {
+    "tag": "24.0.0",
+    "commit": "992a58c1036fcf4d52cbf3313b6217b7c07b11d9",
+    "archive_sha256": "4b64c333811215798fe1009149cfe274f1f46f07248c0017b882485ffdb41424",
+    "frozen_files_with_public_smoke": 113,
+    "frozen_bytes": 892539,
+    "repo_digest": "e07ee67383526ff6243069c095e39739e2e63ccf927a897784481c17f45bc802"
+  },
+  "reference": {
+    "tag": "26.1.0",
+    "commit": "1d525271754ed7aea7f2347ed16ddbcedb1097a3",
+    "archive_sha256": "bbf21c3d398c832d71cbad3b2b62f574e199e540c8a5b1a886a032b403083d00",
+    "frozen_files_with_public_smoke": 111,
+    "frozen_bytes": 930923,
+    "repo_digest": "9d77826432ca16a94b5bc9979dbb229368013e5c572e39af137b61cb1e3a634a"
+  },
+  "github_archive": {
+    "changes_recorded": 50,
+    "path": "provenance/github"
+  },
+  "demands": {
+    "public_issues": 12,
+    "heldout_issues": 4,
+    "hidden_contracts": 16,
+    "distinct_upstream_changes": 16,
+    "target_public_issues": 12,
+    "target_heldout_issues": 4,
+    "target_hidden_contracts": 16
+  },
+  "qualification": {
+    "evidence_kind": "executable_behavioral_contract",
+    "hidden_suite_hash": "51b3470be05eab44e69d79c08494947e03778b0724f27f9264e56bd48f4545db",
+    "evaluator_environment_hash": "e1af84e85d8591c4b59b449e12ce126c4c38452621368652a9f0c4cf81db5a47",
+    "plan_hash": "88d63c99ba46f7950f6483dea8534ae72720c2a36896ea4d0788962bf09553c9",
+    "qualification_hash": "88d63c99ba46f7950f6483dea8534ae72720c2a36896ea4d0788962bf09553c9",
+    "qualification_result_hash": "b1a49382871364af5015c3c9f201322fdd42052d381259fc0c570ebffb606265",
+    "result_hash": "b1a49382871364af5015c3c9f201322fdd42052d381259fc0c570ebffb606265",
+    "starter_passed": 0,
+    "starter_total": 16,
+    "reference_passed": 16,
+    "reference_total": 16,
+    "formal_ready": true
+  },
+  "authoring_report": {
+    "dataset_id": "boltons_v2400_to_v2610",
+    "public_issues": 12,
+    "heldout_issues": 4,
+    "hidden_contracts": 16,
+    "target": {
+      "public": 12,
+      "heldout": 4,
+      "hidden": 16
+    },
+    "shortfall_reason": "",
+    "candidate_pool": 37,
+    "selected_candidates": [
+      "pr_358",
+      "pr_375",
+      "pr_381",
+      "pr_389",
+      "commit_c8c442b98b",
+      "pr_386",
+      "pr_401",
+      "pr_403",
+      "pr_404",
+      "pr_406",
+      "commit_609cabe932",
+      "pr_418",
+      "pr_424",
+      "pr_410",
+      "pr_416",
+      "pr_394"
+    ],
+    "rejected_candidates": [
+      {
+        "change_id": "pr_367",
+        "reason": "On the pinned evaluator interpreter (CPython 3.12) the only observable difference is the presence of a __partialmethod__ attribute that CPython 3.13 requires; a contract would check that an identifier was chosen rather than that a behavior was built."
+      },
+      {
+        "change_id": "pr_370",
+        "reason": "The numeric results of the affected timestamp conversion are identical on both endpoints; the only observable signal is a DeprecationWarning emitted at module import on Python >= 3.12, whose text is owned by the interpreter. Held in reserve."
+      },
+      {
+        "change_id": "pr_366",
+        "reason": "Removal of dead Python 2 compatibility aliases. Probed Bits construction, urlutils text coercion, timeutils.total_seconds and deprutils module typing: identical on both endpoints."
+      },
+      {
+        "change_id": "pr_372",
+        "reason": "Qualifies as a contract, but it extends the same nested-search surface already covered by the selected iteration_tools demand (pr_394) and would duplicate it. Held in reserve."
+      },
+      {
+        "change_id": "commit_d463c60587",
+        "reason": "Docstring-only fix (module name in an example); no observable behavior change."
+      },
+      {
+        "change_id": "commit_3bfcfdd043",
+        "reason": "Adds a brand-new public helper (file rotation). A contract could only assert that a specific new public name exists, which the authoring standard restricts to demands that spell the interface out; the window supplies enough pure-behavior candidates without it. Held in reserve."
+      },
+      {
+        "change_id": "pr_376",
+        "reason": "Mostly CI, packaging and docs. The library-visible remainder is the disappearance of DeprecationWarning from relative_time / decimal_relative_time / ecoutils import on Python >= 3.12, which is interpreter-version dependent rather than a contracted behavior. Held in reserve."
+      },
+      {
+        "change_id": "pr_377",
+        "reason": "The source change is a new public backport of str.removeprefix; its behavior is already that of the standard library method, so a contract would only test that the name exists."
+      },
+      {
+        "change_id": "commit_a7d9afd61b",
+        "reason": "Adds fsync before closing the temporary file in atomic saves. A durability guarantee with no difference observable from inside the process."
+      },
+      {
+        "change_id": "pr_388",
+        "reason": "Adds a brand-new public list-formatting function. A contract would reduce to asserting the new name plus one exact formatting convention. Held in reserve."
+      },
+      {
+        "change_id": "pr_395",
+        "reason": "Adds a brand-new public run-once decorator; same objection as pr_388 - the contract would be a name check plus a call counter. Held in reserve."
+      },
+      {
+        "change_id": "commit_ce60604a46",
+        "reason": "Docstring-only addition to the run-once decorator; no observable behavior change."
+      },
+      {
+        "change_id": "pr_396",
+        "reason": "Export-list bookkeeping for the function added by pr_388; contracting it would test the __all__ contents, i.e. naming."
+      },
+      {
+        "change_id": "pr_400",
+        "reason": "Fixes a syntax error inside a docstring example; no observable behavior change."
+      },
+      {
+        "change_id": "pr_405",
+        "reason": "CI modernization, OIDC publishing and a release skill file; no library behavior in the window's import surface."
+      },
+      {
+        "change_id": "commit_471dad1c6e",
+        "reason": "Removes an unused local in the chunked-list rebalance path; probed identical on both endpoints."
+      },
+      {
+        "change_id": "pr_407",
+        "reason": "Qualifies as a contract (the starter raises IndexError where a plain list clamps to the front), but shares the list_containers family and the same 60k-element setup as the selected pr_389 demand. Held in reserve."
+      },
+      {
+        "change_id": "pr_409",
+        "reason": "A performance change. Its only observable behavior difference is that a search pattern able to match the empty string stops raising IndexError, which is incidental to the change's intent and would misdescribe the upstream work. Held in reserve."
+      },
+      {
+        "change_id": "commit_b47171245c",
+        "reason": "The second half of the html2text repair: it deletes merge-conflict markers that commit c8c442b9 left in the source. Folded into the html_text_extraction demand rather than authored as a separate one."
+      },
+      {
+        "change_id": "commit_fb464991b7",
+        "reason": "Release bookkeeping for 26.0.0 (changelog plus version string)."
+      },
+      {
+        "change_id": "commit_1d52527175",
+        "reason": "Release bookkeeping for 26.1.0 (changelog plus version string)."
+      }
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "issue_id": "issue_async_retry_error_callback",
+  "title": "Coroutine give-up callback hands the caller a coroutine instead of a fallback value",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "async_retry_runtime",
+  "created_tick": 0,
+  "hidden": true,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#437",
+  "source_url": "https://github.com/jd/tenacity/pull/437",
+  "created_at": "2024-03-02T07:30:37Z",
+  "labels": [],
+  "release": "9.1.4",
+  "title_original": "Support async actions",
+  "text_original": "Fixes #249 #412. Second PR after breaking down https://github.com/jd/tenacity/pull/433 (follows https://github.com/jd/tenacity/pull/434). After DRYing the `iter()` function, make `AsyncRetrying` support `async` callbacks.",
+  "text_rewritten": "When retries are exhausted we return a degraded payload instead of raising, so we configure a give-up callback. On the asynchronous path that callback has to await a cache write, so it is a coroutine function — and what the caller ends up holding is an un-started coroutine object rather than the payload the callback was supposed to build. The callback body never runs, and Python warns that a coroutine was never awaited. An ordinary callback in the same slot returns its value correctly, so the value the callback produces clearly is what gets handed back; it just is not awaited first.",
+  "body": "When retries are exhausted we return a degraded payload instead of raising, so we configure a give-up callback. On the asynchronous path that callback has to await a cache write, so it is a coroutine function — and what the caller ends up holding is an un-started coroutine object rather than the payload the callback was supposed to build. The callback body never runs, and Python warns that a coroutine was never awaited. An ordinary callback in the same slot returns its value correctly, so the value the callback produces clearly is what gets handed back; it just is not awaited first.",
+  "acceptance_hint": "When the attempt budget is exhausted on the asynchronous path, a coroutine give-up callback runs and the value it produces is exactly what the caller receives; an ordinary callback keeps behaving the way it does today.",
+  "linked_hidden_test_ids": [
+    "hidden_async_retry_error_callback"
+  ]
+}

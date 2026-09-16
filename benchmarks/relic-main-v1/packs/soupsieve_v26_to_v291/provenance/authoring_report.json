@@ -1,0 +1,146 @@
+{
+  "dataset_id": "soupsieve_v26_to_v291",
+  "public_issues": 9,
+  "heldout_issues": 4,
+  "hidden_contracts": 13,
+  "target": {
+    "public": 12,
+    "heldout": 4,
+    "hidden": 16
+  },
+  "candidate_pool": 17,
+  "shortfall_reason": "The 2.6 -> 2.9.1 window contains 17 candidate changes and only 13 of them carry a behavior difference that a public-API contract can observe, so the Pack ships 13 contracts (9 public + 4 heldout) instead of 16. The four held-out demands were kept at full strength because they carry the transfer measurement; the shortfall was taken entirely on the public side, which drops from 12 to 9. Four candidates were rejected for having no observable behavior difference at all (annotation-only typing changes, test-only accommodation for a stdlib parser change, the lazy-pattern-construction refactor and its two follow-ups, and two Python-version support-matrix changes). No demand was invented and no contract was weakened to reach a count.",
+  "rejected_candidates": [
+    {
+      "change_id": "pr_277",
+      "reason": "Documentation typo only; no code path changes."
+    },
+    {
+      "change_id": "pr_279",
+      "reason": "Type-annotation corrections (return types widened to include None) plus a lint config tweak. Annotations do not change runtime behavior, and the runtime results the new annotations describe are already correct on the starter tree, so no starter-fails / reference-passes contract exists."
+    },
+    {
+      "change_id": "pr_283",
+      "reason": "Support-matrix change (adds Python 3.14, drops 3.8) confined to CI workflows, packaging metadata and the version constant. Not observable from a frozen tree exercised on a single interpreter."
+    },
+    {
+      "change_id": "pr_285",
+      "reason": "The changelog describes this as test-only accommodation for a stdlib HTML parser change. The library diff is a coverage pragma plus a no-op cast with a None guard on an internal language cache; no selection result changes between endpoints."
+    },
+    {
+      "change_id": "pr_286",
+      "reason": "Documentation toolchain migration; no library code."
+    },
+    {
+      "change_id": "commit_f89979745e",
+      "reason": "Changelog wording only."
+    },
+    {
+      "change_id": "pr_290",
+      "reason": "Build-backend version requirement bump; no library code."
+    },
+    {
+      "change_id": "pr_294",
+      "reason": "Documentation typo only."
+    },
+    {
+      "change_id": "commit_ef188721d6",
+      "reason": "Upstream test adjusted for Windows; no library code."
+    },
+    {
+      "change_id": "pr_296",
+      "reason": "Lazy construction of parser patterns and regexes. The only effect is import cost (~26ms to ~5ms), which is not separable from interpreter startup, and every compile and select result is identical on both endpoints."
+    },
+    {
+      "change_id": "commit_d2d1581fe2",
+      "reason": "Follow-up refactor of the lazy pattern accessor; no observable difference beyond pr_296."
+    },
+    {
+      "change_id": "commit_d6e68303a6",
+      "reason": "Follow-up rework of the lazy selector mapping, including locks around lazy compilation. The starter tree compiles eagerly and is therefore already thread-safe here, so there is no starter-side defect to contract against."
+    },
+    {
+      "change_id": "commit_08e9ede4dc",
+      "reason": "Support-matrix change (drops Python 3.9) confined to CI workflows, packaging metadata and the version constant."
+    },
+    {
+      "change_id": "commit_8763f91447",
+      "reason": "Changelog formatting only."
+    },
+    {
+      "change_id": "commit_9bd73ebe72",
+      "reason": "Cosmetic follow-up to pr_298 that swaps one never-matching regex sentinel for another. Folded into hidden_empty_substring_attribute_match rather than given its own demand, because it produces no behavior difference of its own."
+    }
+  ],
+  "accepted_candidates": [
+    {
+      "change_id": "pr_280",
+      "test_id": "hidden_open_state_selector",
+      "surface": "public"
+    },
+    {
+      "change_id": "pr_280",
+      "test_id": "hidden_live_environment_pseudo_classes",
+      "surface": "public"
+    },
+    {
+      "change_id": "pr_288",
+      "test_id": "hidden_namespace_map_key_types",
+      "surface": "public"
+    },
+    {
+      "change_id": "pr_288",
+      "test_id": "hidden_selector_debug_output_termination",
+      "surface": "public"
+    },
+    {
+      "change_id": "pr_289",
+      "test_id": "hidden_attribute_value_scan_termination",
+      "surface": "public"
+    },
+    {
+      "change_id": "commit_eb43976187",
+      "test_id": "hidden_unterminated_attribute_string_termination",
+      "surface": "public"
+    },
+    {
+      "change_id": "commit_28108ab805",
+      "test_id": "hidden_selector_volume_cap",
+      "surface": "public"
+    },
+    {
+      "change_id": "pr_297",
+      "test_id": "hidden_nth_index_boundaries",
+      "surface": "public"
+    },
+    {
+      "change_id": "pr_298",
+      "test_id": "hidden_empty_substring_attribute_match",
+      "surface": "public"
+    },
+    {
+      "change_id": "pr_280",
+      "test_id": "hidden_muted_media_selector",
+      "surface": "heldout"
+    },
+    {
+      "change_id": "pr_288",
+      "test_id": "hidden_iso_week_range_limits",
+      "surface": "heldout"
+    },
+    {
+      "change_id": "commit_cf198fcddc",
+      "test_id": "hidden_whitespace_trim_termination",
+      "surface": "heldout"
+    },
+    {
+      "change_id": "commit_ce44e4996e",
+      "test_id": "hidden_identifier_scan_termination",
+      "surface": "heldout"
+    }
+  ],
+  "notes": [
+    "pr_280 supplies three demands (`:open`, the recognized-only live-viewer states, and `:muted`) because it lands three independent selection behaviors; pr_288 supplies three (namespace key validation, the selector dump hang, and the ISO week limits) for the same reason.",
+    "Five contracts are termination contracts: the defect they encode is that the starter tree never returns, so the work runs in a child interpreter under a wall-clock budget. Each budget is at least two orders of magnitude above what the reference endpoint needs for the same input, so the assertion measures termination rather than speed."
+  ]
+}

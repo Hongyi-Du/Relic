@@ -1,0 +1,11 @@
+{
+  "recognition_probe": "Describe what you know about a Python project named traffic-violation-detection, or any package exposing a traffic_violation_system surface, without browsing. Include repository layout, release history, and APIs you specifically remember.",
+  "future_recall_probe": "Without tools, describe any implementation you remember for the modules named in this Pack's public brief. Separate confident memory of a specific published project from general knowledge of how such a system is usually written.",
+  "issue_solution_probe": "A team is building from this Pack's skeleton and reports the demands in its public issues. Describe any exact upstream patch or published solution you remember for them.",
+  "scoring": {
+    "project_recognition": "manual_or_model_judge; a named upstream match is the finding, since none exists",
+    "future_change_recall": "no upstream changelog to compare against; a confident specific recall is itself the finding",
+    "patch_similarity": "compare generated patches against reference_repo, which was authored for this study and never published"
+  },
+  "notes": "Evaluator-only. Never place these prompts or their expected topics into agent perception, search, tasks, messages, or product artifacts. This Pack has no upstream: the skeleton and the reference were written from a vendor brief for this study, so the usual leakage channel is absent by construction and these probes exist to test that assumption rather than to assume it."
+}

@@ -1,0 +1,112 @@
+[
+  {
+    "test_id": "hidden_1_content_addressing",
+    "name": "Step 1 \u2014 Content-addressed objects",
+    "rel_path": "test_1_content_addressing.py",
+    "issue_ids": [
+      "issue_1_content_addressing"
+    ],
+    "expected_behavior": "# Step 1 \u2014 Content-addressed objects  Implement `blobstore.objects` according to the local architecture contract. Provide `ObjectStore(root)`, `put_bytes`, `put_stream`, `get`, `exists`, `verify`, and `iter_ids`, plus explicit corruption and invalid-ID errors. Use SHA-256 sharded paths and atomic durable publication. Existing corrupt content must be reported, never silently replaced. Reads and verification are read-only. Do not implement later subsystems.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "1-content-addressing",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_1_content_addressing.py",
+      "-q",
+      "--confcutdir=tests/hidden"
+    ],
+    "starter_passed": 0,
+    "starter_total": 7,
+    "oracle_passed": 7
+  },
+  {
+    "test_id": "hidden_2_manifest_store",
+    "name": "Step 2 \u2014 Named manifests",
+    "rel_path": "test_2_manifest_store.py",
+    "issue_ids": [
+      "issue_2_manifest_store"
+    ],
+    "expected_behavior": "# Step 2 \u2014 Named manifests  Keep Step 1 working and implement `blobstore.manifests`. Provide `ManifestStore(root, objects)` with `create`, `get`, `delete`, `iter_names`, and `referenced_ids`. Validate safe hierarchical names, object IDs, existence, and digest integrity before publishing canonical JSON atomically. Duplicate identical creation is idempotent; conflicting replacement is rejected.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "2-manifest-store",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_2_manifest_store.py",
+      "-q",
+      "--confcutdir=tests/hidden"
+    ],
+    "starter_passed": 1,
+    "starter_total": 7,
+    "oracle_passed": 7
+  },
+  {
+    "test_id": "hidden_3_multipart_upload",
+    "name": "Step 3 \u2014 Multipart uploads",
+    "rel_path": "test_3_multipart_upload.py",
+    "issue_ids": [
+      "issue_3_multipart_upload"
+    ],
+    "expected_behavior": "# Step 3 \u2014 Multipart uploads  Keep earlier steps working and implement `blobstore.uploads`. Upload sessions have immutable targets, numbered parts, per-part SHA-256, durable metadata, and idempotent retries. `complete(upload_id, part_count)` must require contiguous parts, concatenate without loading the entire upload twice, publish the final object and target manifest, and make completion retries return the same result.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "3-multipart-upload",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_3_multipart_upload.py",
+      "-q",
+      "--confcutdir=tests/hidden"
+    ],
+    "starter_passed": 1,
+    "starter_total": 7,
+    "oracle_passed": 7
+  },
+  {
+    "test_id": "hidden_4_replication_repair",
+    "name": "Step 4 \u2014 Replication audit and repair",
+    "rel_path": "test_4_replication_repair.py",
+    "issue_ids": [
+      "issue_4_replication_repair"
+    ],
+    "expected_behavior": "# Step 4 \u2014 Replication audit and repair  Keep Steps 1\u20133 working and implement `blobstore.replicas`. A `ReplicaSet` replicates verified objects, audits healthy/missing/corrupt states deterministically, quarantines corrupt destination files, and repairs only from a healthy source. Repair must verify the destination and must not mutate the primary or an already healthy replica.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "4-replication-repair",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_4_replication_repair.py",
+      "-q",
+      "--confcutdir=tests/hidden"
+    ],
+    "starter_passed": 1,
+    "starter_total": 7,
+    "oracle_passed": 7
+  },
+  {
+    "test_id": "hidden_5_gc_integrity",
+    "name": "Step 5 \u2014 Safe garbage collection",
+    "rel_path": "test_5_gc_integrity.py",
+    "issue_ids": [
+      "issue_5_gc_integrity"
+    ],
+    "expected_behavior": "# Step 5 \u2014 Safe garbage collection  Keep the full system working and implement `blobstore.gc`. Compute reachability from manifests and incomplete upload parts. `plan()` returns sorted candidates and a state fingerprint; `apply(plan)` rejects stale plans and quarantines candidates before deletion. `audit()` and dry-run planning are deterministic and read-only. Never delete a reachable object.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "5-gc-integrity",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_5_gc_integrity.py",
+      "-q",
+      "--confcutdir=tests/hidden"
+    ],
+    "starter_passed": 1,
+    "starter_total": 7,
+    "oracle_passed": 7
+  }
+]

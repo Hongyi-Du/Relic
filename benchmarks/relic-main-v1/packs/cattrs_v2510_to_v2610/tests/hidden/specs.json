@@ -1,0 +1,354 @@
+[
+  {
+    "test_id": "hidden_parametrized_abc_base",
+    "name": "A model whose base is a parametrized abstract-collection alias structures",
+    "rel_path": "test_parametrized_abc_base.py",
+    "issue_ids": [
+      "issue_parametrized_abc_base"
+    ],
+    "expected_behavior": "Structuring a model that declares a parametrized abstract-collection interface as a base class succeeds and yields the same value the unparametrized base would, instead of raising AttributeError about a missing '__parameters__'.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "v26.1.0",
+    "source_pr": "https://github.com/python-attrs/cattrs/pull/655",
+    "source_commit": "7c6773085bc6e1861cf333d65de6118aeb79bdf3",
+    "reference_release": "v26.1.0",
+    "source_url": "https://github.com/python-attrs/cattrs/pull/655",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_parametrized_abc_base.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_converter_alias_default",
+    "name": "A converter carries the \"key on field aliases\" decision itself",
+    "rel_path": "test_converter_alias_default.py",
+    "issue_ids": [
+      "issue_converter_alias_default"
+    ],
+    "expected_behavior": "Converter(use_alias=True) makes both structuring and unstructuring key on field aliases for every model it handles; copy() inherits the setting and copy(use_alias=False) turns it off; a default converter still keys on field names.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "v26.1.0",
+    "source_pr": "https://github.com/python-attrs/cattrs/pull/660",
+    "source_commit": "0c226c294e7f1b89ae9bbdf2883c725af279c1b3",
+    "reference_release": "v26.1.0",
+    "source_url": "https://github.com/python-attrs/cattrs/pull/660",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_converter_alias_default.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_deferred_generic_unstructuring",
+    "name": "Unstructuring a parametrized generic works under deferred annotations",
+    "rel_path": "test_deferred_generic_unstructuring.py",
+    "issue_ids": [
+      "issue_deferred_generic_unstructuring"
+    ],
+    "expected_behavior": "Unstructuring against a parametrized generic target in a module with deferred annotations produces the primitive payload instead of raising TypeError from the annotation resolution step; non-generic models are unaffected.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "v26.1.0",
+    "source_pr": "https://github.com/python-attrs/cattrs/pull/662",
+    "source_commit": "30fb43e1924f81c7c12bdf4ed0978a624a118911",
+    "reference_release": "v26.1.0",
+    "source_url": "https://github.com/python-attrs/cattrs/pull/662",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_deferred_generic_unstructuring.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_sequence_target_type",
+    "name": "An abstract sequence annotation structures into a hashable tuple",
+    "rel_path": "test_sequence_target_type.py",
+    "issue_ids": [
+      "issue_sequence_target_type"
+    ],
+    "expected_behavior": "Structuring against an abstract sequence annotation yields an immutable, hashable tuple on both shipped converters and inside model fields, while mutable-sequence and list annotations still yield mutable lists.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "v26.1.0",
+    "source_pr": "https://github.com/python-attrs/cattrs/pull/663",
+    "source_commit": "d5db7b5eac219df4c083fd90a1908cb6635cea1a",
+    "reference_release": "v26.1.0",
+    "source_url": "https://github.com/python-attrs/cattrs/pull/663",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_sequence_target_type.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_missing_handler_error_payload",
+    "name": "The \"no handler registered\" error survives a pickle round trip",
+    "rel_path": "test_missing_handler_error_payload.py",
+    "issue_ids": [
+      "issue_missing_handler_error_payload"
+    ],
+    "expected_behavior": "StructureHandlerNotFoundError exposes every value it was constructed from, can be pickled and unpickled with its type attribute intact, stays raisable and catchable afterwards, and still prints only its message.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "v26.1.0",
+    "source_pr": "https://github.com/python-attrs/cattrs/pull/666",
+    "source_commit": "f5d059452179c960df6d09015aa166bc50ad4bcb",
+    "reference_release": "v26.1.0",
+    "source_url": "https://github.com/python-attrs/cattrs/pull/666",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_missing_handler_error_payload.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_extra_keys_error_report",
+    "name": "The \"extra keys\" error renders deterministically and survives pickling",
+    "rel_path": "test_extra_keys_error_report.py",
+    "issue_ids": [
+      "issue_extra_keys_error_report"
+    ],
+    "expected_behavior": "ForbiddenExtraKeysError lists the offending keys in sorted order in its generated message, exposes every value it was constructed from so it survives a pickle round trip with its class and key set intact, and still prints an explicitly supplied message verbatim.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "v26.1.0",
+    "source_pr": "https://github.com/python-attrs/cattrs/pull/670",
+    "source_commit": "591b4f77bec5a69845294226b2670195b82ec997",
+    "reference_release": "v26.1.0",
+    "source_url": "https://github.com/python-attrs/cattrs/pull/670",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_extra_keys_error_report.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_union_passthrough_numeric",
+    "name": "A pass-through union that accepts floats also accepts whole numbers",
+    "rel_path": "test_union_passthrough_numeric.py",
+    "issue_ids": [
+      "issue_union_passthrough_numeric"
+    ],
+    "expected_behavior": "When the pass-through strategy is configured with both int and float, an int passes a union listing only float and is returned unchanged as an int, including inside model fields; a float is still rejected by an int-only union and declared members pass through untouched.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "v26.1.0",
+    "source_pr": "https://github.com/python-attrs/cattrs/pull/668",
+    "source_commit": "025f5215038960e3bda0640058421b6ed66f313a",
+    "reference_release": "v26.1.0",
+    "source_url": "https://github.com/python-attrs/cattrs/pull/668",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_union_passthrough_numeric.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_newtype_unstructuring",
+    "name": "A distinct type alias over a model unstructures the value behind it",
+    "rel_path": "test_newtype_unstructuring.py",
+    "issue_ids": [
+      "issue_newtype_unstructuring"
+    ],
+    "expected_behavior": "On BaseConverter, unstructuring against a NewType declared over a modelled class produces the same primitive payload as unstructuring against that class, including stacked aliases and alias-annotated fields.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "v26.1.0",
+    "source_pr": "https://github.com/python-attrs/cattrs/pull/684",
+    "source_commit": "75bfffac24957a7f034ab455513b37359e3e41c2",
+    "reference_release": "v26.1.0",
+    "source_url": "https://github.com/python-attrs/cattrs/pull/684",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_newtype_unstructuring.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_generic_parent_tagged_union",
+    "name": "A subclass registry rooted at a generic parent can be tagged",
+    "rel_path": "test_generic_parent_tagged_union.py",
+    "issue_ids": [
+      "issue_generic_parent_tagged_union"
+    ],
+    "expected_behavior": "include_subclasses on a parametrized generic parent combined with the tagged-union strategy registers without raising and round-trips each subclass through its discriminator; non-generic parents keep working.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "v26.1.0",
+    "source_pr": "https://github.com/python-attrs/cattrs/pull/683",
+    "source_commit": "64f6305ff9105279be905129235c391bc0d830d5",
+    "reference_release": "v26.1.0",
+    "source_url": "https://github.com/python-attrs/cattrs/pull/683",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_generic_parent_tagged_union.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_omit_default_field_converter",
+    "name": "Omit-if-default compares against the converted default",
+    "rel_path": "test_omit_default_field_converter.py",
+    "issue_ids": [
+      "issue_omit_default_field_converter"
+    ],
+    "expected_behavior": "With omit_if_default on, a freshly constructed model whose fields declare converters (plain callable, factory default, converter object, converter object reading the instance) unstructures to an empty payload; values differing from the converted default are still emitted and fields without converters are unchanged.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "v26.1.0",
+    "source_pr": "https://github.com/python-attrs/cattrs/pull/696",
+    "source_commit": "39a4d6ebe1ab2113d9aeda28b82ed18f90ab5b53",
+    "reference_release": "v26.1.0",
+    "source_url": "https://github.com/python-attrs/cattrs/pull/696",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_omit_default_field_converter.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_typed_enum_values",
+    "name": "An enum that declares its member value type round-trips",
+    "rel_path": "test_typed_enum_values.py",
+    "issue_ids": [
+      "issue_typed_enum_values"
+    ],
+    "expected_behavior": "An enum annotating `_value_` unstructures by converting its member value through the declared type and structures by converting the payload through it before member lookup, on both shipped converters; enums without the annotation are unchanged.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "v26.1.0",
+    "source_pr": "https://github.com/python-attrs/cattrs/pull/702",
+    "source_commit": "74adfc28ee278b0c58c6da6e736a14497f64bdd1",
+    "reference_release": "v26.1.0",
+    "source_url": "https://github.com/python-attrs/cattrs/pull/702",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_typed_enum_values.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_annotated_override_attrs",
+    "name": "Per-field settings on a field annotation are honoured for classes",
+    "rel_path": "test_annotated_override_attrs.py",
+    "issue_ids": [
+      "issue_annotated_override_attrs"
+    ],
+    "expected_behavior": "`Annotated[T, override(...)]` on an attrs class or dataclass field is picked up by any converter for renaming, omission and per-field hooks in both directions, with no registration step; explicitly registered settings still win and unannotated fields keep their names.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "v26.1.0",
+    "source_pr": "https://github.com/python-attrs/cattrs/pull/717",
+    "source_commit": "6bc4708fb9b2ac52d9a18997e923da6a58916102",
+    "reference_release": "v26.1.0",
+    "source_url": "https://github.com/python-attrs/cattrs/pull/717",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_annotated_override_attrs.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_deferred_nested_generic_structuring",
+    "name": "Structuring into a parametrized generic works under deferred annotations",
+    "rel_path": "test_deferred_nested_generic_structuring.py",
+    "issue_ids": [
+      "issue_deferred_nested_generic_structuring"
+    ],
+    "expected_behavior": "Structuring a payload into a parametrized generic in a module with deferred annotations succeeds for builtin and modelled parameters, for multi-parameter generics, and for a generic nested inside a generic; non-generic models are unaffected.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "v26.1.0",
+    "source_pr": "https://github.com/python-attrs/cattrs/pull/688",
+    "source_commit": "2ec13dd485b54f76bc00a204919c84d061b58a0a",
+    "reference_release": "v26.1.0",
+    "source_url": "https://github.com/python-attrs/cattrs/pull/688",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_deferred_nested_generic_structuring.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_abstract_set_target_type",
+    "name": "An abstract set annotation structures into a hashable frozenset",
+    "rel_path": "test_abstract_set_target_type.py",
+    "issue_ids": [
+      "issue_abstract_set_target_type"
+    ],
+    "expected_behavior": "Structuring against an abstract set annotation yields an immutable, hashable frozenset on both shipped converters and inside model fields, while mutable-set and built-in set annotations still yield mutable sets.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "v26.1.0",
+    "source_pr": "https://github.com/python-attrs/cattrs/pull/686",
+    "source_commit": "f0c0a5383e78a92dc858326dc0c298d1647356b7",
+    "reference_release": "v26.1.0",
+    "source_url": "https://github.com/python-attrs/cattrs/pull/686",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_abstract_set_target_type.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_diamond_inheritance_subclasses",
+    "name": "A hierarchy with a multiply-reachable class can be tagged",
+    "rel_path": "test_diamond_inheritance_subclasses.py",
+    "issue_ids": [
+      "issue_diamond_inheritance_subclasses"
+    ],
+    "expected_behavior": "include_subclasses combined with the tagged-union strategy registers a hierarchy in which a class is reachable from the root by several paths, listing that class once, and round-trips every member through its discriminator; single-path hierarchies keep working.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "v26.1.0",
+    "source_pr": "https://github.com/python-attrs/cattrs/pull/713",
+    "source_commit": "31c19cee405100b084e139e2d955c568dcd1010a",
+    "reference_release": "v26.1.0",
+    "source_url": "https://github.com/python-attrs/cattrs/pull/713",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_diamond_inheritance_subclasses.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_annotated_override_mappings",
+    "name": "Per-field settings on a field annotation are honoured for mapping shapes",
+    "rel_path": "test_annotated_override_mappings.py",
+    "issue_ids": [
+      "issue_annotated_override_mappings"
+    ],
+    "expected_behavior": "`Annotated[T, override(...)]` on a TypedDict field or on a dict-shaped NamedTuple field is picked up by any converter for renaming and omission in both directions; unannotated fields keep their names.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "v26.1.0",
+    "source_pr": "https://github.com/python-attrs/cattrs/pull/717",
+    "source_commit": "6bc4708fb9b2ac52d9a18997e923da6a58916102",
+    "reference_release": "v26.1.0",
+    "source_url": "https://github.com/python-attrs/cattrs/pull/717",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_annotated_override_mappings.py",
+      "-q"
+    ]
+  }
+]

@@ -1,0 +1,24 @@
+{
+  "issue_id": "issue_after_log_precision",
+  "title": "Post-attempt log line rounds short attempts away to zero",
+  "issue_type": "usability",
+  "severity": "medium",
+  "component": "logging_callbacks",
+  "created_tick": 0,
+  "hidden": true,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#489",
+  "source_url": "https://github.com/jd/tenacity/pull/489",
+  "created_at": "2025-04-02T16:20:33Z",
+  "labels": [],
+  "release": "9.1.4",
+  "title_original": "Apply formatting to num seconds in before_sleep_log",
+  "text_original": "Resolves issue [#432](https://github.com/jd/tenacity/issues/432)",
+  "text_rewritten": "The log line emitted after each attempt renders the elapsed time with a fixed number of decimal places. Most of our calls finish well under a millisecond, so every single one of them is logged as having taken '0.000(s)' and we cannot tell a forty-microsecond call apart from a nine-hundred-microsecond one — which is exactly the comparison we wanted the line for. Rendering with a fixed number of significant digits instead would keep the magnitude readable across the whole range we see, from microseconds to tens of seconds. Callers who already pass their own seconds format must keep getting precisely what they asked for, and the rest of the line — the function name and the 'this was the Nth time calling it' clause — must not change.",
+  "body": "The log line emitted after each attempt renders the elapsed time with a fixed number of decimal places. Most of our calls finish well under a millisecond, so every single one of them is logged as having taken '0.000(s)' and we cannot tell a forty-microsecond call apart from a nine-hundred-microsecond one — which is exactly the comparison we wanted the line for. Rendering with a fixed number of significant digits instead would keep the magnitude readable across the whole range we see, from microseconds to tens of seconds. Callers who already pass their own seconds format must keep getting precisely what they asked for, and the rest of the line — the function name and the 'this was the Nth time calling it' clause — must not change.",
+  "acceptance_hint": "An elapsed time of 0.0025 s is rendered so that parsing the number back out of the line yields 0.0025 to within a tenth of a percent, a sub-millisecond elapsed time is not rendered as zero, and an explicitly supplied seconds format is still honoured verbatim.",
+  "linked_hidden_test_ids": [
+    "hidden_after_log_precision"
+  ]
+}

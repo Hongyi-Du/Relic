@@ -1,0 +1,24 @@
+{
+  "issue_id": "issue_abstract_set_target_type",
+  "title": "An abstract set annotation hands back a mutable set",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "collection_hooks",
+  "created_tick": 0,
+  "hidden": true,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#686",
+  "source_url": "https://github.com/python-attrs/cattrs/pull/686",
+  "created_at": "2025-09-25T14:33:20Z",
+  "labels": [],
+  "release": "v26.1.0",
+  "title_original": "Structure abstract sets to frozensets",
+  "text_original": "Potentially breaking: Abstract sets are now structured into frozensets. This allows hashability, better immutability and is more consistent with the collections.abc.Set type. See Migrations for steps to restore legacy behavior.",
+  "text_rewritten": "We annotate read-only set-shaped fields with the abstract set type because callers must not mutate them, and the models holding them are used as dictionary keys. Structuring hands back a mutable set, so the model is unhashable and the field can be mutated behind our back. The abstract annotation should produce an immutable, hashable set - a frozenset - while the mutable-set annotation and the built-in set type keep producing mutable sets and the built-in frozenset type keeps behaving as it does. This should hold for a bare call, for a field inside a model, and on both shipped converters.",
+  "body": "We annotate read-only set-shaped fields with the abstract set type because callers must not mutate them, and the models holding them are used as dictionary keys. Structuring hands back a mutable set, so the model is unhashable and the field can be mutated behind our back. The abstract annotation should produce an immutable, hashable set - a frozenset - while the mutable-set annotation and the built-in set type keep producing mutable sets and the built-in frozenset type keeps behaving as it does. This should hold for a bare call, for a field inside a model, and on both shipped converters.",
+  "acceptance_hint": "Structuring against an abstract set annotation yields a hashable frozenset with the elements converted as before, while mutable-set and built-in set annotations still yield mutable sets.",
+  "linked_hidden_test_ids": [
+    "hidden_abstract_set_target_type"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "issue_id": "issue_wrapped_defaults_preserved",
+  "title": "Retry-decorated functions lose their argument defaults under introspection",
+  "issue_type": "bug",
+  "severity": "medium",
+  "component": "retry_decorator",
+  "created_tick": 12,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#406",
+  "source_url": "https://github.com/jd/tenacity/pull/406",
+  "created_at": "2023-08-21T07:09:39Z",
+  "labels": [],
+  "release": "9.1.4",
+  "title_original": "Preserve function default and kwdefault through retry decorator",
+  "text_original": "Hello, and thanks for the great package. I noticed that the `retry` decorator uses `functools.wraps`. By default, this means that `__defaults__` and `__kwdefaults__` will always be `None` on the wrapped function. In general this is reasonable behavior, since a wrapper could change these defaults. However, I believe the retry decorator does not, and thus should preserve these attributes. I've created a patch to change this, please let me know what you think :)",
+  "text_rewritten": "We build our CLI help and our API reference by reading `__defaults__` and `__kwdefaults__` off the callables we expose. Every function that carries a retry decorator reports both as None, even though the decorator does not change the accepted arguments in any way, so all of our retryable endpoints are documented as if they had no defaults at all. Calling the function still picks up the right defaults; only what introspection sees is wrong. Coroutine functions behave the same way. A wrapper that does not change the signature it forwards should report the same defaults as the callable underneath it.",
+  "body": "We build our CLI help and our API reference by reading `__defaults__` and `__kwdefaults__` off the callables we expose. Every function that carries a retry decorator reports both as None, even though the decorator does not change the accepted arguments in any way, so all of our retryable endpoints are documented as if they had no defaults at all. Calling the function still picks up the right defaults; only what introspection sees is wrong. Coroutine functions behave the same way. A wrapper that does not change the signature it forwards should report the same defaults as the callable underneath it.",
+  "acceptance_hint": "Reading `__defaults__` and `__kwdefaults__` from a retry-decorated callable, synchronous or asynchronous, returns exactly what the undecorated callable reports, and the usual wrapper metadata such as `__name__` and `__doc__` is still carried across.",
+  "linked_hidden_test_ids": [
+    "hidden_wrapped_defaults_preserved"
+  ]
+}

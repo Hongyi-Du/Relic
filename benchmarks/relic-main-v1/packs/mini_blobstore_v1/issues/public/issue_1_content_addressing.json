@@ -1,0 +1,19 @@
+{
+  "issue_id": "issue_1_content_addressing",
+  "title": "Step 1 \u2014 Content-addressed objects",
+  "issue_type": "feature",
+  "severity": "major",
+  "component": "1-content-addressing",
+  "candidate_path_hints": [
+    "blobstore/objects.py"
+  ],
+  "created_tick": 0,
+  "source": "authored_greenfield_spec",
+  "source_type": "task_step",
+  "source_id": "1-content-addressing",
+  "body": "# Step 1 \u2014 Content-addressed objects\n\nImplement `blobstore.objects` according to the local architecture contract.\nProvide `ObjectStore(root)`, `put_bytes`, `put_stream`, `get`, `exists`,\n`verify`, and `iter_ids`, plus explicit corruption and invalid-ID errors.\nUse SHA-256 sharded paths and atomic durable publication. Existing corrupt\ncontent must be reported, never silently replaced. Reads and verification are\nread-only. Do not implement later subsystems.",
+  "acceptance_hint": "# Step 1 \u2014 Content-addressed objects  Implement `blobstore.objects` according to the local architecture contract. Provide `ObjectStore(root)`, `put_bytes`, `put_stream`, `get`, `exists`, `verify`, and `iter_ids`, plus explicit corruption and invalid-ID errors. Use SHA-256 sharded paths and atomic durable publication. Existing corrupt content must be reported, never silently replaced. Reads and ver",
+  "linked_hidden_test_ids": [
+    "hidden_1_content_addressing"
+  ]
+}

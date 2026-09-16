@@ -1,0 +1,25 @@
+version: 2
+
+sphinx:
+  configuration: docs/conf.py
+
+build:
+  os: ubuntu-lts-latest
+  tools:
+    python: "3.13"
+  jobs:
+    create_environment:
+      - asdf plugin add uv
+      - asdf plugin add just
+      - asdf install uv latest
+      - asdf global uv latest
+      - asdf install just latest
+      - asdf global just latest
+    install:
+      - UV_PROJECT_ENVIRONMENT=$READTHEDOCS_VIRTUALENV_PATH uv sync --group docs --all-extras --link-mode=copy
+    post_install:
+      # Need the tags to calculate the version
+      - git fetch --tags
+    build:
+      html:
+        - UV_PROJECT_ENVIRONMENT=$READTHEDOCS_VIRTUALENV_PATH just docs $READTHEDOCS_OUTPUT

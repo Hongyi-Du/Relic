@@ -1,0 +1,23 @@
+{
+  "issue_id": "issue_union_passthrough_numeric",
+  "title": "A whole number is rejected by a pass-through union that accepts floats",
+  "issue_type": "bug",
+  "severity": "major",
+  "component": "union_strategies",
+  "created_tick": 84,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#668",
+  "source_url": "https://github.com/python-attrs/cattrs/pull/668",
+  "created_at": "2025-07-06T20:36:16Z",
+  "labels": [],
+  "release": "v26.1.0",
+  "title_original": "union passthrough: add `accept_ints_as_floats`",
+  "text_original": "The union passthrough strategy now by default accepts ints for unions that contain floats but not ints, when configured to be able to handle both ints and floats. This more closely matches the current typing behavior (https://typing.python.org/en/latest/spec/special-types.html#special-cases-for-float-and-complex). Fixes #656.",
+  "text_rewritten": "We configure the pass-through strategy for the set of types our wire format can carry, which includes both whole numbers and floats. A field annotated as float-or-text-or-nothing then rejects the value 3 with a TypeError saying an int is not part of that union - but 3 is a perfectly good JSON number and every type checker treats a whole number as acceptable where a float is expected. The strategy already knows both numeric types are on the wire, so a whole number should be accepted wherever a float is accepted and be handed back untouched, not silently widened to a float. This must also hold for a whole number arriving in a model field. Nothing else should loosen: a float must still be rejected where only a whole number is declared, and the declared members must keep passing through unchanged.",
+  "body": "We configure the pass-through strategy for the set of types our wire format can carry, which includes both whole numbers and floats. A field annotated as float-or-text-or-nothing then rejects the value 3 with a TypeError saying an int is not part of that union - but 3 is a perfectly good JSON number and every type checker treats a whole number as acceptable where a float is expected. The strategy already knows both numeric types are on the wire, so a whole number should be accepted wherever a float is accepted and be handed back untouched, not silently widened to a float. This must also hold for a whole number arriving in a model field. Nothing else should loosen: a float must still be rejected where only a whole number is declared, and the declared members must keep passing through unchanged.",
+  "acceptance_hint": "When the strategy is configured with both numeric types, a whole number passes a union that lists only floats and is returned as a whole number; a float is still rejected by an int-only union and declared members pass through untouched.",
+  "linked_hidden_test_ids": [
+    "hidden_union_passthrough_numeric"
+  ]
+}

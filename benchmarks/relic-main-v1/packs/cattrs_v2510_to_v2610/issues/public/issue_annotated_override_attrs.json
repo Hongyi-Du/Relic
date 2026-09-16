@@ -1,0 +1,23 @@
+{
+  "issue_id": "issue_annotated_override_attrs",
+  "title": "Per-field conversion settings have to be restated away from the field itself",
+  "issue_type": "feature",
+  "severity": "major",
+  "component": "hook_generation",
+  "created_tick": 144,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#717",
+  "source_url": "https://github.com/python-attrs/cattrs/pull/717",
+  "created_at": "2026-01-27T22:01:12Z",
+  "labels": [],
+  "release": "v26.1.0",
+  "title_original": "Support overrides in annotated attributes",
+  "text_original": "Customizing un/structuring of _attrs_ classes, dataclasses, TypedDicts and dict NamedTuples is now possible by using `Annotated[T, override()]` on fields. See https://catt.rs/en/stable/customizing.html#using-typing-annotated-t-override for more details.",
+  "text_rewritten": "One field of ours has to be keyed as `class` on the wire and another must never leave the process. Expressing that today means building and registering a hook for the whole model and repeating every field's setting there, far away from the field it describes; when someone adds a field they forget the hook and the payload silently changes shape. The existing per-field settings object, `cattrs.override(...)`, already describes exactly what we want - renaming a key, omitting a field, supplying a per-field hook, omitting when equal to the default. Please let it be attached to the field's own annotation as `Annotated[T, override(...)]` and have every converter pick it up automatically for both directions, with no registration step. This should work for both flavours of modelled class we use, plain attrs classes and dataclasses. An explicitly registered hook must still win over what the annotation says, and fields with no such annotation must keep their own names.",
+  "body": "One field of ours has to be keyed as `class` on the wire and another must never leave the process. Expressing that today means building and registering a hook for the whole model and repeating every field's setting there, far away from the field it describes; when someone adds a field they forget the hook and the payload silently changes shape. The existing per-field settings object, `cattrs.override(...)`, already describes exactly what we want - renaming a key, omitting a field, supplying a per-field hook, omitting when equal to the default. Please let it be attached to the field's own annotation as `Annotated[T, override(...)]` and have every converter pick it up automatically for both directions, with no registration step. This should work for both flavours of modelled class we use, plain attrs classes and dataclasses. An explicitly registered hook must still win over what the annotation says, and fields with no such annotation must keep their own names.",
+  "acceptance_hint": "A field annotated `Annotated[T, override(...)]` on an attrs class or a dataclass is renamed, omitted or run through its per-field hooks by any converter with no registration step, while explicitly registered settings still take precedence and unannotated fields keep their names.",
+  "linked_hidden_test_ids": [
+    "hidden_annotated_override_attrs"
+  ]
+}

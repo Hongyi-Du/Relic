@@ -1,0 +1,22 @@
+{
+  "issue_id": "issue_tracking",
+  "title": "Tracking is not implemented",
+  "issue_type": "feature",
+  "severity": "medium",
+  "component": "tracking",
+  "created_tick": 108,
+  "source": "vendor_task_brief",
+  "source_type": "requirements_document",
+  "source_id": "traffic-violation-detection",
+  "labels": [],
+  "release": "1.0.0",
+  "body": "The `tracking` surface described in the brief is not implemented. Build it so its behaviour matches the brief.",
+  "acceptance_hint": "4 executable checks over the tracking surface.",
+  "linked_hidden_test_ids": [
+    "hidden_tracking"
+  ],
+  "candidate_path_hints": [
+    "traffic_violation_system/tracking.py",
+    "traffic_violation_system/detection.py"
+  ]
+}

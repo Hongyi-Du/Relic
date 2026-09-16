@@ -1,0 +1,50 @@
+[
+  {
+    "post_id": "ext_seed_tn_1",
+    "author_id": "ext_user_ops",
+    "topic": "wait_strategies",
+    "content_summary": "we set a minimum backoff so a recovering service gets some breathing room, and retries still land almost immediately — ended up clamping the delay ourselves on top of it.",
+    "stance": -0.2,
+    "created_tick": 6
+  },
+  {
+    "post_id": "ext_seed_tn_2",
+    "author_id": "ext_user_asyncdev",
+    "topic": "async_retry_runtime",
+    "content_summary": "the async side works fine until you want a callback that has to await something; then it quietly does nothing and python just warns about a coroutine never being awaited.",
+    "stance": -0.3,
+    "created_tick": 12
+  },
+  {
+    "post_id": "ext_seed_tn_3",
+    "author_id": "ext_user_clitools",
+    "topic": "package_import",
+    "content_summary": "solid library, but it shows up as one of the heavier entries in our cli startup profile even though we only ever use the plain synchronous path.",
+    "stance": -0.1,
+    "created_tick": 18
+  },
+  {
+    "post_id": "ext_seed_tn_4",
+    "author_id": "ext_user_sre",
+    "topic": "stop_strategies",
+    "content_summary": "time-based stopping plus exponential backoff means we hand our callers a deadline and then routinely blow through it by a wide margin.",
+    "stance": -0.1,
+    "created_tick": 24
+  },
+  {
+    "post_id": "ext_seed_tn_5",
+    "author_id": "ext_user_logpipeline",
+    "topic": "logging_callbacks",
+    "content_summary": "the retry log lines are genuinely useful, the raw float delays in them are not — our aggregator treats every single line as a distinct message.",
+    "stance": -0.1,
+    "created_tick": 30
+  },
+  {
+    "post_id": "ext_seed_tn_6",
+    "author_id": "ext_user_runtimeswap",
+    "topic": "async_retry_runtime",
+    "content_summary": "moved our service onto a different async runtime and the backoff pauses stopped working out of the box; had to wire a sleep function into every decorator.",
+    "stance": -0.2,
+    "created_tick": 36
+  }
+]

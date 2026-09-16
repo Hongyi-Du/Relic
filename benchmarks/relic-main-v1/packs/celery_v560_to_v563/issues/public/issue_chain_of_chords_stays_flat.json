@@ -1,0 +1,28 @@
+{
+  "issue_id": "issue_chain_of_chords_stays_flat",
+  "title": "Chaining several chords produces gigabyte-sized messages",
+  "issue_type": "performance",
+  "severity": "critical",
+  "component": "canvas",
+  "created_tick": 108,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#10171",
+  "source_url": "https://github.com/celery/celery/pull/10171",
+  "created_at": "2026-03-08T11:10:32Z",
+  "labels": [
+    "Component: Canvas"
+  ],
+  "release": "v5.6.3",
+  "title_original": "Fix O(K²) message bloat in a chain of chords",
+  "text_original": "This PR fixes O(K²) message bloat which was caused by submitting a chain of chords.\r\n\r\nCurrently, chain(chord_A, chord_B, chord_C) goes through `reduce(operator.or_, ...)` which hits `_chain.__or__` line 995, and every chord | chord nests the right chord into the left chord's body. So we get one giant chord with everything inside. 5 chords each having 10 noop tasks would require 120MB. 6 chords of the same width will require 1.4GB.\r\n\r\nWith this update, chord | chord appends flat to the chain list instead. 5 chords with 10 noop tasks require 25KB; 6 chords — 31KB.\r\n\r\nScript to reproduce:\r\n```python\r\nimport argparse\r\nimport json\r\n\r\nfrom celery import Celery, chain, chord, group\r\n\r\napp = Celery(\"repro\", backend=\"cache+memory://\")\r\napp.conf.update(\r\n    task_serializer=\"json\",\r\n    result_serializer=\"json\",\r\n    accept_content=[\"json\"],\r\n)\r\n\r\n\r\n@app.task\r\ndef noop(x=None):\r\n    return None\r\n\r\n\r\ndef build_chain_of_chords(num_layers: int, tasks_per_layer: int):\r\n    \"\"\"Build chain(chord_0, chord_1, ..., chord_N) — the problematic pattern.\"\"\"\r\n    layers = []\r\n    for _ in range(num_layers):\r\n        header = group(noop.si() for _ in range(tasks_per_layer))\r\n        body = noop.si()\r\n        layers.append(chord(header, body))\r\n    return chain(*layers)\r\n\r\n\r\ndef measure_serialized_sizes(num_layers: int, tasks_per_layer: int):\r\n    canvas = build_chain_of_chords(num_layers, tasks_per_layer)\r\n    canvas.freeze()\r\n\r\n    total_bytes = 0\r\n    print(f\"\\n{'Layer':<8} {'Size (bytes)':<15} {'chain entries'}\")\r\n    print(\"-\" * 40)\r\n\r\n    for i, task in enumerate(canvas.tasks):\r\n        size = len(json.dumps(task.__json__()))\r\n        total_bytes += size\r\n        chain_entries = len(task.options.get(\"chain\", []))\r\n        print(f\"{i:<8} {size:<15,} {chain_entries}\")\r\n\r\n    print(\"-\" * 40)\r\n    print(f\"Total: {total_bytes:,} bytes across {len(canvas.tasks)} tasks\")\r\n\r\n    if len(canvas.tasks) >= 2:\r\n        first = len(json.dumps(canvas.tasks[0].__json__()))\r\n        last = len(json.dumps(canvas.tasks[-1].__json__()))\r\n        print(f\"First: {first:,}  Last: {last:,}  Ratio: {first / max(last, 1):.1f}x\")\r\n\r\n\r\nif __name__ == \"__main__\":\r\n    parser = argparse.ArgumentParser(description=\"Measure chord-chain message sizes\")\r\n    parser.add_argument(\"--layers\", type=int, default=8, help=\"Number of chord layers\")\r\n    parser.add_argument(\"--tasks-per-layer\", type=int, default=3, help=\"Parallel tasks per layer\")\r\n    args = parser.parse_args()\r\n\r\n    measure_serialized_sizes(args.layers, args.tasks_per_layer)\r\n```",
+  "text_rewritten": "Building a chain out of several chords produces a message whose size explodes with the number of layers: five chords of ten tasks serialize to roughly 120 MB and six to about 1.4 GB. Composing the layers folds each chord into the body of the one before it, so every layer ends up carrying a full copy of everything that follows and the payload grows quadratically. A chain of chords should be exactly that -- the layers stay side by side as separate steps of the chain, each carrying only its own header and body, so total size grows linearly with the number of layers. Composing a chord with an ordinary task must keep its current meaning: the task is appended to the chord's body.",
+  "body": "Building a chain out of several chords produces a message whose size explodes with the number of layers: five chords of ten tasks serialize to roughly 120 MB and six to about 1.4 GB. Composing the layers folds each chord into the body of the one before it, so every layer ends up carrying a full copy of everything that follows and the payload grows quadratically. A chain of chords should be exactly that -- the layers stay side by side as separate steps of the chain, each carrying only its own header and body, so total size grows linearly with the number of layers. Composing a chord with an ordinary task must keep its current meaning: the task is appended to the chord's body.",
+  "acceptance_hint": "chain(chord_a, chord_b, chord_c) keeps three chord steps of equal serialized size, none of which contains another layer, while chord | plain_task still extends the chord body.",
+  "candidate_path_hints": [
+    "celery/canvas.py"
+  ],
+  "linked_hidden_test_ids": [
+    "hidden_chain_of_chords_stays_flat"
+  ]
+}

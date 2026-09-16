@@ -6,6 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
+from relic.benchmark import load_benchmark_manifest, verify_benchmark
 from relic.manifest import build_main_manifest, write_manifest
 
 
@@ -39,6 +40,17 @@ def _plan_main(args: argparse.Namespace) -> int:
     return 0
 
 
+def _verify_benchmark(_: argparse.Namespace) -> int:
+    manifest = load_benchmark_manifest()
+    failures = verify_benchmark()
+    if failures:
+        for failure in failures:
+            print(f"FAIL: {failure}")
+        return 1
+    print(f"OK: {manifest['benchmark']} ({len(manifest['workloads'])} frozen workloads)")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="relic")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -49,6 +61,11 @@ def build_parser() -> argparse.ArgumentParser:
     plan.add_argument("--manifest", type=Path, default=None)
     plan.add_argument("--max-parallel", type=int, default=1)
     plan.set_defaults(func=_plan_main)
+
+    verify = subparsers.add_parser(
+        "verify-benchmark", help="verify all frozen relic-main-v1 pack digests"
+    )
+    verify.set_defaults(func=_verify_benchmark)
     return parser
 
 
@@ -59,4 +76,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

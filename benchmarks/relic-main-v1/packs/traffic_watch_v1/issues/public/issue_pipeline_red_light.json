@@ -1,0 +1,25 @@
+{
+  "issue_id": "issue_pipeline_red_light",
+  "title": "Pipeline red light is not implemented",
+  "issue_type": "feature",
+  "severity": "high",
+  "component": "pipeline_red_light",
+  "created_tick": 72,
+  "source": "vendor_task_brief",
+  "source_type": "requirements_document",
+  "source_id": "traffic-violation-detection",
+  "labels": [],
+  "release": "1.0.0",
+  "body": "The dashboard renders cleanly in modern browsers, the repository ships proper documentation and source code, the detection pipeline maintains real-time throughput on a modern CPU, and the system runs on a local machine or server without external cloud dependencies.\n\n### Public API (the test suite imports these names)\n\nAll public names must be exported from the top-level `traffic_violation_system` package (importable as `from traffic_violation_system import ...`). The Flask app factory lives at `traffic_violation_system.dashboard.create_app`. Tests inject fakes by subclassing the abstract seam classes below, so concrete model code must sit behind these seams (no real model is loaded during tests).\n\n`ViolationPipeline(system_config, detector, ocr, helmet_detector, seatbelt_detector, store, alerts)`: constructed by keyword; `process_frame(frame, frame_context) -> list[ViolationRecord]` returns every violation emitted on that frame. Each `(track_id, violation_type)` combination must fire at most once per pipeline instance. The helmet rule only applies to two-wheelers (`motorcycle`/`motorbike`/`scooter` labels); the seatbelt rule only applies to `car` labels. The returned list is ordered deterministically by ascending `track_id`, breaking ties by a fixed `ViolationType` precedence equal to the declaration order of the enum — `RED_LIGHT`, `WRONG_WAY`, `OVER_SPEED`, `LANE_CHANGE`, `NO_HELMET`, `NO_SEATBELT`, `RECKLESS_DRIVING` (so `RECKLESS_DRIVING` always sorts last among a track's violations).",
+  "acceptance_hint": "3 executable checks over the pipeline_red_light surface.",
+  "linked_hidden_test_ids": [
+    "hidden_pipeline_red_light"
+  ],
+  "candidate_path_hints": [
+    "traffic_violation_system/pipeline.py",
+    "traffic_violation_system/rules.py",
+    "traffic_violation_system/detection.py",
+    "traffic_violation_system/violations.py",
+    "traffic_violation_system/alerts.py"
+  ]
+}

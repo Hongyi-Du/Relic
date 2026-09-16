@@ -1,0 +1,354 @@
+[
+  {
+    "test_id": "hidden_event_loop_hub_teardown",
+    "name": "a graceful consumer exit leaves the event hub running",
+    "rel_path": "test_event_loop_hub_teardown.py",
+    "issue_ids": [
+      "issue_event_loop_hub_teardown"
+    ],
+    "expected_behavior": "asynloop leaves the hub intact on a normal exit so heartbeat timers survive the drain, and only resets it when the loop aborts with an error.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "v5.6.3",
+    "source_pr": "https://github.com/celery/celery/pull/9986",
+    "source_commit": "ab711a0b2de8fcc5aa8ec6701cdcb0530d6daebb",
+    "reference_release": "v5.6.3",
+    "source_url": "https://github.com/celery/celery/pull/9986",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_event_loop_hub_teardown.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_consumer_bootstep_imports",
+    "name": "every declared consumer bootstep loads on a stock runtime",
+    "rel_path": "test_consumer_bootstep_imports.py",
+    "issue_ids": [
+      "issue_consumer_bootstep_imports"
+    ],
+    "expected_behavior": "Every default consumer bootstep resolves through symbol_by_name on a runtime that has no exceptiongroup backport installed.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "v5.6.3",
+    "source_pr": "https://github.com/celery/celery/pull/10033",
+    "source_commit": "ba20bed7723c684d12ddd62d6a7c0c0d901b3351",
+    "reference_release": "v5.6.3",
+    "source_url": "https://github.com/celery/celery/pull/10033",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_consumer_bootstep_imports.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_revoked_task_result_state",
+    "name": "a revocation is visible to result-store clients at once",
+    "rel_path": "test_revoked_task_result_state.py",
+    "issue_ids": [
+      "issue_revoked_task_result_state"
+    ],
+    "expected_behavior": "The revoke control command marks each id as revoked in the result backend, so AsyncResult reports REVOKED immediately.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "v5.6.3",
+    "source_pr": "https://github.com/celery/celery/pull/9869",
+    "source_commit": "333a82f746734151c5cbe848916085455b0a3748",
+    "reference_release": "v5.6.3",
+    "source_url": "https://github.com/celery/celery/pull/9869",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_revoked_task_result_state.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_beat_pool_name_guard",
+    "name": "embedded beat rejects a green pool named as a string",
+    "rel_path": "test_beat_pool_name_guard.py",
+    "issue_ids": [
+      "issue_beat_pool_name_guard"
+    ],
+    "expected_behavior": "The Beat bootstep recognises a green pool whether pool_cls is a string or a class and raises ImproperlyConfigured, and still builds the service for other pools.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "v5.6.3",
+    "source_pr": "https://github.com/celery/celery/pull/10048",
+    "source_commit": "87f117612ee578300c92a4f6eb7d38902ad14a28",
+    "reference_release": "v5.6.3",
+    "source_url": "https://github.com/celery/celery/pull/10048",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_beat_pool_name_guard.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_retry_dead_letter_headers",
+    "name": "a retry is republished without dead-letter bookkeeping",
+    "rel_path": "test_retry_dead_letter_headers.py",
+    "issue_ids": [
+      "issue_retry_dead_letter_headers"
+    ],
+    "expected_behavior": "signature_from_request strips the x-death header family from the republished retry while preserving application headers and the original request.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "v5.6.3",
+    "source_pr": "https://github.com/celery/celery/pull/10095",
+    "source_commit": "f2e37f016d90b5f352452460ebde68b2e022b9e5",
+    "reference_release": "v5.6.3",
+    "source_url": "https://github.com/celery/celery/pull/10095",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_retry_dead_letter_headers.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_shutdown_notice_write",
+    "name": "shutdown notices survive a cooperative os.write",
+    "rel_path": "test_shutdown_notice_write.py",
+    "issue_ids": [
+      "issue_shutdown_notice_write"
+    ],
+    "expected_behavior": "safe_say writes through a descriptor-write primitive captured before any monkey patching, so shutdown notices survive a cooperative os.write.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "v5.6.3",
+    "source_pr": "https://github.com/celery/celery/pull/10123",
+    "source_commit": "2ac70700b9a0404df6de689ee631cf84e904ee1f",
+    "reference_release": "v5.6.3",
+    "source_url": "https://github.com/celery/celery/pull/10123",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_shutdown_notice_write.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_database_pool_health_defaults",
+    "name": "the SQL backend ships connection-health engine options",
+    "rel_path": "test_database_pool_health_defaults.py",
+    "issue_ids": [
+      "issue_database_pool_health_defaults"
+    ],
+    "expected_behavior": "The database_engine_options setting ships connection-health defaults (pool_pre_ping and pool_recycle) that an explicit configuration still overrides.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "v5.6.3",
+    "source_pr": "https://github.com/celery/celery/pull/10124",
+    "source_commit": "9df38ec3e4257c52e60a29f384c80fba7ae6f1a2",
+    "reference_release": "v5.6.3",
+    "source_url": "https://github.com/celery/celery/pull/10124",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_database_pool_health_defaults.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_beat_service_copy",
+    "name": "a beat service round-trips through its own reconstruction",
+    "rel_path": "test_beat_service_copy.py",
+    "issue_ids": [
+      "issue_beat_service_copy"
+    ],
+    "expected_behavior": "The beat Service reconstruction protocol emits its constructor arguments in constructor order, so copying round-trips every field.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "v5.6.3",
+    "source_pr": "https://github.com/celery/celery/pull/10137",
+    "source_commit": "4b2794f75c2fa97ef85a15db19feff0bb6056356",
+    "reference_release": "v5.6.3",
+    "source_url": "https://github.com/celery/celery/pull/10137",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_beat_service_copy.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_chain_of_chords_stays_flat",
+    "name": "chained chords stay flat instead of nesting",
+    "rel_path": "test_chain_of_chords_stays_flat.py",
+    "issue_ids": [
+      "issue_chain_of_chords_stays_flat"
+    ],
+    "expected_behavior": "Composing a chord onto a chain appends it as a new step instead of nesting it into the previous chord's body, keeping the serialized payload linear in the number of layers.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "v5.6.3",
+    "source_pr": "https://github.com/celery/celery/pull/10171",
+    "source_commit": "b34c1e1027fcbf11fa3efab106dbe8d77257704e",
+    "reference_release": "v5.6.3",
+    "source_url": "https://github.com/celery/celery/pull/10171",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_chain_of_chords_stays_flat.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_chain_step_dispatch_no_mutation",
+    "name": "dispatching a chain step does not consume the request",
+    "rel_path": "test_chain_step_dispatch_no_mutation.py",
+    "issue_ids": [
+      "issue_chain_step_dispatch_no_mutation"
+    ],
+    "expected_behavior": "The tracer reads the trailing chain entry without popping it, so the request's pending chain survives a second pass.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "v5.6.3",
+    "source_pr": "https://github.com/celery/celery/pull/10159",
+    "source_commit": "67ab3d27d4d7bab48b1141c677ae30a712781a20",
+    "reference_release": "v5.6.3",
+    "source_url": "https://github.com/celery/celery/pull/10159",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_chain_step_dispatch_no_mutation.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_cli_broker_unreachable",
+    "name": "`celery status` reports an unreachable broker as unavailable",
+    "rel_path": "test_cli_broker_unreachable.py",
+    "issue_ids": [
+      "issue_cli_broker_unreachable"
+    ],
+    "expected_behavior": "The status command converts a transport failure into a command error carrying EX_UNAVAILABLE and the underlying reason, with no traceback.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "v5.6.3",
+    "source_pr": "https://github.com/celery/celery/pull/10190",
+    "source_commit": "6ee6230cd80ef6c3e7482e1f4cd970fbb0629b23",
+    "reference_release": "v5.6.3",
+    "source_url": "https://github.com/celery/celery/pull/10190",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_cli_broker_unreachable.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_tracer_ignore_result_precedence",
+    "name": "a per-message ignore_result outranks the task declaration",
+    "rel_path": "test_tracer_ignore_result_precedence.py",
+    "issue_ids": [
+      "issue_tracer_ignore_result_precedence"
+    ],
+    "expected_behavior": "The tracer resolves ignore_result as request-over-task-over-config, so a per-message override decides whether the result is published.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "v5.6.3",
+    "source_pr": "https://github.com/celery/celery/pull/10184",
+    "source_commit": "c3c19c31dc3e21f16d4d85a8ba8401a9223ace09",
+    "reference_release": "v5.6.3",
+    "source_url": "https://github.com/celery/celery/pull/10184",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_tracer_ignore_result_precedence.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_backend_retry_recovery_hook",
+    "name": "backends get a recovery callback before each retry",
+    "rel_path": "test_backend_retry_recovery_hook.py",
+    "issue_ids": [
+      "issue_backend_retry_recovery_hook"
+    ],
+    "expected_behavior": "BaseBackend invokes on_backend_retryable_error(exc) before each retry on the read and write paths, tolerating a hook that raises.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "v5.6.3",
+    "source_pr": "https://github.com/celery/celery/pull/10124",
+    "source_commit": "9df38ec3e4257c52e60a29f384c80fba7ae6f1a2",
+    "reference_release": "v5.6.3",
+    "source_url": "https://github.com/celery/celery/pull/10124",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_backend_retry_recovery_hook.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_event_loop_timer_cleanup",
+    "name": "an aborted consumer loop discards its periodic callbacks",
+    "rel_path": "test_event_loop_timer_cleanup.py",
+    "issue_ids": [
+      "issue_event_loop_timer_cleanup"
+    ],
+    "expected_behavior": "asynloop clears the hub timer queue on the error path so stale periodic callbacks do not accumulate across reconnects, and leaves it alone on a graceful exit.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "v5.6.3",
+    "source_pr": "https://github.com/celery/celery/pull/10218",
+    "source_commit": "a989e8cf8876274b1f0612abffeeb2e9995ed321",
+    "reference_release": "v5.6.3",
+    "source_url": "https://github.com/celery/celery/pull/10218",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_event_loop_timer_cleanup.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_cli_remote_command_errors",
+    "name": "remote-control commands report cluster failures as errors",
+    "rel_path": "test_cli_remote_command_errors.py",
+    "issue_ids": [
+      "issue_cli_remote_command_errors"
+    ],
+    "expected_behavior": "inspect, control and events route every failure through the shared remote-command error handler, producing EX_UNAVAILABLE and a single-line reason.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "v5.6.3",
+    "source_pr": "https://github.com/celery/celery/pull/10190",
+    "source_commit": "6ee6230cd80ef6c3e7482e1f4cd970fbb0629b23",
+    "reference_release": "v5.6.3",
+    "source_url": "https://github.com/celery/celery/pull/10190",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_cli_remote_command_errors.py",
+      "-q"
+    ]
+  },
+  {
+    "test_id": "hidden_worker_request_store_errors",
+    "name": "a request resolves ignore_result against its task",
+    "rel_path": "test_worker_request_store_errors.py",
+    "issue_ids": [
+      "issue_worker_request_store_errors"
+    ],
+    "expected_behavior": "Request resolves ignore_result as message-over-task and derives store_errors from that resolved value.",
+    "evidence_kind": "executable_behavioral_contract",
+    "introduced_in": "v5.6.3",
+    "source_pr": "https://github.com/celery/celery/pull/10184",
+    "source_commit": "c3c19c31dc3e21f16d4d85a8ba8401a9223ace09",
+    "reference_release": "v5.6.3",
+    "source_url": "https://github.com/celery/celery/pull/10184",
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "tests/hidden/test_worker_request_store_errors.py",
+      "-q"
+    ]
+  }
+]

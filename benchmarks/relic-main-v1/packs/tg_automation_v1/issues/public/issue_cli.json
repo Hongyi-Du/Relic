@@ -1,0 +1,21 @@
+{
+  "issue_id": "issue_cli",
+  "title": "Cli is not implemented",
+  "issue_type": "feature",
+  "severity": "high",
+  "component": "cli",
+  "created_tick": 24,
+  "source": "vendor_task_brief",
+  "source_type": "requirements_document",
+  "source_id": "telegram-automation-tool",
+  "labels": [],
+  "release": "1.0.0",
+  "body": "The system is a Python package named `tg_automation` (importable as `tg_automation`) located at `tg_automation/`, that uses Telethon (or a comparable Telegram MTProto client) to authenticate and interact with the Telegram API. A CLI entry point exposes every reporting and growth command without requiring code changes. The CLI is invoked via `tg_automation.cli.run(argv, *, source=None, growth_client=None, out=None, connector=None) -> int` and writes JSON to the provided `out` stream; the source/growth_client/connector kwargs let tests inject fakes for the Telegram API.\n\nThe CLI accepts one or more group identifiers (username or invite link) via repeated `--group <id>` flags and connects to each via the Telegram API. When more than one group is provided, each group is processed independently and successful groups are still included in the output even if another group fails to connect. A connection failure for one group is logged and does not abort processing of the others. `tg_automation.cli.run` returns `0` whenever at least one `--group` produced output, even if other groups failed to connect; logged connection failures are soft warnings and do not change the exit code. If no group can be processed successfully, `run` returns a non-zero exit code. Global flags `--config <path>`, `--since <iso8601>`, `--until <iso8601>` apply to every subcommand that needs them.",
+  "acceptance_hint": "10 executable checks over the cli surface.",
+  "linked_hidden_test_ids": [
+    "hidden_cli"
+  ],
+  "candidate_path_hints": [
+    "tg_automation/cli.py"
+  ]
+}

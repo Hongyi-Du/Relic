@@ -1,0 +1,69 @@
+schema_version = "1.3"
+multi_step_reward_strategy = "final"
+artifacts = ["/app/workspace"]
+
+[task]
+name = "terminal-data-factory/mini-blobstore"
+description = "Build mini-blobstore across five progressive Greenfield steps."
+authors = [{ name = "Terminal Data Factory Team" }]
+keywords = ["multi-step", "greenfield", "distributed-storage"]
+
+[[steps]]
+name = "1-content-addressing"
+[steps.verifier]
+timeout_sec = 300.0
+[steps.agent]
+timeout_sec = 7200.0
+
+[[steps]]
+name = "2-manifest-store"
+[steps.verifier]
+timeout_sec = 300.0
+[steps.agent]
+timeout_sec = 7200.0
+
+[[steps]]
+name = "3-multipart-upload"
+[steps.verifier]
+timeout_sec = 300.0
+[steps.agent]
+timeout_sec = 7200.0
+
+[[steps]]
+name = "4-replication-repair"
+[steps.verifier]
+timeout_sec = 300.0
+[steps.agent]
+timeout_sec = 7200.0
+
+[[steps]]
+name = "5-gc-integrity"
+[steps.verifier]
+timeout_sec = 300.0
+[steps.agent]
+timeout_sec = 7200.0
+
+[metadata]
+difficulty = "uncalibrated-long-horizon-candidate"
+calibration_status = "target-agent-rollouts-required"
+language = "python"
+domain = "distributed-storage"
+codebase_profile = "greenfield"
+trajectory_shape = "progressive-implementation"
+
+[verifier]
+timeout_sec = 300.0
+
+[agent]
+timeout_sec = 40000.0
+max_steps = 500
+
+[environment]
+build_timeout_sec = 600.0
+os = "linux"
+cpus = 2
+memory_mb = 4096
+storage_mb = 8192
+gpus = 0
+allow_internet = false
+workdir = "/app/workspace"

@@ -1,0 +1,22 @@
+{
+  "issue_id": "issue_filters",
+  "title": "Filters is not implemented",
+  "issue_type": "feature",
+  "severity": "high",
+  "component": "filters",
+  "created_tick": 72,
+  "source": "vendor_task_brief",
+  "source_type": "requirements_document",
+  "source_id": "telegram-automation-tool",
+  "labels": [],
+  "release": "1.0.0",
+  "body": "`tg_automation.filters.filter_users(users, *, mode, custom=None)` accepts one of three modes — `active`, `inactive`, `custom` — and returns the filtered user list. `active` keeps users with `messages_sent + reactions_given >= 1`; `inactive` is its strict complement; `custom` accepts a list of comparator predicate strings on `messages_sent`, `reactions_given`, and `active_days` using operators `>=`, `>`, `<=`, `<`, `==` (e.g., `messages_sent>=5`); multiple predicates are ANDed together. `custom` mode with no predicates, unknown modes, unknown fields, and malformed predicates each raise `ValueError`. The predicate parser is exposed as a public helper `tg_automation.filters.parse_custom_predicate(expr)` and raises `ValueError` for unknown fields or malformed syntax. The CLI exposes this as the `filter-users` subcommand with `--mode <active|inactive|custom>` and repeatable `--predicate <expr>`.",
+  "acceptance_hint": "9 executable checks over the filters surface.",
+  "linked_hidden_test_ids": [
+    "hidden_filters"
+  ],
+  "candidate_path_hints": [
+    "tg_automation/analysis.py",
+    "tg_automation/filters.py"
+  ]
+}

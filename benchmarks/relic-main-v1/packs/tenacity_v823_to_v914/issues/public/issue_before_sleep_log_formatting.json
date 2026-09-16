@@ -1,0 +1,23 @@
+{
+  "issue_id": "issue_before_sleep_log_formatting",
+  "title": "Pre-retry log line prints unreadable floating point delays",
+  "issue_type": "usability",
+  "severity": "medium",
+  "component": "logging_callbacks",
+  "created_tick": 132,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#489",
+  "source_url": "https://github.com/jd/tenacity/pull/489",
+  "created_at": "2025-04-02T16:20:33Z",
+  "labels": [],
+  "release": "9.1.4",
+  "title_original": "Apply formatting to num seconds in before_sleep_log",
+  "text_original": "Resolves issue [#432](https://github.com/jd/tenacity/issues/432)",
+  "text_rewritten": "The log line emitted just before each backoff pause interpolates the delay straight into the message, so a combined wait strategy produces entries like 'Retrying … in 0.30000000000000004 seconds as it raised …'. That is noise in every log aggregator we run, and because each line is textually unique it defeats grouping entirely. The equivalent post-attempt log helper already lets us pass a format for the seconds; the pre-sleep one does not. Please render the delay as a readable number by default and let callers override the rendering with the same kind of `sec_format` option the post-attempt helper accepts. The rest of the line — the function name, the 'raised …' / 'returned …' clause, and the exception-info plumbing — has to stay exactly as it is, because we parse it.",
+  "body": "The log line emitted just before each backoff pause interpolates the delay straight into the message, so a combined wait strategy produces entries like 'Retrying … in 0.30000000000000004 seconds as it raised …'. That is noise in every log aggregator we run, and because each line is textually unique it defeats grouping entirely. The equivalent post-attempt log helper already lets us pass a format for the seconds; the pre-sleep one does not. Please render the delay as a readable number by default and let callers override the rendering with the same kind of `sec_format` option the post-attempt helper accepts. The rest of the line — the function name, the 'raised …' / 'returned …' clause, and the exception-info plumbing — has to stay exactly as it is, because we parse it.",
+  "acceptance_hint": "A combined wait of 0.1 + 0.2 logs 'in 0.3 seconds' by default, a supplied `sec_format` such as `%.2f` renders 'in 0.30 seconds', and the remainder of the message is byte-for-byte what it was.",
+  "linked_hidden_test_ids": [
+    "hidden_before_sleep_log_formatting"
+  ]
+}

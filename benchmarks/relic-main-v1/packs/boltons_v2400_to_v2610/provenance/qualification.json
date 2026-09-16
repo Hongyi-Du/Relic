@@ -1,0 +1,189 @@
+{
+  "dataset_id": "boltons_v2400_to_v2610",
+  "product_name": "boltons",
+  "starter_ref": "24.0.0",
+  "reference_ref": "26.1.0",
+  "evidence_kind": "executable_behavioral_contract",
+  "starter_repo_digest": "e07ee67383526ff6243069c095e39739e2e63ccf927a897784481c17f45bc802",
+  "reference_repo_digest": "9d77826432ca16a94b5bc9979dbb229368013e5c572e39af137b61cb1e3a634a",
+  "hidden_suite_hash": "51b3470be05eab44e69d79c08494947e03778b0724f27f9264e56bd48f4545db",
+  "evaluator_environment_hash": "e1af84e85d8591c4b59b449e12ce126c4c38452621368652a9f0c4cf81db5a47",
+  "qualification_hash": "88d63c99ba46f7950f6483dea8534ae72720c2a36896ea4d0788962bf09553c9",
+  "qualification_result_hash": "b1a49382871364af5015c3c9f201322fdd42052d381259fc0c570ebffb606265",
+  "result_hash": "b1a49382871364af5015c3c9f201322fdd42052d381259fc0c570ebffb606265",
+  "agent_filesystem_isolation_required": true,
+  "agent_filesystem_isolation_status": "required_not_verified_by_pack",
+  "contamination_status": "probes_defined_not_executed",
+  "manual_runtime_test_caveat": "The recorded starter and reference outcomes cover this Pack's own behavioral contracts. The upstream project's full test suite was not run and is not claimed by this receipt.",
+  "formal_ready": true,
+  "blocking_reasons": [],
+  "plan_hash": "88d63c99ba46f7950f6483dea8534ae72720c2a36896ea4d0788962bf09553c9",
+  "evaluator_environment": {
+    "schema_version": "org_env_pack_evaluator_environment_v1",
+    "runner": "pytest",
+    "plugin_autoload": "disabled",
+    "network": "none",
+    "python_version": "3.12.13",
+    "platform": "windows/amd64",
+    "requirements_lock": "benchmarks/org_env_pack_expansion/evaluator-windows-requirements.lock",
+    "requirements_lock_sha256": "630ea63f19075ce84676aa304a596545cffb182ab8537fb8223c185c4dcefd5d",
+    "hash": "e1af84e85d8591c4b59b449e12ce126c4c38452621368652a9f0c4cf81db5a47"
+  },
+  "qualification_result": {
+    "dataset_id": "boltons_v2400_to_v2610",
+    "evidence_kind": "executable_behavioral_contract",
+    "qualification_hash": "88d63c99ba46f7950f6483dea8534ae72720c2a36896ea4d0788962bf09553c9",
+    "starter_hidden_passed": 0,
+    "starter_hidden_total": 16,
+    "reference_hidden_passed": 16,
+    "reference_hidden_total": 16,
+    "formal_ready": true,
+    "blocking_reasons": []
+  },
+  "oracles": [
+    {
+      "test_id": "hidden_file_discovery_depth",
+      "issue_ids": [
+        "issue_file_discovery_depth"
+      ],
+      "introduced_in": "26.1.0",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_sentinel_copy_identity",
+      "issue_ids": [
+        "issue_sentinel_copy_identity"
+      ],
+      "introduced_in": "26.1.0",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_table_column_width",
+      "issue_ids": [
+        "issue_table_column_width"
+      ],
+      "introduced_in": "26.1.0",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_barrel_list_sort",
+      "issue_ids": [
+        "issue_barrel_list_sort"
+      ],
+      "introduced_in": "26.1.0",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_html_text_extraction",
+      "issue_ids": [
+        "issue_html_text_extraction"
+      ],
+      "introduced_in": "26.1.0",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_partition_predicates",
+      "issue_ids": [
+        "issue_partition_predicates"
+      ],
+      "introduced_in": "26.1.0",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_traceback_parse_truncated",
+      "issue_ids": [
+        "issue_traceback_parse_truncated"
+      ],
+      "introduced_in": "26.1.0",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_byte_size_rollover",
+      "issue_ids": [
+        "issue_byte_size_rollover"
+      ],
+      "introduced_in": "26.1.0",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_multidict_equality",
+      "issue_ids": [
+        "issue_multidict_equality"
+      ],
+      "introduced_in": "26.1.0",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_split_iter_zero_maxsplit",
+      "issue_ids": [
+        "issue_split_iter_zero_maxsplit"
+      ],
+      "introduced_in": "26.1.0",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_indexed_set_slicing",
+      "issue_ids": [
+        "issue_indexed_set_slicing"
+      ],
+      "introduced_in": "26.1.0",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_word_singularization",
+      "issue_ids": [
+        "issue_word_singularization"
+      ],
+      "introduced_in": "26.1.0",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_indexed_set_index_bounds",
+      "issue_ids": [
+        "issue_indexed_set_index_bounds"
+      ],
+      "introduced_in": "26.1.0",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_multidict_copy_semantics",
+      "issue_ids": [
+        "issue_multidict_copy_semantics"
+      ],
+      "introduced_in": "26.1.0",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_atomic_save_path_objects",
+      "issue_ids": [
+        "issue_atomic_save_path_objects"
+      ],
+      "introduced_in": "26.1.0",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    },
+    {
+      "test_id": "hidden_research_repeated_subtrees",
+      "issue_ids": [
+        "issue_research_repeated_subtrees"
+      ],
+      "introduced_in": "26.1.0",
+      "baseline_status": "failed",
+      "reference_status": "passed"
+    }
+  ]
+}

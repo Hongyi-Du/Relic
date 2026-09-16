@@ -1,0 +1,23 @@
+{
+  "issue_id": "issue_omit_default_field_converter",
+  "title": "\"Omit values equal to their default\" never omits a field that declares a converter",
+  "issue_type": "bug",
+  "severity": "medium",
+  "component": "hook_generation",
+  "created_tick": 120,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#696",
+  "source_url": "https://github.com/python-attrs/cattrs/pull/696",
+  "created_at": "2025-11-30T21:11:43Z",
+  "labels": [],
+  "release": "v26.1.0",
+  "title_original": "Apply attrs' converter to default before omit_if_default check",
+  "text_original": "Apply the attrs converter to the default value before checking if it is equal to the attribute's value, when `omit_if_default` is true and an attrs converter is specified.",
+  "text_rewritten": "Several of our model fields declare a field-level converter so that a loosely typed default is coerced on construction - the default is written as the string \"3\" and the field ends up holding the integer 3. With the converter configured to omit values equal to their default, those fields are emitted on every single payload even for a freshly constructed model, because the comparison is made against the raw, unconverted default rather than against the value the field actually takes. Fields with no converter behave correctly, so the comparison is the only thing that is wrong. The same coercion should be applied to the default before the comparison, whether the default is a plain value, a factory, or a converter object that reads the instance. Fields that genuinely differ from their default must of course still be emitted.",
+  "body": "Several of our model fields declare a field-level converter so that a loosely typed default is coerced on construction - the default is written as the string \"3\" and the field ends up holding the integer 3. With the converter configured to omit values equal to their default, those fields are emitted on every single payload even for a freshly constructed model, because the comparison is made against the raw, unconverted default rather than against the value the field actually takes. Fields with no converter behave correctly, so the comparison is the only thing that is wrong. The same coercion should be applied to the default before the comparison, whether the default is a plain value, a factory, or a converter object that reads the instance. Fields that genuinely differ from their default must of course still be emitted.",
+  "acceptance_hint": "With \"omit values equal to their default\" on, a freshly constructed model whose fields declare converters unstructures to an empty payload; fields whose value differs from the converted default are still emitted, and fields without converters are unchanged.",
+  "linked_hidden_test_ids": [
+    "hidden_omit_default_field_converter"
+  ]
+}

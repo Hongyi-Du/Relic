@@ -1,0 +1,1020 @@
+{
+  "policy": {
+    "hidden_tests_must_not_require_undisclosed_public_names": true,
+    "public_smoke_is_representative_not_exhaustive": true,
+    "public_surface_is_authoritative": true
+  },
+  "schema_version": "1.0",
+  "steps": [
+    {
+      "modules": [
+        {
+          "classes": [
+            {
+              "bases": [
+                "ValueError"
+              ],
+              "methods": [],
+              "name": "InvalidObjectId",
+              "public_attributes": []
+            },
+            {
+              "bases": [
+                "RuntimeError"
+              ],
+              "methods": [],
+              "name": "CorruptObjectError",
+              "public_attributes": []
+            },
+            {
+              "bases": [],
+              "methods": [
+                {
+                  "async": false,
+                  "name": "__init__",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    },
+                    {
+                      "annotation": "str | os.PathLike[str]",
+                      "kind": "positional",
+                      "name": "root",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": null
+                },
+                {
+                  "async": false,
+                  "name": "validate_id",
+                  "parameters": [
+                    {
+                      "annotation": "str",
+                      "kind": "positional",
+                      "name": "object_id",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": "None"
+                },
+                {
+                  "async": false,
+                  "name": "path_for",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    },
+                    {
+                      "annotation": "str",
+                      "kind": "positional",
+                      "name": "object_id",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": "Path"
+                },
+                {
+                  "async": false,
+                  "name": "put_bytes",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    },
+                    {
+                      "annotation": "bytes",
+                      "kind": "positional",
+                      "name": "data",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": "str"
+                },
+                {
+                  "async": false,
+                  "name": "put_stream",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    },
+                    {
+                      "annotation": "BinaryIO",
+                      "kind": "positional",
+                      "name": "source",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": "str"
+                },
+                {
+                  "async": false,
+                  "name": "get",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    },
+                    {
+                      "annotation": "str",
+                      "kind": "positional",
+                      "name": "object_id",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": "bytes"
+                },
+                {
+                  "async": false,
+                  "name": "exists",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    },
+                    {
+                      "annotation": "str",
+                      "kind": "positional",
+                      "name": "object_id",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": "bool"
+                },
+                {
+                  "async": false,
+                  "name": "verify",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    },
+                    {
+                      "annotation": "str",
+                      "kind": "positional",
+                      "name": "object_id",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": "bool"
+                },
+                {
+                  "async": false,
+                  "name": "iter_ids",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": "Iterator[str]"
+                }
+              ],
+              "name": "ObjectStore",
+              "public_attributes": [
+                "objects",
+                "root"
+              ]
+            }
+          ],
+          "constants": [],
+          "file": "blobstore/objects.py",
+          "functions": [],
+          "module": "blobstore.objects"
+        }
+      ],
+      "name": "content-addressing",
+      "number": 1,
+      "public_cases": [
+        {
+          "body": "\nimport hashlib\nfrom blobstore.objects import ObjectStore\ns=ObjectStore(ROOT); data=b'hello\\x00world'; oid=s.put_bytes(data)\nassert oid==hashlib.sha256(data).hexdigest() and s.get(oid)==data and s.verify(oid)\n",
+          "name": "digest_and_roundtrip"
+        },
+        {
+          "body": "\nfrom blobstore.objects import ObjectStore\ns=ObjectStore(ROOT); oid=s.put_bytes(b'x'); p=s.path_for(oid)\nassert p.parent.name==oid[:2] and p.name==oid[2:] and p.is_file()\n",
+          "name": "sharded_path"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "classes": [
+            {
+              "bases": [
+                "RuntimeError"
+              ],
+              "methods": [],
+              "name": "ManifestConflictError",
+              "public_attributes": []
+            },
+            {
+              "bases": [],
+              "methods": [
+                {
+                  "async": false,
+                  "name": "__init__",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    },
+                    {
+                      "annotation": "str",
+                      "kind": "positional",
+                      "name": "name",
+                      "required": true
+                    },
+                    {
+                      "annotation": "tuple[str, ...]",
+                      "kind": "positional",
+                      "name": "objects",
+                      "required": true
+                    },
+                    {
+                      "annotation": "dict",
+                      "kind": "positional",
+                      "name": "metadata",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": null
+                }
+              ],
+              "name": "Manifest",
+              "public_attributes": [
+                "metadata",
+                "name",
+                "objects"
+              ]
+            },
+            {
+              "bases": [],
+              "methods": [
+                {
+                  "async": false,
+                  "name": "__init__",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    },
+                    {
+                      "annotation": "str | os.PathLike[str]",
+                      "kind": "positional",
+                      "name": "root",
+                      "required": true
+                    },
+                    {
+                      "annotation": "ObjectStore",
+                      "kind": "positional",
+                      "name": "objects",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": null
+                },
+                {
+                  "async": false,
+                  "name": "validate_name",
+                  "parameters": [
+                    {
+                      "annotation": "str",
+                      "kind": "positional",
+                      "name": "name",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": "None"
+                },
+                {
+                  "async": false,
+                  "name": "path_for",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    },
+                    {
+                      "annotation": "str",
+                      "kind": "positional",
+                      "name": "name",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": "Path"
+                },
+                {
+                  "async": false,
+                  "name": "create",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    },
+                    {
+                      "annotation": "str",
+                      "kind": "positional",
+                      "name": "name",
+                      "required": true
+                    },
+                    {
+                      "annotation": "list[str]",
+                      "kind": "positional",
+                      "name": "object_ids",
+                      "required": true
+                    },
+                    {
+                      "annotation": "dict | None",
+                      "kind": "positional",
+                      "name": "metadata",
+                      "required": false
+                    }
+                  ],
+                  "property": false,
+                  "returns": "Manifest"
+                },
+                {
+                  "async": false,
+                  "name": "get",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    },
+                    {
+                      "annotation": "str",
+                      "kind": "positional",
+                      "name": "name",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": "Manifest"
+                },
+                {
+                  "async": false,
+                  "name": "delete",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    },
+                    {
+                      "annotation": "str",
+                      "kind": "positional",
+                      "name": "name",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": "bool"
+                },
+                {
+                  "async": false,
+                  "name": "iter_names",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": "Iterator[str]"
+                },
+                {
+                  "async": false,
+                  "name": "referenced_ids",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": "set[str]"
+                }
+              ],
+              "name": "ManifestStore",
+              "public_attributes": [
+                "directory",
+                "objects",
+                "root"
+              ]
+            }
+          ],
+          "constants": [],
+          "file": "blobstore/manifests.py",
+          "functions": [],
+          "module": "blobstore.manifests"
+        }
+      ],
+      "name": "manifest-store",
+      "number": 2,
+      "public_cases": [
+        {
+          "body": "\nimport json\nfrom blobstore.objects import ObjectStore\nfrom blobstore.manifests import ManifestStore\no=ObjectStore(ROOT); oid=o.put_bytes(b'x'); m=ManifestStore(ROOT,o)\nr=m.create('team/data',[oid],{'z':1,'a':2}); assert r.objects==(oid,)\np=m.path_for('team/data'); assert p.read_bytes()==(json.dumps(json.loads(p.read_text()),sort_keys=True,separators=(',',':'))+'\\n').encode()\n",
+          "name": "create_get_canonical"
+        },
+        {
+          "body": "\nfrom blobstore.objects import ObjectStore\nfrom blobstore.manifests import ManifestStore\nm=ManifestStore(ROOT,ObjectStore(ROOT))\nfor name in ['', '/abs', '../x', 'a/../b', 'a//b']:\n    try: m.create(name,[])\n    except ValueError: pass\n    else: raise AssertionError(name)\nassert not list((ROOT/'manifests').rglob('*.json'))\n",
+          "name": "unsafe_names_rejected"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "classes": [
+            {
+              "bases": [
+                "RuntimeError"
+              ],
+              "methods": [],
+              "name": "UploadConflictError",
+              "public_attributes": []
+            },
+            {
+              "bases": [],
+              "methods": [
+                {
+                  "async": false,
+                  "name": "__init__",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    },
+                    {
+                      "annotation": "str | os.PathLike[str]",
+                      "kind": "positional",
+                      "name": "root",
+                      "required": true
+                    },
+                    {
+                      "annotation": "ObjectStore",
+                      "kind": "positional",
+                      "name": "objects",
+                      "required": true
+                    },
+                    {
+                      "annotation": "ManifestStore",
+                      "kind": "positional",
+                      "name": "manifests",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": null
+                },
+                {
+                  "async": false,
+                  "name": "begin",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    },
+                    {
+                      "annotation": "str",
+                      "kind": "positional",
+                      "name": "target",
+                      "required": true
+                    },
+                    {
+                      "annotation": "dict | None",
+                      "kind": "positional",
+                      "name": "metadata",
+                      "required": false
+                    }
+                  ],
+                  "property": false,
+                  "returns": "str"
+                },
+                {
+                  "async": false,
+                  "name": "upload_part",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    },
+                    {
+                      "annotation": "str",
+                      "kind": "positional",
+                      "name": "upload_id",
+                      "required": true
+                    },
+                    {
+                      "annotation": "int",
+                      "kind": "positional",
+                      "name": "number",
+                      "required": true
+                    },
+                    {
+                      "annotation": "bytes",
+                      "kind": "positional",
+                      "name": "data",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": "str"
+                },
+                {
+                  "async": false,
+                  "name": "complete",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    },
+                    {
+                      "annotation": "str",
+                      "kind": "positional",
+                      "name": "upload_id",
+                      "required": true
+                    },
+                    {
+                      "annotation": "int",
+                      "kind": "positional",
+                      "name": "part_count",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": "dict"
+                },
+                {
+                  "async": false,
+                  "name": "incomplete_object_ids",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": "set[str]"
+                }
+              ],
+              "name": "UploadStore",
+              "public_attributes": [
+                "directory",
+                "manifests",
+                "objects",
+                "root"
+              ]
+            }
+          ],
+          "constants": [],
+          "file": "blobstore/uploads.py",
+          "functions": [],
+          "module": "blobstore.uploads"
+        }
+      ],
+      "name": "multipart-upload",
+      "number": 3,
+      "public_cases": [
+        {
+          "body": "\nfrom blobstore.objects import ObjectStore\nfrom blobstore.manifests import ManifestStore\nfrom blobstore.uploads import UploadStore\no=ObjectStore(ROOT); m=ManifestStore(ROOT,o); u=UploadStore(ROOT,o,m); uid=u.begin('release/v1',{'k':'v'})\nu.upload_part(uid,2,b'world'); u.upload_part(uid,1,b'hello ')\nr=u.complete(uid,2); assert o.get(r['object_id'])==b'hello world' and m.get('release/v1').metadata=={'k':'v'}\n",
+          "name": "multipart_complete_order"
+        },
+        {
+          "body": "\nfrom blobstore.objects import ObjectStore\nfrom blobstore.manifests import ManifestStore\nfrom blobstore.uploads import UploadStore,UploadConflictError\no=ObjectStore(ROOT); u=UploadStore(ROOT,o,ManifestStore(ROOT,o)); uid=u.begin('x')\na=u.upload_part(uid,1,b'a'); assert u.upload_part(uid,1,b'a')==a\ntry: u.upload_part(uid,1,b'b')\nexcept UploadConflictError: pass\nelse: raise AssertionError('changed part accepted')\n",
+          "name": "part_retry_and_conflict"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "classes": [
+            {
+              "bases": [],
+              "methods": [
+                {
+                  "async": false,
+                  "name": "__init__",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    },
+                    {
+                      "annotation": "str",
+                      "kind": "positional",
+                      "name": "object_id",
+                      "required": true
+                    },
+                    {
+                      "annotation": "tuple[str, ...]",
+                      "kind": "positional",
+                      "name": "states",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": null
+                }
+              ],
+              "name": "ReplicaStatus",
+              "public_attributes": [
+                "object_id",
+                "states"
+              ]
+            },
+            {
+              "bases": [],
+              "methods": [
+                {
+                  "async": false,
+                  "name": "__init__",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    },
+                    {
+                      "annotation": "ObjectStore",
+                      "kind": "positional",
+                      "name": "primary",
+                      "required": true
+                    },
+                    {
+                      "annotation": "list[ObjectStore]",
+                      "kind": "positional",
+                      "name": "replicas",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": null
+                },
+                {
+                  "async": false,
+                  "name": "audit",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    },
+                    {
+                      "annotation": "str",
+                      "kind": "positional",
+                      "name": "object_id",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": "ReplicaStatus"
+                },
+                {
+                  "async": false,
+                  "name": "repair",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    },
+                    {
+                      "annotation": "str",
+                      "kind": "positional",
+                      "name": "object_id",
+                      "required": true
+                    },
+                    {
+                      "annotation": "int",
+                      "kind": "positional",
+                      "name": "replica_index",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": "str"
+                },
+                {
+                  "async": false,
+                  "name": "replicate_all",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": "int"
+                }
+              ],
+              "name": "ReplicaSet",
+              "public_attributes": [
+                "primary",
+                "replicas"
+              ]
+            }
+          ],
+          "constants": [],
+          "file": "blobstore/replicas.py",
+          "functions": [],
+          "module": "blobstore.replicas"
+        }
+      ],
+      "name": "replication-repair",
+      "number": 4,
+      "public_cases": [
+        {
+          "body": "\nfrom blobstore.objects import ObjectStore\nfrom blobstore.replicas import ReplicaSet\np=ObjectStore(ROOT/'p'); a=ObjectStore(ROOT/'a'); b=ObjectStore(ROOT/'b'); oid=p.put_bytes(b'x'); a.put_bytes(b'x'); b.put_bytes(b'x'); b.path_for(oid).write_bytes(b'bad')\nr=ReplicaSet(p,[a,b]).audit(oid); assert r.states==('healthy','healthy','corrupt')\n",
+          "name": "audit_states"
+        },
+        {
+          "body": "\nfrom blobstore.objects import ObjectStore\nfrom blobstore.replicas import ReplicaSet\np=ObjectStore(ROOT/'p'); r=ObjectStore(ROOT/'r'); ids=[p.put_bytes(x) for x in (b'a',b'b')]\nassert ReplicaSet(p,[r]).replicate_all()==2 and all(r.verify(x) for x in ids)\n",
+          "name": "replicate_missing"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "classes": [
+            {
+              "bases": [],
+              "methods": [
+                {
+                  "async": false,
+                  "name": "__init__",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    },
+                    {
+                      "annotation": "tuple[str, ...]",
+                      "kind": "positional",
+                      "name": "candidates",
+                      "required": true
+                    },
+                    {
+                      "annotation": "str",
+                      "kind": "positional",
+                      "name": "state_fingerprint",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": null
+                }
+              ],
+              "name": "GCPlan",
+              "public_attributes": [
+                "candidates",
+                "state_fingerprint"
+              ]
+            },
+            {
+              "bases": [],
+              "methods": [
+                {
+                  "async": false,
+                  "name": "__init__",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    },
+                    {
+                      "annotation": "tuple[str, ...]",
+                      "kind": "positional",
+                      "name": "reachable",
+                      "required": true
+                    },
+                    {
+                      "annotation": "tuple[str, ...]",
+                      "kind": "positional",
+                      "name": "orphaned",
+                      "required": true
+                    },
+                    {
+                      "annotation": "tuple[str, ...]",
+                      "kind": "positional",
+                      "name": "corrupt",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": null
+                }
+              ],
+              "name": "GCAudit",
+              "public_attributes": [
+                "corrupt",
+                "orphaned",
+                "reachable"
+              ]
+            },
+            {
+              "bases": [],
+              "methods": [
+                {
+                  "async": false,
+                  "name": "__init__",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    },
+                    {
+                      "annotation": "str | os.PathLike[str]",
+                      "kind": "positional",
+                      "name": "root",
+                      "required": true
+                    },
+                    {
+                      "annotation": "ObjectStore",
+                      "kind": "positional",
+                      "name": "objects",
+                      "required": true
+                    },
+                    {
+                      "annotation": "ManifestStore",
+                      "kind": "positional",
+                      "name": "manifests",
+                      "required": true
+                    },
+                    {
+                      "annotation": "UploadStore",
+                      "kind": "positional",
+                      "name": "uploads",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": null
+                },
+                {
+                  "async": false,
+                  "name": "reachable",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": "set[str]"
+                },
+                {
+                  "async": false,
+                  "name": "plan",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": "GCPlan"
+                },
+                {
+                  "async": false,
+                  "name": "apply",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    },
+                    {
+                      "annotation": "GCPlan",
+                      "kind": "positional",
+                      "name": "plan",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": "int"
+                },
+                {
+                  "async": false,
+                  "name": "audit",
+                  "parameters": [
+                    {
+                      "annotation": null,
+                      "kind": "positional",
+                      "name": "self",
+                      "required": true
+                    }
+                  ],
+                  "property": false,
+                  "returns": "GCAudit"
+                }
+              ],
+              "name": "GarbageCollector",
+              "public_attributes": [
+                "manifests",
+                "objects",
+                "root",
+                "uploads"
+              ]
+            }
+          ],
+          "constants": [],
+          "file": "blobstore/gc.py",
+          "functions": [],
+          "module": "blobstore.gc"
+        }
+      ],
+      "name": "gc-integrity",
+      "number": 5,
+      "public_cases": [
+        {
+          "body": "\nfrom blobstore.objects import ObjectStore\nfrom blobstore.manifests import ManifestStore\nfrom blobstore.uploads import UploadStore\nfrom blobstore.gc import GarbageCollector\no=ObjectStore(ROOT); m=ManifestStore(ROOT,o); u=UploadStore(ROOT,o,m)\na=o.put_bytes(b'a'); b=o.put_bytes(b'b'); c=o.put_bytes(b'c'); m.create('keep',[a]); uid=u.begin('pending'); u.upload_part(uid,1,b'b')\ngc=GarbageCollector(ROOT,o,m,u); assert gc.reachable()=={a,b} and gc.plan().candidates==(c,)\n",
+          "name": "reachability_manifest_and_upload"
+        },
+        {
+          "body": "\nimport hashlib\nfrom blobstore.objects import ObjectStore\nfrom blobstore.manifests import ManifestStore\nfrom blobstore.uploads import UploadStore\nfrom blobstore.gc import GarbageCollector\no=ObjectStore(ROOT); [o.put_bytes(x) for x in (b'z',b'a',b'm')]; gc=GarbageCollector(ROOT,o,ManifestStore(ROOT,o),UploadStore(ROOT,o,ManifestStore(ROOT,o)))\nbefore={x:hashlib.sha256(o.path_for(x).read_bytes()).hexdigest() for x in o.iter_ids()}; p=gc.plan()\nassert p.candidates==tuple(sorted(p.candidates)) and before=={x:hashlib.sha256(o.path_for(x).read_bytes()).hexdigest() for x in o.iter_ids()}\n",
+          "name": "plan_is_sorted_read_only"
+        }
+      ]
+    }
+  ],
+  "task_id": "mini-blobstore"
+}

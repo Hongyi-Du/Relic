@@ -1,0 +1,32 @@
+{
+  "issue_id": "issue_cli_remote_command_errors",
+  "title": "`celery inspect`, `celery control` and `celery events` all traceback on cluster failures",
+  "issue_type": "usability",
+  "severity": "medium",
+  "component": "cli",
+  "created_tick": 0,
+  "source": "historical_github",
+  "source_type": "pull_request",
+  "source_id": "PR#10190",
+  "source_url": "https://github.com/celery/celery/pull/10190",
+  "created_at": "2026-03-11T15:15:14Z",
+  "labels": [
+    "Component: CLI"
+  ],
+  "release": "v5.6.3",
+  "title_original": "Fix#9722 friendly status errors for CLI",
+  "text_original": "### Summary\r\n\r\nThanks @harshang03 for the awesome work on #10118! The UX improvement for CLI broker errors is fantastic and much needed.\r\n\r\nI noticed that Codecov reported some missing coverage and @auvipy requested additional tests. Since the PR hasn't been updated in about a month, I went ahead and added the missing unit tests to cover the remaining `try...except` blocks to help get this over the finish line.\r\n\r\n### What was added\r\nAdded unit tests to simulate `OperationalError` and unexpected exceptions for the following commands, ensuring the `handle_remote_command_error` is triggered correctly:\r\n- [x] `celery inspect <command>` \r\n- [x] `celery control <command>` (broadcast)\r\n- [x] `celery events` (covering the `_run_evcam` and `_run_evtop` paths)\r\n\r\n---\r\nissue https://github.com/celery/celery/issues/9722",
+  "text_rewritten": "The remote-control commands share the rough edge `celery status` has: any failure while talking to the cluster escapes as a raw Python traceback. That covers both a broker that is unreachable and an unexpected error raised further down the call. Every command that talks to the cluster should turn the failure into a command-level error -- exit EX_UNAVAILABLE, print one line naming the command and the underlying reason, print no traceback. A cluster that is reachable but silent keeps its existing 'no nodes replied' outcome, and successful invocations keep printing their replies unchanged.",
+  "body": "The remote-control commands share the rough edge `celery status` has: any failure while talking to the cluster escapes as a raw Python traceback. That covers both a broker that is unreachable and an unexpected error raised further down the call. Every command that talks to the cluster should turn the failure into a command-level error -- exit EX_UNAVAILABLE, print one line naming the command and the underlying reason, print no traceback. A cluster that is reachable but silent keeps its existing 'no nodes replied' outcome, and successful invocations keep printing their replies unchanged.",
+  "acceptance_hint": "`celery inspect`, `celery control` and `celery events` exit EX_UNAVAILABLE with the underlying reason and no traceback for both transport failures and unexpected exceptions, while successful runs are unaffected.",
+  "candidate_path_hints": [
+    "celery/bin/base.py",
+    "celery/bin/control.py",
+    "celery/bin/events.py",
+    "celery/bin/graph.py"
+  ],
+  "linked_hidden_test_ids": [
+    "hidden_cli_remote_command_errors"
+  ],
+  "hidden": true
+}

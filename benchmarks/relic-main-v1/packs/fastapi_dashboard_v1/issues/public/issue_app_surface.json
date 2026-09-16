@@ -1,0 +1,21 @@
+{
+  "issue_id": "issue_app_surface",
+  "title": "App surface is not implemented",
+  "issue_type": "feature",
+  "severity": "high",
+  "component": "app_surface",
+  "created_tick": 12,
+  "source": "vendor_task_brief",
+  "source_type": "requirements_document",
+  "source_id": "fastapi-auth-visualization",
+  "labels": [],
+  "release": "1.0.0",
+  "body": "The application package must be importable as `app`, and must expose `app.main.create_app() -> FastAPI`, `app.db.init_db()`, `app.db.get_sessionmaker()`, `app.db.reset_engine()`, `app.seed.seed_sample_data(session)`, and the SQLAlchemy model `app.models.User` (with column `hashed_password`).\n\nThe app implements secure user authentication using JWT, hashes passwords with bcrypt, and supports role management with at least two roles (`admin` and `user`) that gate protected endpoints. The user model stores the bcrypt digest in a column named `hashed_password`.\n\nRequest/response models are declared with Pydantic, and persistence uses SQLAlchemy or Tortoise ORM consistently across the app.\n\nCharts are rendered with Chart.js loaded from a vendored static asset. Vendor Chart.js at the on-disk path `app/static/chart.min.js`, serve it from the URL `/static/chart.min.js`, and reference it from the dashboard HTML at `/`. The HTML served at `/` must not contain the substring `cdn` anywhere, case-insensitive.",
+  "acceptance_hint": "7 executable checks over the app_surface surface.",
+  "linked_hidden_test_ids": [
+    "hidden_app_surface"
+  ],
+  "candidate_path_hints": [
+    "app/__init__.py"
+  ]
+}
