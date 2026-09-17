@@ -32,6 +32,13 @@ from environments.org_env.product.substrates.final_evaluation import (
     run_final_evaluation,
     write_experiment_run_record,
 )
+from relic.cell_spec import SOURCE_COMMIT
+from relic.replay.source_export import (
+    SourceTraceExportError,
+    copy_public_trace_prefix,
+    export_source_world_trace,
+    public_trace_path,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -82,6 +89,56 @@ def _opt(flag: str, env: str, default: str = "") -> str:
 
 
 _METRICS_MANIFEST: dict = {}
+
+
+def _public_trace_context(world, *, case_id: str, seed: int) -> dict:
+    """Build the stable, non-secret identity for a live public projection."""
+
+    return {
+        "case_id": case_id,
+        "condition": str(getattr(world, "experiment_condition", "") or "") or None,
+        "benchmark": (
+            os.environ.get("ORG_OSS_REPOSITORY_ID")
+            or os.environ.get("ORG_OSS_DATASET")
+            or None
+        ),
+        "model": os.environ.get("ORG_LLM_MODEL") or "rules",
+        "seed": int(seed),
+        "source_commit": SOURCE_COMMIT,
+    }
+
+
+def _resume_public_trace_source(checkpoint: str) -> Path | None:
+    """Locate only the prior run's explicit public trace for a resume."""
+
+    checkpoint_path = Path(checkpoint).expanduser().resolve()
+    for parent in checkpoint_path.parents:
+        candidate = public_trace_path(parent)
+        if candidate.is_file() and not candidate.is_symlink():
+            return candidate
+        if parent == REPO_ROOT:
+            break
+    return None
+
+
+def _export_public_trace(
+    world,
+    *,
+    path: Path,
+    context: dict,
+    run_record: dict | None = None,
+):
+    """Write a public trace update or stop before an unverifiable export leaks."""
+
+    try:
+        return export_source_world_trace(
+            world,
+            destination=path,
+            context=context,
+            run_record=run_record,
+        )
+    except SourceTraceExportError as exc:
+        raise RuntimeError(f"public_trace_export_failed:{exc.code}") from exc
 
 
 def _transfer_receipt_with_exposure(world) -> dict | None:
@@ -212,6 +269,7 @@ def main() -> None:
     summary_path = run_dir / "summary.txt"
     meta_path = run_dir / "meta.json"
     record_path = run_dir / "experiment_run_record.json"
+    trace_path = public_trace_path(run_dir)
 
     summary_lines: list[str] = []
 
@@ -277,6 +335,28 @@ def main() -> None:
             f"target={target_tick}"
         )
     run_dir.mkdir(parents=True, exist_ok=True)
+    trace_context = _public_trace_context(
+        session.world,
+        case_id=(
+            os.environ.get("ORG_CASE_PLAN_FINGERPRINT")
+            or os.environ.get("ORG_RUN_TAG")
+            or name
+        ),
+        seed=seed,
+    )
+    if from_checkpoint:
+        prior_trace = _resume_public_trace_source(from_checkpoint)
+        if prior_trace is None:
+            raise RuntimeError("public_trace_resume_history_missing")
+        try:
+            copy_public_trace_prefix(prior_trace, trace_path)
+        except SourceTraceExportError as exc:
+            raise RuntimeError(f"public_trace_resume_copy_failed:{exc.code}") from exc
+    public_trace = _export_public_trace(
+        session.world,
+        path=trace_path,
+        context=trace_context,
+    )
     mode = "REAL LLM (config/llm.local.yaml)" if use_llm else "mock (no LLM)"
     emit(f"running OrgEnv {ticks} ticks (seed={seed}, {mode}"
          + (f", start_tick={start_tick}" if start_tick else "") + ")")
@@ -313,6 +393,11 @@ def main() -> None:
     prev = _totals(session.full(), session.world)
     for _ in range(ticks):
         session.step(1)
+        public_trace = _export_public_trace(
+            session.world,
+            path=trace_path,
+            context=trace_context,
+        )
         f = session.full()
         cur = _totals(f, session.world)
         d = {k: cur[k] - prev[k] for k in cur}
@@ -489,6 +574,12 @@ def main() -> None:
             "target_tick": target_tick,
         },
     )
+    public_trace = _export_public_trace(
+        session.world,
+        path=trace_path,
+        context=trace_context,
+        run_record=run_record,
+    )
     meta = {
         "run_id": run_id, "name": name, "seed": seed, "ticks": ticks,
         "start_tick": start_tick, "mode": "llm" if use_llm else "mock",
@@ -515,6 +606,7 @@ def main() -> None:
             "replay": replay_path.name,
             "final_snapshot": snapshot_path.name,
             "summary": summary_path.name,
+            "public_trace": str(trace_path.relative_to(run_dir)),
             "checkpoint": Path(final_ckpt["path"]).name,
             "experiment_run_record": record_path.name,
             "final_evaluation": (
@@ -536,6 +628,7 @@ def main() -> None:
         ),
         "target_tick": target_tick,
         "checkpoint_every": checkpoint_every or None,
+        "public_trace": public_trace.document(),
         "created": datetime.datetime.now().isoformat(timespec="seconds"),
     }
     meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -543,7 +636,7 @@ def main() -> None:
     emit("")
     emit(f"materials saved to: {run_dir}")
     emit(f"  replay.json ({len(session.buffer.frames)} frames) · final_snapshot.json · "
-         "summary.txt · meta.json · experiment_run_record.json")
+         "summary.txt · meta.json · experiment_run_record.json · public/relic-trace-v1.json")
     if final_artifact is not None:
         emit(f"  final evidence: {final_artifact.path}")
     emit(f"  {run_record['schema_version']}: {record_path.name}")
