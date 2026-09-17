@@ -30,7 +30,7 @@ from relic.cell_spec import (
     SOURCE_GIT_TREE,
     SOURCE_REPOSITORY,
 )
-from relic.manifest import load_yaml, write_manifest
+from relic.manifest import load_yaml, recommended_parallelism, visible_memory_gib, write_manifest
 from relic.paths import config_root, default_output_root, project_root
 from relic.research.hashing import stable_hash
 
@@ -103,6 +103,10 @@ class SourceMainRunResult:
     completed_batches: int
     failed_batches: int
     dry_run: bool
+    visible_memory_gib: float
+    recommended_max_parallel: int
+    requested_max_parallel: int
+    parallelism_warning: bool
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -118,6 +122,13 @@ class SourceMainRunResult:
             "failed_batches": self.failed_batches,
             "dry_run": self.dry_run,
             "executor": SOURCE_BASELINE_RUNNER,
+            "resource_advice": {
+                "visible_memory_gib": self.visible_memory_gib,
+                "budget_gib_per_active_cell": 16,
+                "recommended_max_parallel": self.recommended_max_parallel,
+                "requested_max_parallel": self.requested_max_parallel,
+                "warning": self.parallelism_warning,
+            },
         }
 
 
@@ -136,6 +147,21 @@ def _nonempty_text(value: object, code: str) -> str:
 
 def _plan_digest(plan: Mapping[str, Any]) -> str:
     return stable_hash({key: value for key, value in plan.items() if key != "plan_sha256"})
+
+
+def _resource_policy(max_parallel: int) -> dict[str, Any]:
+    """Record the handoff's visible-RAM guidance for every launcher invocation."""
+
+    memory_gib = round(max(0.0, visible_memory_gib()), 2)
+    recommended = recommended_parallelism(memory_gib)
+    return {
+        "max_parallel_scope": "cases_within_each_serial_source_batch",
+        "requested_max_parallel": max_parallel,
+        "visible_memory_gib": memory_gib,
+        "budget_gib_per_active_cell": 16,
+        "recommended_max_parallel": recommended,
+        "warning": max_parallel > recommended,
+    }
 
 
 def _load_study() -> dict[str, Any]:
@@ -387,10 +413,7 @@ def build_source_main_manifest(
             "source_dry_run_root": None,
             "batches": {},
         },
-        "resource_policy": {
-            "max_parallel_scope": "cases_within_each_serial_source_batch",
-            "requested_max_parallel": max_parallel,
-        },
+        "resource_policy": _resource_policy(max_parallel),
     }
 
 
@@ -789,6 +812,7 @@ def run_source_main(
         output_root = default_root
         if destination_manifest.exists():
             raise SourceMainRunnerError("source_main_manifest_already_exists")
+    payload["resource_policy"] = _resource_policy(max_parallel)
     assert output_root is not None
     selected = _select_batches(
         plan,
@@ -855,10 +879,7 @@ def run_source_main(
         else:
             failed += 1
             stop_after_failure = True
-        payload["resource_policy"] = {
-            "max_parallel_scope": "cases_within_each_serial_source_batch",
-            "requested_max_parallel": max_parallel,
-        }
+        payload["resource_policy"] = _resource_policy(max_parallel)
         execution["status"] = (
             "planned" if dry_run and failed == 0 else ("failed" if failed else "running")
         )
@@ -872,6 +893,9 @@ def run_source_main(
     else:
         execution["status"] = "partial"
     write_manifest(payload, destination_manifest)
+    resource_policy = _require_mapping(
+        payload.get("resource_policy"), "source_main_resource_policy_missing"
+    )
     return SourceMainRunResult(
         manifest_path=destination_manifest,
         output_root=output_root,
@@ -882,6 +906,10 @@ def run_source_main(
         completed_batches=completed,
         failed_batches=failed,
         dry_run=dry_run,
+        visible_memory_gib=float(resource_policy["visible_memory_gib"]),
+        recommended_max_parallel=int(resource_policy["recommended_max_parallel"]),
+        requested_max_parallel=int(resource_policy["requested_max_parallel"]),
+        parallelism_warning=bool(resource_policy["warning"]),
     )
 
 

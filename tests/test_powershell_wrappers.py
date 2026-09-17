@@ -20,8 +20,10 @@ LAUNCHERS = {
     "run_cell": "run_cell",
     "run_main_120": "run_main_120",
     "run_transfer": "run_transfer",
+    "run_cooperbench": "run_cooperbench",
     "evaluate": "evaluate",
     "start_inspector": "start_inspector",
+    "build_paper_results": "build_paper_results",
 }
 
 

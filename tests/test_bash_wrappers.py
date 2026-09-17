@@ -17,8 +17,10 @@ WRAPPERS = {
     "run_cell.sh": ("run-cell",),
     "run_main_120.sh": ("run-main-120",),
     "run_transfer.sh": ("run-transfer",),
+    "run_cooperbench.sh": ("run-cooper",),
     "evaluate.sh": ("evaluate",),
     "start_inspector.sh": ("inspect",),
+    "build_paper_results.sh": ("build-paper-results",),
 }
 
 

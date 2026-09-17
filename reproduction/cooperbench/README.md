@@ -136,6 +136,15 @@ credentials.
 All commands are thin boundaries over the source-owned public preflight or the
 pinned upstream v0.0.29 CLI.
 
+After the external setup is complete, `scripts/bash/run_cooperbench.sh` is the
+copyable Linux/WSL shortcut for `relic run-cooper`; it forwards its arguments
+unchanged and does not guess any external path, image, credential, or model
+alias. On Windows, use `scripts/powershell/run_cooperbench.ps1` from the WSL
+repository share after setting `RELIC_WSL_DISTRIBUTION` and `RELIC_WSL_REPO` as
+described in [`docs/environment.md`](../../docs/environment.md#windows--wsl2).
+The PowerShell script only delegates to WSL2. Preflight and evaluation remain
+their separately named CLI entrypoints below.
+
 ```bash
 # Read-only source-selection and external-input check.
 relic check-cooper

@@ -1,5 +1,7 @@
 # Relic
 
+[中文说明](README.zh-CN.md) · [Documentation](docs/README.md) · [Release scope](docs/release-scope.md) · [Paper results](artifacts/paper_results/paper_results.md) · [Known gaps](docs/KNOWN_RELEASE_GAPS.md)
+
 Public research artifact and partial reproduction harness for the Relic
 agent-organization paper. This checkout is not a complete reproduction of the
 historical paper experiments: it can materialize source-backed plans, run
@@ -17,6 +19,43 @@ to `SocioGenesis/hci-human-seat` at
 explicit module-level exception: its B3-2 CooperBench extension is sourced from
 the verified dedicated CooperBench branch, as documented in
 [`reproduction/cooperbench/README.md`](reproduction/cooperbench/README.md).
+
+## What is in this repository
+
+`main` is the clean paper-reproduction branch: the OrgEnv core, B0--B3,
+`relic-main-v1`, the paired main-study and transfer launchers, evaluator
+boundary, paper-result snapshot, and public Inspector. The prepared extension
+branches deliberately remain narrow:
+
+| Branch | Purpose | Start here |
+| --- | --- | --- |
+| `main` | Canonical paper reproduction | This README |
+| `hci` | `main` plus the P2/P3 human-seat extension | After `git switch hci`, read `docs/HCI_GUIDE.md` |
+| `cooper` | `main` plus the CooperBench B3-2 adapter and tests | After `git switch cooper`, read `reproduction/cooperbench/README.md` |
+| `full-tests` | Future sanitized historical **core** regression suite | Not published yet; see [the branch policy](docs/release-scope.md#branch-topology-and-sync-policy) |
+
+The sibling [Relic-Agent repository](https://github.com/Hongyi-Du/Relic-Agent)
+is the benchmark-independent organization runtime. This repository is the
+paper artifact. The author-controlled project-web URL has not been supplied,
+so no project-page link is invented here.
+
+## Canonical experimental arms
+
+The checked-in YAML files under `configs/arms/` are authoritative. The table is
+included here so a reader can identify the paper conditions before running a
+command.
+
+| Arm | Members | Decision mode | Profile/capability conditioning | Institutionalization |
+| --- | ---: | --- | --- | --- |
+| B0 | 1 | direct LLM action selection | Off | Off |
+| B1 | 8 persistent roles | direct LLM action selection | Off | Off |
+| B2 | 8 persistent roles | SDL/profile policy | On | Off |
+| B3 | 8 persistent roles | SDL/profile policy | On | On, including runtime protocol binding |
+
+The main benchmark is [`benchmarks/relic-main-v1/`](benchmarks/relic-main-v1/);
+the final aggregate snapshot is [`artifacts/paper_results/`](artifacts/paper_results/).
+The reproduction-directory index explains the correspondence among paper
+sections, configs, entrypoints, outputs, and current asset boundaries.
 
 ## Local setup
 
@@ -65,6 +104,21 @@ and evaluation remain fail-closed until the authors publish the digest-pinned
 evaluator image and its reviewed controller-container integration. See
 [docs/environment.md](docs/environment.md) for the support matrix, `.env`
 variables, WSL launchers, container boundary, and memory guidance.
+
+## Command cost and configuration precedence
+
+Start with the commands above: benchmark verification, `check-env --scope core`,
+and `smoke --mode mock` have no model cost. `replay`, `inspect`, and
+`build-paper-results` also have no model cost. A formal `run-main` or
+`run-transfer` command can incur provider usage only after its author-supplied
+formal gate passes; the complete 120-cell command is high-cost/high-memory.
+Do not run it as an installation check.
+
+For a parameter that is configurable at more than one layer, the fixed
+precedence is: explicit CLI argument, canonical experiment configuration,
+documented environment variable, then repository default. Canonical study
+identity (arms, workloads, seeds, ticks, evaluator policy) is intentionally not
+overridden by `.env`.
 
 ## Docker quickstart
 
@@ -343,7 +397,13 @@ historical task-image digest ledger are not included. `preflight-cooper`,
 source-owned logic and pinned upstream CooperBench v0.0.29. See
 [`reproduction/cooperbench/README.md`](reproduction/cooperbench/README.md)
 for the external MIT-declared upstream installation, source provenance, and
-exact commands.
+exact commands. After completing that upstream setup, Linux/WSL users can use
+`scripts/bash/run_cooperbench.sh` as the `run-cooper` shortcut; it forwards
+only the explicit external paths, run name, and gateway-model arguments. The
+Windows PowerShell counterpart is
+`scripts/powershell/run_cooperbench.ps1` and invokes that Bash shortcut inside
+WSL2. Use the documented CLI commands for the separate preflight and official
+evaluation steps.
 
 ## Full regression test suite / 完整回归测试
 

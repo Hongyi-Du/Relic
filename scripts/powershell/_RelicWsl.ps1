@@ -93,7 +93,7 @@ function Invoke-RelicWslBashScript {
         [string]$RepositoryPath,
 
         [Parameter(Mandatory)]
-        [ValidateSet('check_env', 'smoke', 'run_cell', 'run_main_120', 'evaluate', 'start_inspector')]
+        [ValidateSet('check_env', 'smoke', 'run_cell', 'run_main_120', 'run_transfer', 'run_cooperbench', 'evaluate', 'start_inspector', 'build_paper_results')]
         [string]$ScriptName,
 
         [string[]]$ScriptArguments = @()
