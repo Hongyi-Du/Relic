@@ -757,6 +757,8 @@ def _source_batch_argv(
         str(ceilings["max_primary_actions"]),
         "--max-ticks",
         str(ceilings["max_ticks"]),
+        "--experiment-phase",
+        "main_study",
         "--mechanism-ablations",
         ",".join(str(value) for value in plan["mechanism_ablations"]),
         "--execution-profile",
