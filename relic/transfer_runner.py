@@ -8,7 +8,7 @@ main-study reference, not a third transfer target to generate here.
 This module deliberately owns only planning, selection, and manifest state.
 Every actual target invocation goes back through
 ``tools.run_org_baselines.py`` via :mod:`relic.source_runner`; it does not
-replace the source runner's fresh-process isolation or formal evaluator gate.
+replace the source runner's fresh-process isolation or evaluator contract.
 """
 
 from __future__ import annotations
@@ -35,9 +35,12 @@ from relic.source_runner import (
     EvaluatorBinding,
     _batch_status,
     _invoke_source_batch,
+    _load_model_config,
+    _load_study,
     _require_selected_bindings,
     _select_batches,
     _source_batch_argv,
+    _runtime_model,
     build_source_main_manifest,
     load_evaluator_bindings,
 )
@@ -157,6 +160,8 @@ def build_transfer_manifest(
     model: str | None = None,
     output_root: Path | None = None,
     max_parallel: int = 1,
+    strict_reproducibility: bool = False,
+    runtime_model: str | None = None,
 ) -> dict[str, Any]:
     """Build the fixed 60-target-run Text/Exec transfer plan.
 
@@ -176,6 +181,8 @@ def build_transfer_manifest(
         model=canonical_model,
         output_root=destination,
         max_parallel=max_parallel,
+        strict_reproducibility=strict_reproducibility,
+        runtime_model=runtime_model,
     )
     source_plan = source_payload["plan"]
     source_batches = source_plan.get("batches")
@@ -260,9 +267,11 @@ def build_transfer_manifest(
             "fresh_reference": "existing_main_study_b2_only",
         },
         "evaluator_binding": {
-            "required_for_formal_execution": True,
-            "binding_file_required": True,
+            "required_for_formal_execution": bool(strict_reproducibility),
+            "binding_file_required": bool(strict_reproducibility),
             "per_pack": True,
+            "default_mode": "local",
+            "strict_reproducibility": bool(strict_reproducibility),
             "unpublished_values_are_not_fabricated": True,
         },
         "batches": batches,
@@ -305,6 +314,13 @@ def _validate_manifest(payload: Mapping[str, Any]) -> Mapping[str, Any]:
         raise TransferRunnerError("transfer_plan_schema_mismatch")
     if plan.get("plan_sha256") != _plan_digest(plan):
         raise TransferRunnerError("transfer_plan_hash_mismatch")
+    evaluator_binding = plan.get("evaluator_binding")
+    if not isinstance(evaluator_binding, Mapping):
+        raise TransferRunnerError("transfer_plan_evaluator_binding_missing")
+    if "strict_reproducibility" in evaluator_binding and not isinstance(
+        evaluator_binding.get("strict_reproducibility"), bool
+    ):
+        raise TransferRunnerError("transfer_plan_evaluator_binding_invalid")
     model = plan.get("model")
     if not isinstance(model, Mapping) or model.get("canonical_model") != TRANSFER_MODEL:
         raise TransferRunnerError("transfer_plan_model_mismatch")
@@ -383,6 +399,7 @@ def _target_source_argv(
     resume: bool,
     binding: EvaluatorBinding | None,
     bundle_path: Path,
+    strict_reproducibility: bool = False,
 ) -> list[str]:
     """Specialize the canonical source argv to exactly one B2 transfer arm."""
 
@@ -394,6 +411,7 @@ def _target_source_argv(
         dry_run=dry_run,
         resume=resume,
         binding=binding,
+        strict_reproducibility=strict_reproducibility,
     )
     try:
         argv[argv.index("--cases") + 1] = "b2"
@@ -436,6 +454,8 @@ def run_transfer(
     resume: bool = False,
     retry_failed: bool = False,
     evaluator_bindings_path: Path | None = None,
+    strict_reproducibility: bool = False,
+    runtime_model: str | None = None,
     batch_ids: Sequence[str] = (),
     workloads: Sequence[str] = (),
     seeds: Sequence[int] = (),
@@ -466,12 +486,30 @@ def run_transfer(
             raise TransferRunnerError("transfer_resume_output_root_mismatch")
         if str(plan["model"].get("canonical_model") or "") != canonical_model:
             raise TransferRunnerError("transfer_resume_model_mismatch")
+        planned_runtime_model = str(plan["model"].get("runtime_model") or "")
+        if (
+            not planned_runtime_model
+            and payload.get("execution", {}).get("status") == "planned"
+        ):
+            # A provider-free dry plan may leave the deployment name unset.
+            # Resolve it once before execution; an executed plan keeps its identity.
+            planned_runtime_model = _runtime_model(
+                _load_model_config(str(plan["model"]["canonical_model"]), _load_study()),
+                runtime_model,
+            )
+            plan["model"]["runtime_model"] = planned_runtime_model
+            plan["model"]["runtime"]["ORG_LLM_MODEL"] = planned_runtime_model
+            plan["plan_sha256"] = _plan_digest(plan)
+        if runtime_model is not None and str(runtime_model).strip() != planned_runtime_model:
+            raise TransferRunnerError("transfer_resume_runtime_model_mismatch")
         active_root = plan_root
     else:
         payload = build_transfer_manifest(
             model=canonical_model,
             output_root=default_root,
             max_parallel=max_parallel,
+            strict_reproducibility=strict_reproducibility,
+            runtime_model=runtime_model,
         )
         plan = _validate_manifest(payload)
         active_root = default_root
@@ -485,15 +523,24 @@ def run_transfer(
         workloads=workloads,
         seeds=seeds,
     )
+    plan_evaluator = plan.get("evaluator_binding")
+    if not isinstance(plan_evaluator, Mapping):
+        raise TransferRunnerError("transfer_plan_evaluator_binding_missing")
+    planned_strict = bool(plan_evaluator.get("strict_reproducibility", False))
+    if planned_strict != bool(strict_reproducibility):
+        raise TransferRunnerError("transfer_reproducibility_mode_mismatch")
     bindings = (
-        load_evaluator_bindings(evaluator_bindings_path)
+        load_evaluator_bindings(
+            evaluator_bindings_path,
+            strict_reproducibility=strict_reproducibility,
+        )
         if evaluator_bindings_path is not None
         else None
     )
-    if not dry_run:
-        # This happens before the first source argv is built/invoked.  Missing
-        # author-published formal evaluator identities therefore cannot trigger
-        # a source child or provider request.
+    if bindings is not None or strict_reproducibility:
+        # This happens before the first source argv is built/invoked.  A
+        # supplied provenance file must cover every selected pack; strict mode
+        # also requires the file before a source child can start.
         bindings = _require_selected_bindings(selected_batches, bindings)
     bundle_path, _, bundle_digest = _canonical_bundle()
     if bundle_digest != str(plan["canonical_bundle"].get("bundle_sha256") or ""):
@@ -508,6 +555,15 @@ def run_transfer(
     execution_targets = execution.get("targets")
     if not isinstance(execution_targets, dict):
         raise TransferRunnerError("transfer_execution_targets_invalid")
+    execution["evaluator"] = {
+        "mode": "container" if bindings is not None else "local",
+        "strict_reproducibility": bool(strict_reproducibility),
+        "bindings": {
+            pack: binding.document()
+            for pack, binding in (bindings or {}).items()
+            if pack in {str(batch["pack"]) for batch in selected_batches}
+        },
+    }
     dry_root = active_root / "source-dry-run" if dry_run else active_root / "batches"
     if dry_run:
         execution["source_dry_run_root"] = str(dry_root)
@@ -542,6 +598,7 @@ def run_transfer(
             dry_run=dry_run,
             resume=resume and not dry_run,
             binding=binding,
+            strict_reproducibility=strict_reproducibility,
             bundle_path=bundle_path,
         )
         result_code = _invoke_source_batch(argv, runtime)
@@ -549,6 +606,13 @@ def run_transfer(
         status["arm"] = target["arm_id"]
         status["source_case"] = "b2"
         status["fixed_protocol_landscape"] = True
+        observed = status.get("evaluator")
+        if isinstance(observed, Mapping):
+            observed_targets = execution["evaluator"].setdefault(
+                "observed_targets", {}
+            )
+            if isinstance(observed_targets, dict):
+                observed_targets[target_id] = dict(observed)
         if dry_run:
             status["status"] = "dry_run" if result_code == 0 else "failed"
         execution_targets[target_id] = status

@@ -68,20 +68,25 @@ thin adapter delegates every target to `tools/run_org_baselines.py` with
 `--cases b2`; it does not use the legacy per-cell worker and it does not copy a
 ProgramBench executor.
 
-Formal execution requires the authors' reviewed per-pack evaluator bindings,
-with a digest-pinned container image and the matching environment and
-qualification hashes. Once those are available, resume the frozen plan:
+After configuring the provider in `.env`, the default transfer run uses the
+public host evaluator and records its observed metadata in the transfer
+manifest. An explicit per-pack evaluator binding is optional provenance;
+non-strict bindings may use a tag or omit platform/hash fields. Once an
+author-reviewed strict binding is available, resume the frozen plan with:
 
 ```bash
-uv run relic run-transfer \
+uv run --env-file .env relic run-transfer \
   --manifest outputs/transfer-v2/transfer_manifest.json \
   --resume --max-parallel 1 \
-  --evaluator-bindings author-published-evaluator-bindings.json
+  --evaluator-bindings author-published-evaluator-bindings.json \
+  --strict-reproducibility
 ```
 
-The current release deliberately has no such binding file. A non-dry command
-therefore fails before it starts a source child or sends a provider request;
-local evaluator hashes or image IDs are not promoted to paper evidence.
+Without `--strict-reproducibility`, a supplied binding is still checked for
+shape and selected-pack coverage and is recorded as provenance. With strict
+mode, each selected pack must provide a digest-pinned image, `linux/amd64`, and
+the qualification hashes. Local evaluator hashes or image IDs are not promoted
+to historical paper evidence.
 
 New local artifacts produced after a binding becomes available are new
 reproduction artifacts. They cannot by themselves establish or replace the

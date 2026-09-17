@@ -69,6 +69,12 @@ class ExecutionPolicy:
     # CooperBench task images can install a benchmark runner as ENTRYPOINT.
     # This opt-in lets the verified repository command run directly instead.
     clear_container_entrypoint: bool = False
+    # Digest and platform pinning protect reproducibility, but they are not
+    # needed for an explicitly opted-in local reproduction.  Keep the legacy
+    # fail-closed default for callers that construct an untrusted container
+    # policy directly; release runners pass ``False`` when they are recording
+    # an optional, user-supplied evaluator binding.
+    strict_reproducibility: bool = True
     docker_host: str | None = None
     network_enabled: bool = False
     memory_limit_mb: int = 2048
@@ -90,6 +96,8 @@ class ExecutionPolicy:
     def __post_init__(self) -> None:
         if self.trust_level not in {"trusted", "untrusted"}:
             raise ValueError("unsupported_trust_level")
+        if not isinstance(self.strict_reproducibility, bool):
+            raise ValueError("strict_reproducibility_must_be_boolean")
         if self.backend not in {"local", "docker", "apptainer"}:
             raise ValueError("unsupported_execution_backend")
         if self.backend in {"docker", "apptainer"}:
@@ -106,7 +114,11 @@ class ExecutionPolicy:
             immutable_image = bool(immutable_registry_digest) or bool(
                 self.backend == "docker" and immutable_local_image_id
             )
-            if self.trust_level == "untrusted" and not immutable_image:
+            if (
+                self.trust_level == "untrusted"
+                and self.strict_reproducibility
+                and not immutable_image
+            ):
                 raise ValueError("container_image_must_be_digest_pinned")
             if self.backend == "docker" and self.docker_host is not None:
                 _validate_local_docker_host(self.docker_host)
@@ -927,6 +939,7 @@ def production_execution_policy(
     container_image: str | None,
     allow_trusted_local: bool,
     container_platform: str | None = None,
+    strict_reproducibility: bool = True,
     memory_limit_mb: int = 4096,
     cpu_limit: float = 4.0,
     pids_limit: int = 256,
@@ -949,6 +962,7 @@ def production_execution_policy(
         backend=backend,
         container_image=container_image,
         container_platform=container_platform,
+        strict_reproducibility=strict_reproducibility,
         docker_host=docker_host,
         network_enabled=False,
         memory_limit_mb=memory_limit_mb,

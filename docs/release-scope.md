@@ -14,26 +14,21 @@ release branch contains:
 
 ## Branch topology and sync policy
 
-The prepared release refs use the following deliberately narrow roles:
+The experiment extensions keep their existing roles:
 
 - `hci` is `main` plus the formative P2/P3 interface extension;
-- `cooper` is `main` plus the CooperBench adapter and its tests; and
-- `full-tests` will be `main` plus relevant historical core regression tests.
+- `cooper` is `main` plus the CooperBench adapter and its tests.
 
-The locally prepared `hci` and `cooper` refs are deliverable extensions of the
-same `main` core. `full-tests` is deliberately not created before a canonical
-release tag and a sanitized, source-compatible historical-suite selection
-exist. A release owner must publish the intended refs and tag; this document
-does not claim that a local branch is already a remote release.
+Ordinary tests remain in each repository. No `full-tests` branch, release tag,
+or remote publication ceremony is required to run or validate the code.
 
 Generic bug fixes belong in `main` first. HCI-only changes belong in `hci`,
-Cooper-only changes in `cooper`, and core regression-only additions in the
-future `full-tests`. Extension refs must periodically merge `main` and must not
+Cooper-only changes in `cooper`. Extension refs must not
 maintain a divergent copy of core behavior. Root Docker / Compose assets cover
 core environment checks, mock smoke, dry-run planning, mounted outputs, and the
-Inspector. The formal evaluator image and reviewed nested evaluator integration
-remain pending release inputs, so Docker formal execution continues to fail
-closed.
+Inspector. Normal reproduction uses the public host evaluator by default; the
+formal evaluator image and reviewed nested evaluator integration remain
+optional release inputs for strict container claims.
 
 This `cooper` checkout adds only the CooperBench adapter, thin external
 entrypoints, and Cooper-specific tests; it does not pull HCI or ProgramBench
@@ -47,8 +42,9 @@ state, and development logs are also excluded.
 The public source-derived evaluator Dockerfile and local qualification tools are
 included to verify the OSS evaluator closure. They accept only `relic-main-v1`
 pack IDs and explicitly reject ProgramBench. They do not provide the still
-missing author-published evaluator image digest or paper qualification bindings;
-formal reproduction remains fail-closed until those assets arrive.
+missing author-published evaluator image digest or paper qualification bindings.
+Operator-supplied digest/platform/hash bindings are checked only when strict
+reproducibility is explicitly selected; they need not be historical author assets.
 
 The sanitized selected-paper-trace set remains an author-supplied release
 asset and is not yet present. The repository does not reconstruct historical

@@ -43,13 +43,15 @@ credential-like values, local paths, and arbitrary runtime dumps. See
 
 `main` remains the core source of truth. The `hci` ref adds the P2/P3 HCI
 extension and `cooper` adds the CooperBench adapter; neither should fork core
-behavior. The future `full-tests` ref may add sanitized core regression depth
-after a canonical release tag, but not a second implementation. See
+behavior. Regression tests stay in the ordinary repository without a separate
+branch or release-tag prerequisite. See
 [release-scope.md](release-scope.md#branch-topology-and-sync-policy).
 
-## Formal evaluation boundary
+## Evaluator boundary
 
-The source runner refuses a non-dry formal run until it receives an explicit,
-per-pack, digest-pinned evaluator binding. This is intentional: a locally
-built evaluator image is useful source-closure evidence but is not a paper
-binding. See [evaluator.md](evaluator.md) and [KNOWN_RELEASE_GAPS.md](KNOWN_RELEASE_GAPS.md).
+The source runner uses the public host evaluator when no binding is supplied.
+An explicit binding is optional provenance, and `--strict-reproducibility`
+requires a per-pack digest-pinned container, `linux/amd64`, and qualification
+hashes before a child starts. Local evaluator results are recorded with their
+observed environment metadata and do not become historical paper evidence.
+See [evaluator.md](evaluator.md) and [KNOWN_RELEASE_GAPS.md](KNOWN_RELEASE_GAPS.md).

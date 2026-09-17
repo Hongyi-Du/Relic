@@ -32,16 +32,19 @@ uv run relic smoke --mode mock
 The mock smoke is an installation/config/runtime check. It makes no provider
 request and is not evidence that a formal paper cell or evaluator succeeded.
 The Bash wrappers load only the documented, allow-listed assignments from the
-repository-root `.env` and reject every other variable; direct
-`uv run relic ...` commands read only the current process environment.
+repository-root `.env` and reject every other variable. Direct
+`uv run relic ...` commands read only the current process environment and do not
+load `.env` implicitly; invoke provider-backed commands as
+`uv run --env-file .env relic ...` (or use a Bash wrapper).
 
-Formal execution additionally requires provider credentials and a qualified,
-network-disabled evaluator container pinned by immutable digest. The evaluator
-image binding has not yet been author-published, so `check-env --scope formal`,
-formal smoke, and real cells must fail closed until that binding is available.
-The current formal provider route is OpenAI-compatible. The paper's Claude arm
-uses the HCI source gateway contract (`provider: openai`, `chat_completions`,
-and `prompt_only` JSON transport), not a native Anthropic SDK adapter.
+Model-backed execution additionally requires provider credentials. By default,
+`run-main`, `run-transfer`, and legacy cells qualify the public evaluator on the
+host and record its observed metadata. Set `RELIC_EVALUATOR_MODE=container` to
+use an explicit container binding; add `--strict-reproducibility` when the
+binding must be digest-pinned, `linux/amd64`, and hash-qualified. The current
+provider route is OpenAI-compatible. The paper's Claude arm uses the HCI source
+gateway contract (`provider: openai`, `chat_completions`, and `prompt_only` JSON
+transport), not a native Anthropic SDK adapter.
 
 For a local source-closure check only, a host with Docker can build the public
 source-derived evaluator environment with `uv run relic evaluator-build --smoke`.
@@ -112,22 +115,23 @@ enter model prompts, product workspaces, search, or normal snapshots; it does
 not mean they are absent from the public research release. The controller needs
 them to verify pack digests and stage a read-only evaluator bundle. This image
 is not itself the evaluator sandbox, and the missing reviewed nested-container
-integration is why formal Docker execution remains unsupported. The upstream
+integration is why strict Docker execution remains unsupported. The upstream
 Celery pack also contains its public example TLS fixtures; they are frozen pack
 bytes, not release credentials, and are covered by the benchmark digest.
 
-Formal execution is a separate, unresolved release boundary. The author has
-not supplied the immutable evaluator image binding, and the default controller
-image does not contain a nested container runtime or mount the privileged host
-Docker socket. Consequently Docker formal checks, real cells, resume, and
-evaluation must fail closed; mock smoke and dry-run output are not evidence of
-paper reproduction. Do not add the Docker socket ad hoc and call the result
+Strict container execution is a separate, unresolved release boundary. The
+author has not supplied the immutable evaluator image binding, and the default
+controller image does not contain a nested container runtime or mount the
+privileged host Docker socket. Consequently `check-env --scope formal` and
+`smoke --mode formal` can fail their strict diagnostics even while host
+evaluator cells run. Do not add the Docker socket ad hoc and call the result
 supported: the evaluator workspace mounts and isolation policy require a
 separately reviewed integration and end-to-end acceptance test.
 
-When the authors publish the evaluator material, pass it to the source-backed
-main runner as a JSON file rather than ambient evaluator variables. It maps each
-frozen pack ID to exactly these non-secret fields:
+An evaluator binding is optional in the default mode. To record one, pass it to
+the source-backed runner as a JSON file rather than ambient evaluator variables.
+It maps each frozen pack ID to these non-secret fields; platform and hashes may
+be empty in non-strict mode:
 
 ```json
 {
@@ -141,11 +145,12 @@ frozen pack ID to exactly these non-secret fields:
 }
 ```
 
-Use `relic run-main --resume --evaluator-bindings <file>` with the dry-plan
-manifest. A missing pack mapping, non-digest image, wrong platform, or malformed
-hash is rejected before the source runner starts a child process or contacts a
-provider. The angle-bracket values above are schema markers, not substitute
-runtime values.
+Use `uv run --env-file .env relic run-main --resume --evaluator-bindings <file>`
+with the dry-plan manifest. A missing selected-pack mapping or malformed value is
+rejected before the source runner starts a child process. Add
+`--strict-reproducibility` to reject non-digest images, non-`linux/amd64`
+platforms, and malformed hashes. The angle-bracket values above are schema
+markers, not substitute runtime values.
 
 For Inspector use, place an author-supplied sanitized `relic-trace-v1` JSON file
 in `traces/`, set `RELIC_TRACE_FILE` in `.env`, and run:
@@ -182,13 +187,18 @@ repository configuration and cannot be overridden from `.env`.
 
 | Variable | Required | Default | Purpose / example format |
 |---|---|---|---|
-| `OPENAI_API_KEY` | Formal OpenAI-compatible runs | none | Provider or gateway credential; secret, never persisted by Relic |
+| `OPENAI_API_KEY` | Model-backed runs | none | Provider or gateway credential; secret, never persisted by Relic |
 | `OPENAI_BASE_URL` | No | official OpenAI endpoint | Optional OpenAI-compatible HTTPS base URL, including the Claude gateway route |
+| `OPENAI_MODEL` | No | model config | Optional provider deployment name override |
 | `RELIC_OPENAI_DEFAULT_HEADERS_JSON` | No | `{}` | Non-authorization compatibility headers as a JSON object |
 | `RELIC_OPENAI_DISABLE_RESPONSE_STORAGE` | No | `true` | Keep Responses API storage disabled |
-| `RELIC_EVALUATOR_BACKEND` | Formal evaluation | none | `docker`, or `apptainer` with Slurm and a preloaded digest cache entry |
-| `RELIC_EVALUATOR_CONTAINER_IMAGE` | Formal evaluation | none | Digest-pinned image such as `registry.example/evaluator@sha256:<64 hex>` |
-| `RELIC_EVALUATOR_CONTAINER_PLATFORM` | Formal evaluation | none | Must be `linux/amd64` for the frozen study |
+| `RELIC_RUNTIME_MODEL` | No | model config | Preferred runtime deployment name override; preserves canonical paper model ID |
+| `ORG_LLM_RUNTIME_MODEL` | No | model config | Compatibility runtime deployment name override |
+| `RELIC_EVALUATOR_MODE` | No | `local` | `local` uses the public host evaluator; `container` uses a supplied binding |
+| `RELIC_EVALUATOR_STRICT_REPRODUCIBILITY` | No | `false` | Require digest/platform/hash qualification for container mode |
+| `RELIC_EVALUATOR_BACKEND` | Container evaluation | none | `docker`, or `apptainer` with Slurm and a preloaded image |
+| `RELIC_EVALUATOR_CONTAINER_IMAGE` | Container evaluation | none | Image tag in non-strict mode, or digest-pinned image in strict mode |
+| `RELIC_EVALUATOR_CONTAINER_PLATFORM` | Container evaluation | none | Optional in non-strict mode; strict mode requires `linux/amd64` |
 | `ORG_OSS_QUALIFICATION_TIMEOUT` | No | `180` | Evaluator qualification timeout in seconds |
 | `RELIC_OUTPUT_ROOT` | No | `<repo>/outputs` | Linux/WSL output root |
 | `RELIC_BENCHMARK_ROOT` | No | `<repo>/benchmarks` | Advanced frozen benchmark root override |
@@ -197,7 +207,7 @@ repository configuration and cannot be overridden from `.env`.
 | `RELIC_UID` | No | `1000` | Compose host user ID for bind-mounted output ownership |
 | `RELIC_GID` | No | `1000` | Compose host group ID for bind-mounted output ownership |
 | `RELIC_TRACE_FILE` | No | `selected-trace.json` | Inspector trace filename under the read-only Compose `traces/` mount |
-| `RELIC_CLAUDE_OPUS_4_6_MODEL` | Formal Claude gateway runs | none | Deployed Claude model alias for the OpenAI-compatible gateway |
+| `RELIC_CLAUDE_OPUS_4_6_MODEL` | Claude gateway runs | none | Deployed Claude model alias for the OpenAI-compatible gateway |
 | `APPTAINER_CACHEDIR` | Apptainer only | runtime default | Optional Apptainer cache path |
 | `APPTAINER_TMPDIR` | Apptainer only | runtime default | Optional Apptainer temporary path |
 
@@ -205,8 +215,8 @@ Internal `ORG_*` identity variables are set per condition by the source baseline
 runner. Users must not set them to redefine an experiment. `ORG_LLM_API_KEY`
 and `ORG_LLM_BASE_URL` are advanced aliases for the documented
 OpenAI-compatible credential and endpoint variables. The frozen model YAML,
-rather than an environment override, fixes the formal source runner's wire API
-and JSON transport.
+rather than an environment override, fixes the source runner's wire API and
+JSON transport; runtime model names remain operator-configurable.
 
 `check-env` validates the packaged Inspector assets. Inspector reads only a
 strict `relic-trace-v1` file supplied with `--trace`; it never reads private
@@ -219,9 +229,9 @@ Outputs default to `outputs/` and are ignored by Git. The official
 `source_main_manifest.json` records 30 serial pack/seed source batches; each
 actual batch writes its own `batches/<workload>__seed<seed>/manifest.json` and
 per-condition plans/checkpoints. `source-dry-run/` is planning evidence only,
-kept separate so an unavailable evaluator binding cannot contaminate a later
-formal resume. Do not resume checkpoint pickle files obtained from an untrusted
-source.
+kept separate from executed batch artifacts. Evaluator mode and observed
+evaluator metadata are recorded in the manifests. Do not resume checkpoint
+pickle files obtained from an untrusted source.
 
 `--max-parallel` means at most that many fresh B0--B3 condition processes
 inside one source batch; it is not a cross-batch concurrency setting. Start at
