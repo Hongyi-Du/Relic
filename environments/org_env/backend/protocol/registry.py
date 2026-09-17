@@ -34,6 +34,22 @@ REVIEW_MIN_TICKS = 3      # preflight v3 §7: no same-tick adoption (review late
 ADOPT_MIN_SUPPORTERS = 2  # distinct supporters required to adopt
 
 
+def protocol_is_live(protocol: Any) -> bool:
+    """Whether a rule may still participate in the native lifecycle.
+
+    Native OrgEnv permits both proposed and adopted active rules to receive
+    support/use/violation/enforcement events.  The compiled-transfer boundary
+    needs the same lifecycle predicate when it checks the inherited registry
+    mirror, so terminal or inconsistent mirrors fail closed.
+    """
+
+    return bool(
+        protocol is not None
+        and getattr(protocol, "status", None) == "active"
+        and getattr(protocol, "adoption_status", None) in {"proposed", "adopted"}
+    )
+
+
 def effective_min_supporters(roster_size: int) -> int:
     """The endorsement threshold, capped at what the roster can supply.
 
@@ -73,6 +89,11 @@ class ProtocolRegistry:
         # capability_transfer.freeze_capability_compilation and lifted when the
         # window closes; false for every ordinary run.
         self.compilation_frozen = False
+        # A fixed transfer landscape is stronger than the temporary compilation
+        # freeze: after inherited rules have been injected, no native protocol
+        # may be proposed, adopted, amended, or retired for the rest of the run.
+        # Use, violation, and enforcement remain live.
+        self.formation_locked = False
         self._seq = 0
 
     def _ev(self, event_type: str, protocol_id: str, actor_id: str, tick: int,
@@ -87,6 +108,8 @@ class ProtocolRegistry:
     def propose(self, *, proposer_id: str, protocol_type: str, rule_summary: str,
                 scope: str = "review", target_process: str = "", tick: int = 0,
                 protocol_id: Optional[str] = None) -> Protocol:
+        if self.formation_locked:
+            raise ValueError("endogenous_protocol_formation_disabled")
         pid = protocol_id or f"proto_{protocol_type}"
         e = self._ev("proposal", pid, proposer_id, tick)
         p = Protocol(protocol_id=pid, protocol_type=protocol_type, proposer_id=proposer_id,
@@ -150,7 +173,7 @@ class ProtocolRegistry:
         # already-governed spec, and letting it through would give the
         # organization a second door into the capability the window is holding
         # shut. Injection sets the freeze only after its own forced adoptions.
-        if self.compilation_frozen:
+        if self.compilation_frozen or self.formation_locked:
             return False
         if not force:
             if tick - int(getattr(p, "first_tick", 0) or 0) < REVIEW_MIN_TICKS:
@@ -613,6 +636,8 @@ class ProtocolRegistry:
         revision_kind: str = "extend",
         source_proposal_id: str | None = None,
     ) -> ProtocolEvent:
+        if self.formation_locked:
+            raise ValueError("endogenous_protocol_formation_disabled")
         p = self.protocols[protocol_id]
         event = self._ev(
             "amendment",
@@ -639,6 +664,8 @@ class ProtocolRegistry:
         *,
         source_proposal_id: str | None = None,
     ) -> ProtocolEvent:
+        if self.formation_locked:
+            raise ValueError("endogenous_protocol_formation_disabled")
         p = self.protocols[protocol_id]
         p.status = "obsolete"
         p.adoption_status = "obsolete"
@@ -1025,4 +1052,5 @@ __all__ = [
     "REVIEW_MIN_TICKS",
     "USE_MIN",
     "ProtocolRegistry",
+    "protocol_is_live",
 ]

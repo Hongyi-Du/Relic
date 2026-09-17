@@ -270,6 +270,7 @@ class CasePlan:
             "ORG_OSS_REPOSITORY_ID",
             "ORG_TRANSFER_ARM",
             "ORG_TRANSFER_CAPABILITY_FORM",
+            "ORG_TRANSFER_FIXED_PROTOCOL_LANDSCAPE",
             "ORG_TRANSFER_FROZEN_EPISODES",
             "ORG_TRANSFER_ROSTER_ORIGIN",
             "ORG_TRANSFER_SOURCE_REPOSITORY",
@@ -1913,6 +1914,9 @@ def _transfer_environment(args: argparse.Namespace) -> dict[str, str]:
         "ORG_TRANSFER_FROZEN_EPISODES": str(
             getattr(args, "freeze_capability_compilation_episodes", 0) or 0
         ),
+        "ORG_TRANSFER_FIXED_PROTOCOL_LANDSCAPE": (
+            "1" if getattr(args, "fixed_protocol_landscape", False) else "0"
+        ),
     }
 
 
@@ -1944,6 +1948,14 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--freeze-capability-compilation-episodes", type=int, default=0
+    )
+    parser.add_argument(
+        "--fixed-protocol-landscape",
+        action="store_true",
+        help=(
+            "after transfer injection, disable endogenous protocol creation, "
+            "adoption, amendment, and retirement for the full run"
+        ),
     )
     parser.add_argument(
         "--pilot",

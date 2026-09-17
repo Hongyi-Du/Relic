@@ -232,6 +232,10 @@ class OrgInspectorSession:
             frozen_episodes=int(
                 os.environ.get("ORG_TRANSFER_FROZEN_EPISODES", "0") or 0
             ),
+            fixed_protocol_landscape=(
+                os.environ.get("ORG_TRANSFER_FIXED_PROTOCOL_LANDSCAPE", "0")
+                == "1"
+            ),
         )
         receipt["arm_id"] = arm
         print(
@@ -239,9 +243,10 @@ class OrgInspectorSession:
             f"capabilities={receipt['capability_form']} "
             f"protocols={len(receipt['protocols_injected'])} "
             f"documents={len(receipt['documents_injected'])} "
-            f"text={len(receipt['text_documents_written'])} "
+            f"text={len(receipt['prose_entries_injected'])} "
             f"members={len(receipt['roster_applied'])} "
-            f"frozen_episodes={receipt['frozen_episodes']}"
+            f"frozen_episodes={receipt['frozen_episodes']} "
+            f"fixed_protocol_landscape={receipt['fixed_protocol_landscape']}"
         )
 
     # -- controls ----------------------------------------------------------

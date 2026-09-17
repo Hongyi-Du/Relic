@@ -1470,6 +1470,78 @@ def validate_capability_transfer_receipt(record: Mapping[str, Any]) -> None:
             "capability_transfer.source_repository_id equals the target pack; "
             "a transfer that does not cross repositories measures nothing"
         )
+    if str(receipt.get("schema_version") or "") == "org_capability_bundle_v2":
+        require_sha256(
+            receipt.get("bundle_sha256"),
+            label="capability_transfer.bundle_sha256",
+            allow_none=False,
+        )
+        bundle_snapshot = receipt.get("bundle_snapshot")
+        if not isinstance(bundle_snapshot, Mapping):
+            raise ValueError(
+                "capability_transfer v2 must record its validated bundle_snapshot"
+            )
+        from environments.org_env.experiments.capability_transfer import (
+            capability_bundle_sha256,
+            validate_capability_bundle,
+        )
+
+        validate_capability_bundle(bundle_snapshot)
+        if capability_bundle_sha256(bundle_snapshot) != str(
+            receipt.get("bundle_sha256") or ""
+        ):
+            raise ValueError(
+                "capability_transfer v2 bundle_snapshot does not match bundle_sha256"
+            )
+        capability_form = str(receipt.get("capability_form") or "")
+        compiled = receipt.get("compiled_protocols")
+        injected = receipt.get("protocols_injected")
+        if not isinstance(compiled, list) or not isinstance(injected, list):
+            raise ValueError(
+                "capability_transfer v2 must record compiled_protocols and protocols_injected lists"
+            )
+        if capability_form == "executable":
+            if not compiled or not injected:
+                raise ValueError(
+                    "capability_transfer v2 executable receipt has an empty compiled manifest"
+                )
+            mirror_ids: set[str] = set()
+            spec_ids: set[str] = set()
+            for index, row in enumerate(compiled):
+                if not isinstance(row, Mapping):
+                    raise ValueError(
+                        f"capability_transfer.compiled_protocols[{index}] must be an object"
+                    )
+                mirror_id = str(row.get("protocol_id") or "")
+                spec_id = str(row.get("protocol_spec_id") or "")
+                binding_ids = row.get("binding_ids")
+                require_sha256(
+                    row.get("binding_hash"),
+                    label=f"capability_transfer.compiled_protocols[{index}].binding_hash",
+                    allow_none=False,
+                )
+                if (
+                    not mirror_id
+                    or not spec_id
+                    or not isinstance(binding_ids, list)
+                    or not binding_ids
+                    or any(not str(value or "") for value in binding_ids)
+                    or mirror_id in mirror_ids
+                    or spec_id in spec_ids
+                ):
+                    raise ValueError(
+                        f"capability_transfer.compiled_protocols[{index}] is malformed or duplicated"
+                    )
+                mirror_ids.add(mirror_id)
+                spec_ids.add(spec_id)
+            if mirror_ids != {str(value) for value in injected}:
+                raise ValueError(
+                    "capability_transfer v2 compiled/injected protocol manifests differ"
+                )
+        elif compiled:
+            raise ValueError(
+                "capability_transfer v2 non-executable receipt must not claim compiled protocols"
+            )
 
 
 def validate_experiment_run_record_schema(

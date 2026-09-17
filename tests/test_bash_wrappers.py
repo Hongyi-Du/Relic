@@ -16,6 +16,7 @@ WRAPPERS = {
     "smoke.sh": ("smoke",),
     "run_cell.sh": ("run-cell",),
     "run_main_120.sh": ("run-main-120",),
+    "run_transfer.sh": ("run-transfer",),
     "evaluate.sh": ("evaluate",),
     "start_inspector.sh": ("inspect",),
 }
