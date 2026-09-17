@@ -182,17 +182,6 @@ CONDITIONS = {
         institutionalization_enabled=True,
         capability_learning_enabled=True,
     ),
-    # Source-compatible B3-2 condition. It is not part of the main-study
-    # manifest.
-    B3_FULL_SOCIOGENESIS: OrganizationCondition(
-        condition_id=B3_FULL_SOCIOGENESIS,
-        short_name="b3",
-        roster_size=8,
-        action_selection_mode=ACTION_SELECTION_PROFILE_POLICY,
-        profile_conditioning_enabled=True,
-        institutionalization_enabled=True,
-        capability_learning_enabled=True,
-    ),
 }
 
 # Not rungs. Resolvable so an older run's records and checkpoints still load.
