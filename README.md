@@ -54,6 +54,12 @@ RELIC_OPENAI_DEFAULT_HEADERS_JSON={}
 RELIC_RUNTIME_MODEL=your-provider-deployment
 ```
 
+Direct `uv run relic ...` commands inherit only the current process environment;
+they do not load `.env` implicitly. For provider-backed commands, pass the file
+explicitly with `uv run --env-file .env relic ...`, as shown below. The thin
+Bash wrappers under `scripts/bash/` load the allow-listed values from the
+repository `.env` automatically.
+
 `--model` always names the canonical paper model. `--runtime-model` selects the
 deployment name used by the provider while preserving that canonical ID in
 plans and receipts. The runtime-name precedence is the CLI option, then
@@ -82,7 +88,7 @@ After configuring the provider, run the plan. Keep the paired B0–B3 group when
 sampling with `--workload`, `--seed`, or `--batch`.
 
 ```bash
-uv run relic run-main \
+uv run --env-file .env relic run-main \
   --manifest outputs/main-study/source_main_manifest.json \
   --resume \
   --max-parallel 1 \
@@ -101,7 +107,7 @@ uv run relic run-transfer --dry-run \
   --output-root outputs/transfer-v2 \
   --workload w01 \
   --seed 1401
-uv run relic run-transfer \
+uv run --env-file .env relic run-transfer \
   --manifest outputs/transfer-v2/transfer_manifest.json \
   --resume \
   --max-parallel 1 \

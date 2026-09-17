@@ -38,7 +38,9 @@ used values are:
   `RELIC_EVALUATOR_MODE=container` with an explicit evaluator binding.
 
 The Bash wrappers parse only this allow-listed public environment contract; they
-do not source arbitrary shell code from `.env`.
+do not source arbitrary shell code from `.env`. Direct `uv run relic ...`
+commands do not load the file implicitly; pass `--env-file .env` for a
+provider-backed invocation, for example `uv run --env-file .env relic run-main`.
 
 ## Outputs and manifests
 

@@ -32,8 +32,10 @@ uv run relic smoke --mode mock
 The mock smoke is an installation/config/runtime check. It makes no provider
 request and is not evidence that a formal paper cell or evaluator succeeded.
 The Bash wrappers load only the documented, allow-listed assignments from the
-repository-root `.env` and reject every other variable; direct
-`uv run relic ...` commands read only the current process environment.
+repository-root `.env` and reject every other variable. Direct
+`uv run relic ...` commands read only the current process environment and do not
+load `.env` implicitly; invoke provider-backed commands as
+`uv run --env-file .env relic ...` (or use a Bash wrapper).
 
 Model-backed execution additionally requires provider credentials. By default,
 `run-main`, `run-transfer`, and legacy cells qualify the public evaluator on the
@@ -143,11 +145,12 @@ be empty in non-strict mode:
 }
 ```
 
-Use `relic run-main --resume --evaluator-bindings <file>` with the dry-plan
-manifest. A missing selected-pack mapping or malformed value is rejected before
-the source runner starts a child process. Add `--strict-reproducibility` to
-reject non-digest images, non-`linux/amd64` platforms, and malformed hashes. The
-angle-bracket values above are schema markers, not substitute runtime values.
+Use `uv run --env-file .env relic run-main --resume --evaluator-bindings <file>`
+with the dry-plan manifest. A missing selected-pack mapping or malformed value is
+rejected before the source runner starts a child process. Add
+`--strict-reproducibility` to reject non-digest images, non-`linux/amd64`
+platforms, and malformed hashes. The angle-bracket values above are schema
+markers, not substitute runtime values.
 
 For Inspector use, place an author-supplied sanitized `relic-trace-v1` JSON file
 in `traces/`, set `RELIC_TRACE_FILE` in `.env`, and run:

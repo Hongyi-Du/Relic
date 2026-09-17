@@ -47,6 +47,11 @@ OPENAI_BASE_URL=https://your-gateway.example/v1
 RELIC_RUNTIME_MODEL=your-provider-deployment
 ```
 
+直接运行 `uv run relic ...` 时，命令只继承当前进程环境，不会隐式加载
+`.env`。需要调用 provider 的命令请显式使用
+`uv run --env-file .env relic ...`（下方示例如此）；`scripts/bash/` 下的 Bash
+wrapper 会自动加载仓库根目录 `.env` 中允许的变量。
+
 CLI 的 `--runtime-model` 可以覆盖 runtime 模型名，`--model` 保留论文模型标识。Claude 分组也可以设置 `RELIC_CLAUDE_OPUS_4_6_MODEL`，不需要恢复作者的私人 alias。
 
 生成一个不调用 provider 的 120-cell GPT dry plan：
@@ -63,7 +68,7 @@ uv run relic run-main \
 配置好模型后，移除 `--dry-run` 执行主实验：
 
 ```bash
-uv run relic run-main --model gpt-5.6-terra --output-root outputs/main-study --max-parallel 1
+uv run --env-file .env relic run-main --model gpt-5.6-terra --output-root outputs/main-study --max-parallel 1
 ```
 
 主实验仍保留每模型 120 cells、每 cell 336 ticks 的论文设置。各 batch 的 `experiment_runs.json/jsonl` 汇总 B0–B3 的实验记录、评分证据与执行状态，顶层 `source_main_manifest.json` 链接这些结果。只有主动添加 `--strict-reproducibility` 时才要求完整 binding、digest、platform 和 hash；普通运行会记录本地实际观察到的 evaluator metadata。完整输出与 legacy cell aggregate 命令见 [English README](README.md)。

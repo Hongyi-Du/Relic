@@ -21,8 +21,11 @@ uv run relic smoke --mode mock
 
 These commands install the release package, verify frozen benchmark bytes, and
 exercise the no-provider core path. They do not establish a formal paper run.
-Use `scripts/bash/` for thin shell conveniences; all execution logic remains in
-the `relic` Python CLI.
+Direct `uv run relic ...` commands do not load `.env` implicitly. After
+configuring a provider in `.env`, pass it explicitly with
+`uv run --env-file .env relic ...` for provider-backed commands, or use the thin
+wrappers under `scripts/bash/`, which load the file automatically. All execution
+logic remains in the `relic` Python CLI.
 
 ## Docker / Compose
 

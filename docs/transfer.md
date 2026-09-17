@@ -68,14 +68,14 @@ thin adapter delegates every target to `tools/run_org_baselines.py` with
 `--cases b2`; it does not use the legacy per-cell worker and it does not copy a
 ProgramBench executor.
 
-The default transfer run uses the public host evaluator and records its observed
-metadata in the transfer manifest. An explicit per-pack evaluator binding is
-optional provenance; non-strict bindings may use a tag or omit platform/hash
-fields. Once an author-reviewed strict binding is available, resume the frozen
-plan with:
+After configuring the provider in `.env`, the default transfer run uses the
+public host evaluator and records its observed metadata in the transfer
+manifest. An explicit per-pack evaluator binding is optional provenance;
+non-strict bindings may use a tag or omit platform/hash fields. Once an
+author-reviewed strict binding is available, resume the frozen plan with:
 
 ```bash
-uv run relic run-transfer \
+uv run --env-file .env relic run-transfer \
   --manifest outputs/transfer-v2/transfer_manifest.json \
   --resume --max-parallel 1 \
   --evaluator-bindings author-published-evaluator-bindings.json \
