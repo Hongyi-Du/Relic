@@ -2191,7 +2191,11 @@ def _parser() -> argparse.ArgumentParser:
         help="comma-separated registered mechanisms disabled for this arm",
     )
     parser.add_argument("--oss-control", default="none")
-    parser.add_argument("--experiment-phase")
+    parser.add_argument(
+        "--experiment-phase",
+        default="main_study",
+        help="experiment phase recorded in each run receipt (default: main_study)",
+    )
     parser.add_argument(
         "--execution-profile",
         default="native",
