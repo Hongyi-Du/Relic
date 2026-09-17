@@ -2,22 +2,44 @@
 
 from __future__ import annotations
 
+import datetime as dt
 import json
 import os
+import shutil
 from pathlib import Path
 
 import pytest
 
 from environments.org_env.config.baseline_conditions import resolve_condition
+from environments.org_env.experiments.records import (
+    assess_run_record_completeness,
+    validate_experiment_run_record_schema,
+)
+from environments.org_env.product.substrates.final_evaluation import (
+    run_final_evaluation,
+    write_experiment_run_record,
+)
+from environments.org_env.product.substrates.loader import load_oss_substrate_spec
 from environments.org_env.runtime_adapter.live import OrgInspectorSession
 from environments.org_env.runtime_adapter.replay_delta import expand_delta_replay
+from relic.evaluation.time_machine import (
+    build_time_machine_evaluation_plan,
+    evaluate_time_machine_candidate,
+)
 from relic.source_runner import (
     SourceMainRunnerError,
     _source_invocation_environment,
     build_source_main_manifest,
     run_source_main,
 )
-from tools.run_org_baselines import build_case_environment, main as baseline_main
+from tools.run_org_baselines import (
+    _formal_case_record_errors,
+    _invocation_plan,
+    _parser,
+    build_case_environment,
+    build_case_plans,
+    main as baseline_main,
+)
 
 
 def test_source_b3_is_canonical_and_early_relic_id_is_read_compatibility() -> None:
@@ -123,10 +145,142 @@ def test_direct_source_runner_dry_run_writes_four_source_case_plans(
         "b2_policy_conditioned_org",
         "b3_full_sociogenesis",
     }
+    assert manifest["experiment_phase"] == "main_study"
+    assert {
+        json.loads(
+            (output_root / f"{case}_seed1401" / "case_plan.json").read_text(
+                encoding="utf-8"
+            )
+        )["environment"]["ORG_EXPERIMENT_PHASE"]
+        for case in ("b0", "b1", "b2", "b3")
+    } == {"main_study"}
     source_text = (Path(__file__).parents[1] / "tools" / "run_org_baselines.py").read_text(
         encoding="utf-8"
     )
     assert "from society_core" not in source_text
+
+
+@pytest.mark.integration
+def test_default_main_study_phase_survives_a_local_short_run_receipt(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A no-provider two-tick run still produces a complete formal receipt."""
+
+    args = _parser().parse_args(
+        [
+            "--cases",
+            "b3",
+            "--dataset",
+            "mini_blobstore_v1",
+            "--repository-id",
+            "mini_blobstore_v1",
+            "--seed",
+            "1401",
+            "--ticks",
+            "2",
+            "--checkpoint-every",
+            "1",
+            "--sprint-ticks",
+            "1",
+            "--provider",
+            "none",
+            "--model",
+            "rules",
+            "--max-llm-calls",
+            "10",
+            "--max-llm-requested-tokens",
+            "1000",
+            "--max-llm-prompt-characters",
+            "10000",
+            "--max-primary-actions",
+            "100",
+            "--max-ticks",
+            "2",
+            "--no-randomize-order",
+        ]
+    )
+    args.arm_map = json.loads(args.arm_map)
+    args.randomization_order_override = json.loads(
+        args.randomization_order_override
+    )
+    plan = build_case_plans(args, tmp_path / "batch")[0]
+    assert plan.environment["ORG_EXPERIMENT_PHASE"] == "main_study"
+    invocation = _invocation_plan(plan, None)
+
+    for key, value in invocation.environment.items():
+        monkeypatch.setenv(key, value)
+    monkeypatch.setenv("ORG_LOG_ZIP", "0")
+    monkeypatch.setenv("ORG_FIGURE_METRICS", "0")
+    # The real formal runner requires a provider for an explicit B3 arm.  This
+    # receipt regression intentionally exercises the no-provider local path,
+    # while the omitted condition keeps the short test free of any API call;
+    # resolve_condition(None) still selects the canonical B3 world.
+    monkeypatch.delenv("ORG_EXPERIMENT_CONDITION")
+
+    session = OrgInspectorSession(seed=plan.seed, load_llm=False)
+    session.world.run_id = "local-main-study-phase-smoke"
+    session.step(2)
+    checkpoint = session.save_checkpoint(
+        str(tmp_path / "run" / "checkpoint_t2.pkl")
+    )
+
+    spec = load_oss_substrate_spec("mini_blobstore_v1")
+    evaluation_plan = build_time_machine_evaluation_plan(
+        spec=spec,
+        timeout_seconds=30,
+    )
+
+    def export_reference(
+        _world: object,
+        destination: str,
+        *,
+        prefer_mainline: bool,
+    ) -> None:
+        del _world, prefer_mainline
+        shutil.copytree(spec.reference_repo_dir, destination)
+
+    def evaluate(
+        plan_arg: object,
+        candidate_root: Path,
+        *,
+        timeout_seconds: int,
+    ) -> object:
+        return evaluate_time_machine_candidate(
+            plan_arg,
+            candidate_root,
+            timeout_seconds=timeout_seconds,
+        )
+
+    artifact = run_final_evaluation(
+        session.world,
+        output_dir=tmp_path / "evaluations",
+        plan_builder=lambda **_kwargs: evaluation_plan,
+        candidate_evaluator=evaluate,
+        candidate_exporter=export_reference,
+    )
+    assert artifact is not None
+
+    record_path = tmp_path / "run" / "experiment_run_record.json"
+    record = write_experiment_run_record(
+        session.world,
+        record_path,
+        final_evaluator=artifact,
+        started_at=dt.datetime(2026, 9, 17, tzinfo=dt.timezone.utc),
+        status="completed",
+        checkpoint=checkpoint,
+        provenance={
+            "case_plan_fingerprint": invocation.environment[
+                "ORG_CASE_PLAN_FINGERPRINT"
+            ],
+            "target_tick": 2,
+        },
+    )
+    validate_experiment_run_record_schema(record)
+    assert record["experiment_phase"] == "main_study"
+    completeness = assess_run_record_completeness(record)
+    assert completeness["is_complete"] is True, completeness
+    assert _formal_case_record_errors(plan, record_path) == ()
 
 
 def test_programbench_profile_fails_closed_before_environment_construction() -> None:
@@ -220,6 +374,10 @@ def test_source_main_dry_run_invokes_one_paired_source_batch_and_scopes_runtime_
         case["environment"]["ORG_MECHANISM_ABLATIONS"]
         for case in source_manifest["cases"]
     } == {"work_rhythm"}
+    assert {
+        case["environment"]["ORG_EXPERIMENT_PHASE"]
+        for case in source_manifest["cases"]
+    } == {"main_study"}
 
 
 def test_documented_openai_variables_bridge_only_for_source_invocation(
