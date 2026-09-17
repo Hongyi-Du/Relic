@@ -28,6 +28,7 @@ from environments.org_env.product.substrates.loader import (
     read_repo_files,
 )
 from relic.research.hashing import canonicalize, stable_hash
+from relic.research.repository_digest import repository_digest as source_repository_digest
 
 from .evidence import VerificationEvidence
 from .execution import (
@@ -36,7 +37,7 @@ from .execution import (
     CommandOutcome,
     DockerCommandExecutor,
 )
-from .workspace import CandidateWorkspace, repository_digest
+from .workspace import CandidateWorkspace
 
 HiddenRunner = Callable[[OSSSubstrateSpec, str, int], Mapping[str, Any]]
 TIME_MACHINE_EVALUATOR_RUNTIME_VERSION = "relic-oss-1"
@@ -860,7 +861,7 @@ def _status_by_test(
 def _repo_digest(root: Path) -> str:
     if not root.is_dir():
         return stable_hash({"missing_repo": root.name})
-    return repository_digest(root)
+    return source_repository_digest(root)
 
 
 def _build_result(

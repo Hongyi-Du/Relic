@@ -158,6 +158,26 @@ incomplete evaluator binding fails before a source child or provider client is
 created. `--retry-failed --resume` re-enters the source runner's own
 identity-checked case resume path.
 
+## Final transfer comparison
+
+The final-paper transfer entrypoint is `run-transfer`. It plans only the two
+new fresh-B2 target arms, Text and Exec (10 workloads × 3 seeds × 2 = 60
+targets); Fresh remains the existing main-study B2 reference and is never
+generated as a new transfer run. Both arms use the bundled canonical v2
+six-guard package and lock protocol formation, adoption, and revision across
+the complete target window.
+
+```bash
+uv run relic run-transfer --dry-run \
+  --output-root outputs/transfer-v2 \
+  --workload w01 --seed 1401
+```
+
+As with `run-main`, a non-dry transfer command fails closed before any source
+child or provider request unless the authors' digest-pinned evaluator bindings
+are supplied. It creates new local reproduction artifacts only; it does not
+fabricate or substitute paper raw results. See [docs/transfer.md](docs/transfer.md).
+
 ## Legacy single-cell compatibility command
 
 `relic run-cell`, `relic.main_runner`, and `relic.cell_worker` remain only for

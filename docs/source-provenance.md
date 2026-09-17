@@ -78,6 +78,28 @@ invent a container image digest, evaluator environment hash, or qualification
 hash; `run-main` requires an explicit published per-pack mapping before any
 formal source child or provider client can start.
 
+The final transfer-specific closure is intentionally narrower and separate
+from the core HCI closure. The canonical v2 bundle, closed compiler, six guard
+bindings, full target-window landscape lock, and thin B2 Text/Exec adapter are
+selectively derived from:
+
+```text
+origin/codex/transfer-v4-fixed-protocol@1a49b4821ab207b012d95057d2151c5cfaf1bc38
+```
+
+This is a module-level provenance reference, not a replacement for the HCI
+core source or an authority for paper facts. No ProgramBench package, harness,
+asset, or execution profile was copied from that revision; requests for that
+profile continue to fail closed in this release. See [transfer.md](transfer.md)
+for the exact canonical-v2 identity and final-paper target design.
+
+For final-record repository provenance, `relic.research.repository_digest` is
+the source revision's pure `repo_hash` closure (including the corresponding
+repository-path policy and no-follow file reader). Both the source run-record
+writer and Relic's final evaluator call it, so a record cannot silently use a
+second digest contract. This compact closure intentionally excludes the
+unrelated Code-Max, SocietyCore, and ProgramBench execution layers.
+
 The public evaluator build closure is separately ported from the same HCI
 revision: `.evaluator_image/Dockerfile`, `.cursor/build_evaluators.sh`,
 `tools/print_evaluator_hashes.py`, and

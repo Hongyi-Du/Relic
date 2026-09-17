@@ -180,6 +180,40 @@ def _run_main(args: argparse.Namespace) -> int:
     return 0 if result.failed_batches == 0 else 2
 
 
+def _run_transfer(args: argparse.Namespace) -> int:
+    from relic.source_runner import SourceMainRunnerError
+    from relic.transfer_runner import TransferRunnerError, run_transfer
+
+    try:
+        result = run_transfer(
+            arm=args.arm,
+            model=args.model,
+            output_root=args.output_root,
+            manifest_path=args.manifest,
+            max_parallel=args.max_parallel,
+            dry_run=args.dry_run,
+            resume=args.resume,
+            retry_failed=args.retry_failed,
+            evaluator_bindings_path=args.evaluator_bindings,
+            batch_ids=args.batch,
+            workloads=args.workload,
+            seeds=args.seed,
+        )
+    except (SourceMainRunnerError, TransferRunnerError) as exc:
+        print(json.dumps({"status": "failed", "error": exc.code}), file=sys.stderr)
+        return 2
+    except KeyboardInterrupt:
+        print(json.dumps({"status": "interrupted", "error": "scheduler_interrupted"}), file=sys.stderr)
+        return 130
+    print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
+    if args.dry_run:
+        print(
+            "Dry run only: no provider or condition subprocess was started; "
+            "source B2 transfer case plans were materialized under source-dry-run/."
+        )
+    return 0 if result.failed_target_runs == 0 else 2
+
+
 def _evaluate_cell(args: argparse.Namespace) -> int:
     from relic.cell_worker import CellWorkerError, evaluate_cell
     from relic.evaluation.user_run_batch import UserRunBatchError, evaluate_user_run_batch
@@ -252,10 +286,15 @@ def _status(args: argparse.Namespace) -> int:
 
 
 def _replay_trace(args: argparse.Namespace) -> int:
-    from relic.replay import load_trace
+    from relic.replay import load_trace, resolve_public_trace_path
 
     try:
-        trace = load_trace(args.trace)
+        path = resolve_public_trace_path(
+            trace_path=args.trace,
+            run_directory=args.run_dir,
+            cell_directory=args.cell_dir,
+        )
+        trace = load_trace(path)
     except (OSError, ValueError) as exc:
         print(json.dumps({"status": "failed", "error": str(exc)}), file=sys.stderr)
         return 2
@@ -284,10 +323,16 @@ def _replay_trace(args: argparse.Namespace) -> int:
 
 def _inspect_trace(args: argparse.Namespace) -> int:
     from relic.inspector import serve_inspector
+    from relic.replay import resolve_public_trace_path
 
     try:
-        serve_inspector(
+        path = resolve_public_trace_path(
             trace_path=args.trace,
+            run_directory=args.run_dir,
+            cell_directory=args.cell_dir,
+        )
+        serve_inspector(
+            trace_path=path,
             host=args.host,
             port=args.port,
             mode=args.mode,
@@ -442,6 +487,45 @@ def _cooper_summary(args: argparse.Namespace) -> int:
     return 0
 
 
+def _export_trace(args: argparse.Namespace) -> int:
+    """Validate and optionally copy an already exported public trace.
+
+    This command does not reconstruct a trace from private checkpoints or a
+    legacy replay.  New source runs export incrementally while their public
+    state is available; historic records without that asset remain a gap.
+    """
+
+    from relic.replay import copy_public_trace_prefix, load_trace, resolve_public_trace_path
+
+    try:
+        path = resolve_public_trace_path(
+            trace_path=args.trace,
+            run_directory=args.run_dir,
+            cell_directory=args.cell_dir,
+        )
+        if args.output is not None:
+            path = copy_public_trace_prefix(path, args.output)
+        trace = load_trace(path)
+    except (OSError, ValueError) as exc:
+        print(json.dumps({"status": "failed", "error": str(exc)}), file=sys.stderr)
+        return 2
+    print(
+        json.dumps(
+            {
+                "schema_version": "relic-public-trace-export-v1",
+                "status": "passed",
+                "trace_path": str(path),
+                "trace_sha256": trace["trace_sha256"],
+                "frames": len(trace["frames"]),
+                "run_id": trace["run_id"],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+    return 0
+
+
 def _add_inspector_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument(
@@ -453,6 +537,21 @@ def _add_inspector_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--open-browser", action="store_true")
     parser.add_argument("--verbose", action="store_true")
     parser.add_argument("--allow-remote", action="store_true")
+
+
+def _add_trace_source_arguments(parser: argparse.ArgumentParser) -> None:
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--trace", type=Path)
+    source.add_argument(
+        "--run-dir",
+        type=Path,
+        help="source-run directory containing public/relic-trace-v1.json",
+    )
+    source.add_argument(
+        "--cell-dir",
+        type=Path,
+        help="single-cell directory containing public/relic-trace-v1.json",
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -607,6 +706,61 @@ def build_parser() -> argparse.ArgumentParser:
     )
     main_run.set_defaults(func=_run_main)
 
+    transfer = subparsers.add_parser(
+        "run-transfer",
+        aliases=["run-transfer-v2"],
+        help=(
+            "run or plan the final fresh-B2 Text/Exec transfer targets through "
+            "the source baseline runner"
+        ),
+    )
+    transfer.add_argument(
+        "--arm",
+        choices=("text", "exec", "both"),
+        default="both",
+        help="new target arm(s); Fresh is the existing B2 main-study reference",
+    )
+    transfer.add_argument(
+        "--model",
+        default="gpt-5.6-terra",
+        help="fixed final-transfer model (must be gpt-5.6-terra)",
+    )
+    transfer.add_argument("--output-root", type=Path, default=None)
+    transfer.add_argument("--manifest", type=Path, default=None)
+    transfer.add_argument("--max-parallel", type=int, default=1)
+    transfer.add_argument("--dry-run", action="store_true")
+    transfer.add_argument("--resume", action="store_true")
+    transfer.add_argument("--retry-failed", action="store_true")
+    transfer.add_argument(
+        "--evaluator-bindings",
+        type=Path,
+        default=None,
+        help=(
+            "JSON mapping of each formal pack to a digest-pinned evaluator binding; "
+            "required before any non-dry-run source target starts"
+        ),
+    )
+    transfer.add_argument(
+        "--batch",
+        action="append",
+        default=[],
+        help="narrow to one workload/seed batch, e.g. w01__seed1401 (repeatable)",
+    )
+    transfer.add_argument(
+        "--workload",
+        action="append",
+        default=[],
+        help="narrow to one canonical workload id, e.g. w01 (repeatable)",
+    )
+    transfer.add_argument(
+        "--seed",
+        action="append",
+        type=int,
+        default=[],
+        help="narrow to one canonical seed (repeatable)",
+    )
+    transfer.set_defaults(func=_run_transfer)
+
     status = subparsers.add_parser(
         "status", help="read public status and verified checkpoint sidecars"
     )
@@ -619,15 +773,28 @@ def build_parser() -> argparse.ArgumentParser:
     replay = subparsers.add_parser(
         "replay", help="validate and summarize one public relic-trace-v1 file"
     )
-    replay.add_argument("--trace", type=Path, required=True)
+    _add_trace_source_arguments(replay)
     replay.set_defaults(func=_replay_trace)
 
     inspect = subparsers.add_parser(
         "inspect", help="open the public Inspector for a relic-trace-v1 file"
     )
-    inspect.add_argument("--trace", type=Path, required=True)
+    _add_trace_source_arguments(inspect)
     _add_inspector_arguments(inspect)
     inspect.set_defaults(func=_inspect_trace)
+
+    export_trace = subparsers.add_parser(
+        "export-trace",
+        help="validate or copy one already-exported public relic-trace-v1 file",
+    )
+    _add_trace_source_arguments(export_trace)
+    export_trace.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help="new destination for a verified immutable public trace copy",
+    )
+    export_trace.set_defaults(func=_export_trace)
 
     evaluate = subparsers.add_parser(
         "evaluate",

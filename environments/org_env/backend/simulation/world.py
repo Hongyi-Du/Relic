@@ -482,30 +482,85 @@ class OrgWorld:
         rec = getattr(self, "_reconciler", None)
         return rec.reconcile(self, reason=reason) if rec is not None else {}
 
-    def note_protocol_use(self, keywords, tick: int, obj: str = None):
+    def note_protocol_use(
+        self,
+        keywords,
+        tick: int,
+        obj: str = None,
+        *,
+        protocol_id: str | None = None,
+        agent: str | None = None,
+        compiled_metadata: dict[str, Any] | None = None,
+    ):
         """spec #4/#8: credit the adopted protocol that governed an action (release gate,
         readiness check) with a USE, so it accrues evidence and can register as a company
         skill — closes the gap where gate use only hit the live registry, not the spec."""
         pm = getattr(self, "proposal_manager", None)
         if pm is None:
             return None
-        for s in pm.protocol_specs.values():
+        named = self._spec_behind(protocol_id) if protocol_id else None
+        candidates = [named] if named is not None else list(pm.protocol_specs.values())
+        for s in candidates:
             if s.status != "adopted":
                 continue
             blob = f"{s.name} {s.trigger_condition} {s.enforcement_rule}".lower()
-            if any(k in blob for k in keywords):
+            if named is not None or any(k in blob for k in (keywords or ())):
+                if not self._protocol_mirror_is_live_or_absent(s):
+                    return None
                 s.use_count = int(getattr(s, "use_count", 0) or 0) + 1
                 s.last_used_tick = tick
                 if obj and obj not in s.affected_artifacts:
                     s.affected_artifacts.append(obj)
                 # v8g P2: emit the canonical use event so spec.use_count == registry usage ==
                 # world events == company-skill evidence (one number everywhere).
-                self.events.append({"type": "protocol_use_event", "protocol_id": s.protocol_id,
-                                    "tick": tick, "object_id": obj, "auto": True})
+                public_protocol_id = str(protocol_id or s.protocol_id)
+                use_event = {
+                    "type": "protocol_use_event",
+                    "protocol_id": public_protocol_id,
+                    "tick": tick,
+                    "object_id": obj,
+                    "agent_id": agent,
+                    "auto": True,
+                }
+                if named is not None:
+                    use_event["protocol_spec_id"] = s.protocol_id
+                    use_event["compiled"] = True
+                if isinstance(compiled_metadata, dict):
+                    for key in (
+                        "binding_id",
+                        "guard",
+                        "binding_hash",
+                        "binding_schema_version",
+                    ):
+                        value = compiled_metadata.get(key)
+                        if value is not None and str(value):
+                            use_event[key] = str(value)
+                self.events.append(use_event)
                 s.use_event_ids.append(f"protocol_use_event@t{tick}")   # v8h P1: same refs everywhere
-                self._mirror_protocol_event(s, "use", tick, obj)   # v8f P1a: keep registry in sync
+                self._mirror_protocol_event(s, "use", tick, obj, agent)   # v8f P1a: keep registry in sync
                 return s.protocol_id
         return None
+
+    def _protocol_mirror_is_live_or_absent(self, spec) -> bool:
+        """Fail closed when an existing registry mirror is terminal or corrupt.
+
+        A spec without a mirror retains its native spec-only behavior. Once a
+        mirror exists, however, telemetry must not report use/enforcement that
+        the executable lifecycle would reject.
+        """
+
+        reg = getattr(self, "protocol_registry", None)
+        if reg is None:
+            return True
+        mirror = self._registry_mirror_id(spec.protocol_id)
+        protocol = getattr(reg, "protocols", {}).get(mirror)
+        if protocol is None:
+            return True
+        from environments.org_env.backend.protocol.registry import (
+            protocol_is_live,
+        )
+
+        return protocol_is_live(protocol)
 
     def _mirror_protocol_event(
         self,
@@ -630,6 +685,7 @@ class OrgWorld:
         *,
         protocol_id: str | None = None,
         blocked: bool = False,
+        compiled_metadata: dict[str, Any] | None = None,
         state_impact_ref: str | None = None,
         state_before: dict[str, Any] | None = None,
         state_after: dict[str, Any] | None = None,
@@ -681,14 +737,35 @@ class OrgWorld:
             if (named is not None
                     or any(k in blob for k in keywords)
                     or (instrument and declared & instrument)):
+                if not self._protocol_mirror_is_live_or_absent(s):
+                    return None
                 s.violation_count = int(getattr(s, "violation_count", 0) or 0) + 1
                 s.enforcement_count = int(getattr(s, "enforcement_count", 0) or 0) + 1
                 if obj and obj not in s.affected_artifacts:
                     s.affected_artifacts.append(obj)
-                self.events.append({"type": "protocol_violation_event", "protocol_id": s.protocol_id,
-                                    "tick": tick, "object_id": obj, "agent_id": agent, "auto": True})
-                self.events.append({"type": "protocol_enforcement_event", "protocol_id": s.protocol_id,
-                                    "tick": tick, "object_id": obj, "agent_id": agent, "auto": True})
+                public_protocol_id = str(protocol_id or s.protocol_id)
+                common_event = {
+                    "protocol_id": public_protocol_id,
+                    "tick": tick,
+                    "object_id": obj,
+                    "agent_id": agent,
+                    "auto": True,
+                }
+                if named is not None:
+                    common_event["protocol_spec_id"] = s.protocol_id
+                    common_event["compiled"] = True
+                if isinstance(compiled_metadata, dict):
+                    for key in (
+                        "binding_id",
+                        "guard",
+                        "binding_hash",
+                        "binding_schema_version",
+                    ):
+                        value = compiled_metadata.get(key)
+                        if value is not None and str(value):
+                            common_event[key] = str(value)
+                self.events.append({"type": "protocol_violation_event", **common_event})
+                self.events.append({"type": "protocol_enforcement_event", **common_event})
                 s.violation_event_ids.append(f"protocol_violation_event@t{tick}")      # v8h P1
                 s.enforcement_event_ids.append(f"protocol_enforcement_event@t{tick}")  # v8h P1
                 self._mirror_protocol_event(s, "violate", tick, obj, agent)   # impact needs >=1 violation
@@ -1320,8 +1397,12 @@ class OrgWorld:
             self.__dict__.get("_cooperbench_delivery_focus", False)
             and not self.__dict__.get("_cooperbench_main_b3_lifecycle", False)
         )
+        fixed_protocol_landscape = bool(
+            self.__dict__.get("_fixed_protocol_landscape", False)
+        )
         if institutionalization_enabled:
-            self._flag_harmful_protocols(tick)   # self-correction: over-strict rules -> policy-repair wish
+            if not fixed_protocol_landscape:
+                self._flag_harmful_protocols(tick)   # self-correction: over-strict rules -> policy-repair wish
             self._repackage_stuck_deliverables(tick)  # the delivery half: land work the gate walled off
         # wishes -> proposals: sparse + half-day cadence + capped (§10).
         if (
@@ -1349,6 +1430,7 @@ class OrgWorld:
         if (
             institutionalization_enabled
             and not suppress_generic_cognition
+            and not fixed_protocol_landscape
             and tick > 0
             and tick % 24 == 0
             and self._cog is not None
@@ -1954,6 +2036,10 @@ class OrgWorld:
         rs = getattr(self, "repo_system", None)
         if rs is None:
             return []
+        from environments.org_env.policy.compiled_protocols import (
+            authorize_before_action,
+        )
+
         REVIEW_LATENCY, MERGE_LATENCY, PR_OPEN_LATENCY = 3, 2, 2
         tick = self.world_tick
         advanced: list = []
@@ -1970,6 +2056,15 @@ class OrgWorld:
             reviewer = self._a_lead_other_than(b.owner_id)
             if reviewer is None and len(self.agents or {}) <= 1:
                 reviewer = b.owner_id      # solo roster: its own review, on the record
+            authorization = authorize_before_action(
+                self,
+                b.owner_id,
+                "open_pr",
+                {"source_branch": b.branch_id},
+                tick=tick,
+            )
+            if not authorization.allowed:
+                continue
             pr = rs.open_pr(agent_id=b.owner_id, source_branch=b.branch_id,
                             reviewers=[reviewer] if reviewer else None)
             pr.opened_tick = tick
@@ -2032,6 +2127,17 @@ class OrgWorld:
         def _run_pr_ci(pr):
             # same integration CI as the LLM run_ci action (end-to-end contract + eval metric
             # consistency), so the AUTO merge route can't ship a bad patch with "CI passed".
+            authorization = authorize_before_action(
+                self,
+                pr.author_id,
+                "run_ci",
+                {"pr_id": pr.pr_id},
+                tick=tick,
+            )
+            if not authorization.allowed:
+                # Preserve retry cadence while the decision is unchanged.
+                pr.__dict__["_last_ci_tick"] = tick
+                return
             ci = rs.run_ci(pr_id=pr.pr_id, tick=tick)
             ci_status = getattr(ci, "status", "passed") if ci is not None else "passed"
             cc = _integration_ci(pr)
@@ -2138,9 +2244,19 @@ class OrgWorld:
                     reviewer = pr.author_id
                 if reviewer:
                     if pr.ci_passed:
-                        rs.review_pr(reviewer_id=reviewer, pr_id=pr.pr_id, approve=True, tick=tick)
-                        self.events.append({"type": "repo_event", "subtype": "pr_reviewed",
-                                            "pr_id": pr.pr_id, "agent_id": reviewer, "tick": tick, "auto": True})
+                        authorization = authorize_before_action(
+                            self,
+                            reviewer,
+                            "review_pr",
+                            {"pr_id": pr.pr_id},
+                            tick=tick,
+                        )
+                        if authorization.allowed:
+                            rs.review_pr(reviewer_id=reviewer, pr_id=pr.pr_id, approve=True, tick=tick)
+                            self.events.append({"type": "repo_event", "subtype": "pr_reviewed",
+                                                "pr_id": pr.pr_id, "agent_id": reviewer, "tick": tick, "auto": True})
+                        else:
+                            continue
                     else:
                         rs.request_changes(reviewer_id=reviewer, pr_id=pr.pr_id,
                                            comment="CI not passing; please fix", tick=tick)
@@ -2152,6 +2268,15 @@ class OrgWorld:
                 at = pr.approved_tick if pr.approved_tick is not None else getattr(pr, "opened_tick", 0)
                 if tick - int(at or 0) >= MERGE_LATENCY:
                     merger = self._a_lead_other_than(None) or pr.author_id
+                    authorization = authorize_before_action(
+                        self,
+                        merger,
+                        "merge_pr",
+                        {"pr_id": pr.pr_id},
+                        tick=tick,
+                    )
+                    if not authorization.allowed:
+                        continue
                     if rs.merge_pr(pr_id=pr.pr_id, tick=tick, force=False):
                         self.events.append({"type": "repo_event", "subtype": "pr_merged",
                                             "pr_id": pr.pr_id, "agent_id": merger, "tick": tick, "auto": True})
@@ -2177,6 +2302,9 @@ class OrgWorld:
         if rs is None:
             return []
         from environments.org_env.backend.repo.release import release_gates_for, evaluate_release_gates
+        from environments.org_env.policy.compiled_protocols import (
+            authorize_before_action,
+        )
         tick = self.world_tick
         rcs = rs.repo.release_candidates
         rc = next((r for r in rcs.values()
@@ -2346,7 +2474,17 @@ class OrgWorld:
                         if l not in lims:
                             lims.append(l)
             _pname = (self.company_config or {}).get("product_name") or "product"
-            rel = rs.publish_release(rc_id=rc.candidate_id, released_by=self._a_lead_other_than(None) or "system",
+            released_by = self._a_lead_other_than(None) or "system"
+            authorization = authorize_before_action(
+                self,
+                released_by,
+                "publish_product_release",
+                {"candidate_id": rc.candidate_id},
+                tick=tick,
+            )
+            if not authorization.allowed:
+                return [rc.candidate_id]
+            rel = rs.publish_release(rc_id=rc.candidate_id, released_by=released_by,
                                      tick=tick, public_summary=f"{_pname} {rc.version} (internal)",
                                      known_limitations=lims)
             if rel is not None:
@@ -3383,6 +3521,16 @@ class OrgWorld:
             or mechanism_disabled(self, INSTITUTIONALIZATION)
         )
         product_workflow_disabled = mechanism_disabled(self, PRODUCT_WORKFLOW)
+        fixed_protocol_landscape = bool(
+            self.__dict__.get("_fixed_protocol_landscape", False)
+        )
+        landscape_mutations = {
+            "propose_protocol",
+            "support_protocol",
+            "oppose_protocol",
+            "follow_protocol",
+            "amend_protocol",
+        }
         ws = getattr(agent, "work_state", None)
         from environments.org_env.cooperbench.work_schedule import compressed_schedule_enabled
         compressed_schedule = compressed_schedule_enabled(self)
@@ -3392,6 +3540,8 @@ class OrgWorld:
                 action_category(c.action_type) in (CAT_PROTOCOL, CAT_GOVERNANCE)
                 or c.action_type == "use_tool"
             ):
+                continue
+            if fixed_protocol_landscape and c.action_type in landscape_mutations:
                 continue
             if product_workflow_disabled and action_category(c.action_type) in (
                 CAT_REPO, CAT_SANDBOX, CAT_RELEASE

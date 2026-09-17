@@ -152,6 +152,25 @@ class ProposalManager:
                     proposal.proposal_type = mapped
             except Exception:
                 pass
+        # Transfer v2/v4 runs compare a fixed inherited protocol landscape.  This
+        # check is deliberately here (before validation and routing), rather than
+        # only in candidate generation, so a direct/programmatic proposal cannot
+        # create, revise, or repair a protocol during the target window.
+        if (
+            bool(getattr(world, "__dict__", {}).get("_fixed_protocol_landscape"))
+            and proposal.proposal_type
+            in ("protocol_proposal", "policy_repair_proposal")
+        ):
+            proposal.status = "rejected"
+            proposal.rejection_reason = "endogenous_protocol_formation_disabled"
+            self.proposals[proposal.proposal_id] = proposal
+            self._event(
+                world,
+                "proposal_event",
+                "rejected_fixed_protocol_landscape",
+                proposal,
+            )
+            return proposal
         vr = self.validator.validate(proposal, world)
         if not vr.passed:
             proposal.status = "rejected"
@@ -293,6 +312,23 @@ class ProposalManager:
         """Create the real world object — the ONLY place tools/protocols are minted."""
         p = self.proposals.get(proposal_id)
         if p is None or p.status not in ("approved",):
+            return None
+        # Keep the same boundary closed for proposals that were staged before a
+        # target window began, or whose status was changed by a direct caller.
+        if (
+            bool(getattr(world, "__dict__", {}).get("_fixed_protocol_landscape"))
+            and p.proposal_type
+            in ("protocol_proposal", "policy_repair_proposal")
+        ):
+            p.status = "rejected"
+            p.rejection_reason = "endogenous_protocol_formation_disabled"
+            p.updated_at_tick = int(getattr(world, "world_tick", 0) or 0)
+            self._event(
+                world,
+                "proposal_event",
+                "rejected_fixed_protocol_landscape",
+                p,
+            )
             return None
         from environments.org_env.experiments.ablations import (
             INSTITUTIONALIZATION,

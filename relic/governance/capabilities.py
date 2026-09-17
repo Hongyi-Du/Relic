@@ -49,7 +49,8 @@ GENERAL_TECHNICAL_THEME_LABELS: dict[str, str] = {
 
 
 def _slug(value: str) -> str:
-    return "_".join(str(value or "").strip().lower().replace("-", " ").split())
+    # Source registry semantics: every punctuation character is a separator.
+    return "_".join("".join(ch.lower() if ch.isalnum() else " " for ch in str(value)).split())
 
 
 def classify_capability_kind(theme: str) -> str:

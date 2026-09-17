@@ -171,6 +171,17 @@ class ProtocolSpec:
     affected_agents: List[str] = field(default_factory=list)
     affected_actions: List[str] = field(default_factory=list)
     affected_artifacts: List[str] = field(default_factory=list)
+    # A transferred executable protocol may carry a closed, versioned machine
+    # binding.  These fields are data-only so checkpoints remain pickle-safe
+    # and arbitrary protocol prose is never evaluated as code.  Normal
+    # emergent/v1 protocols retain the default advisory behaviour.
+    binding_schema_version: str = ""
+    machine_bindings: List[Dict[str, Any]] = field(default_factory=list)
+    binding_source_protocol_id: str = ""
+    binding_spec_snapshot: Dict[str, Any] = field(default_factory=dict)
+    binding_row_snapshot: Dict[str, Any] = field(default_factory=dict)
+    binding_hash: str = ""
+    compiler_status: str = "not_compiled"
     benefits: List[str] = field(default_factory=list)
     costs: List[str] = field(default_factory=list)
     risks: List[str] = field(default_factory=list)
