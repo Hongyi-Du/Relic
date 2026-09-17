@@ -9,12 +9,10 @@ Run:  PYTHONPATH="." python tests/org_env/test_human_multi_seat.py
 """
 import sys
 import threading
-import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from environments.org_env.human import gateway
 from environments.org_env.human.api import HumanApi
 from environments.org_env.runtime_adapter.live import OrgInspectorSession
 
@@ -205,5 +203,6 @@ def test_the_printed_urls_include_the_member_workspace():
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     for fn in fns:
-        fn(); print("  ok ", fn.__name__)
+        fn()
+        print("  ok ", fn.__name__)
     print(f"All {len(fns)} multi-seat tests passed!")

@@ -1485,5 +1485,6 @@ def test_human_related_events_reach_secretary_after_the_live_feed_rolls_over():
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     for fn in fns:
-        fn(); print("  ok ", fn.__name__)
+        fn()
+        print("  ok ", fn.__name__)
     print(f"All {len(fns)} liaison facade tests passed!")

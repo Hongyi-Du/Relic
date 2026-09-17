@@ -2113,9 +2113,9 @@ class WorkingAgentSession:
         }.get(collection, collection[:-1] if collection.endswith("s") else collection)
         trusted = {"index": index, "object_id": object_id,
                    "kind": kind, "label": label}
-        for field in ("status", "owner", "author", "priority"):
-            if row.get(field) not in (None, ""):
-                trusted[field] = row.get(field)
+        for key in ("status", "owner", "author", "priority"):
+            if row.get(key) not in (None, ""):
+                trusted[key] = row.get(key)
         return trusted
 
     def normalize_references(self, rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -2204,16 +2204,16 @@ class WorkingAgentSession:
         needed = [labels.get(field, ("目标", "target"))[0 if chinese else 1]
                   for field in missing]
         candidate_groups = []
-        for field in missing:
+        for reference_field in missing:
             rows = self._visible_reference_rows(
-                field, action_type=action_type)[:12]
-            if field in self._MEMBER_REFERENCE_FIELDS:
+                reference_field, action_type=action_type)[:12]
+            if reference_field in self._MEMBER_REFERENCE_FIELDS:
                 values = [str(row.get("name") or row.get("agent_id") or "") for row in rows]
             else:
                 values = [str(row.get("title") or row.get("name") or
-                             self._symbol_id(row, field) or "") for row in rows]
+                             self._symbol_id(row, reference_field) or "") for row in rows]
             values = [value for value in values if value]
-            field_label = labels.get(field, ("目标", "target"))[0 if chinese else 1]
+            field_label = labels.get(reference_field, ("目标", "target"))[0 if chinese else 1]
             if values:
                 numbered = "；".join(f"{index}. {value}"
                                       for index, value in enumerate(values, 1)) if chinese else \

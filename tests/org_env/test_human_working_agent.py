@@ -1068,5 +1068,6 @@ def test_a_provider_failure_falls_back_to_seat_visible_tools():
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     for fn in fns:
-        fn(); print("  ok ", fn.__name__)
+        fn()
+        print("  ok ", fn.__name__)
     print(f"All {len(fns)} working agent tests passed!")

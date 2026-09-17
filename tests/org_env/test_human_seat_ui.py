@@ -104,5 +104,6 @@ def test_routes_serve_the_two_pages_and_the_assets():
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     for fn in fns:
-        fn(); print("  ok ", fn.__name__)
+        fn()
+        print("  ok ", fn.__name__)
     print(f"All {len(fns)} seat UI tests passed!")

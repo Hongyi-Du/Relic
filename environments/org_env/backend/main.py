@@ -993,7 +993,6 @@ def main() -> None:
     # No longer initialized here at startup
     print("Waiting for pack selection at /org/setup...")
 
-    import os
     # Loopback by default. Human seats are the reason to bind wider: several
     # people hold different seats in one world from their own machines. There is
     # no auth beyond the per-seat token, so only open this on a trusted network.

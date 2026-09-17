@@ -10,7 +10,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from environments.org_env.runtime_adapter.live import OrgInspectorSession
-from environments.org_env.runtime_adapter.snapshot import org_lived_full_snapshot
 from environments.org_env.human.seat_view import build_seat_view
 
 
@@ -51,12 +50,12 @@ def test_snapshot_has_8_agents_with_full_state():
 
 
 def test_internal_sections_present():
-    I = _world().full()["internal"]
+    internal = _world().full()["internal"]
     for k in ("tasks", "docs", "files", "messages", "channels", "meetings", "repo",
               "sandbox", "experiments", "results", "budget", "payroll", "protocols",
               "commitments", "disputes", "requests", "detectors"):
-        assert k in I, k
-    assert isinstance(I["repo"]["pull_requests"], list)
+        assert k in internal, k
+    assert isinstance(internal["repo"]["pull_requests"], list)
 
 
 def test_external_sections_present():
@@ -124,8 +123,10 @@ def test_reset_restarts_world():
 
 
 def test_determinism_same_seed():
-    a = OrgInspectorSession(seed=99); a.step(24)
-    b = OrgInspectorSession(seed=99); b.step(24)
+    a = OrgInspectorSession(seed=99)
+    a.step(24)
+    b = OrgInspectorSession(seed=99)
+    b.step(24)
     fa, fb = a.full(), b.full()
     assert fa["company"]["tasks_done"] == fb["company"]["tasks_done"]
     assert fa["agents"]["sean"]["work_state"]["fatigue"] == fb["agents"]["sean"]["work_state"]["fatigue"]
@@ -335,5 +336,6 @@ def test_server_routes_via_testclient():
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     for fn in fns:
-        fn(); print("  ok ", fn.__name__)
+        fn()
+        print("  ok ", fn.__name__)
     print(f"All {len(fns)} org inspector tests passed!")

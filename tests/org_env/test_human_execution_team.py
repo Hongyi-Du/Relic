@@ -678,7 +678,7 @@ def test_world_reset_fences_old_compiler_sink_and_completion_callback():
 def test_cancelled_late_worker_response_is_fenced_before_gateway():
     api = _api()
     try:
-        victor = api.claim("victor")
+        api.claim("victor")
         model = BlockingModel(
             {"action": {"action_type": "send_message",
                         "params": {"channel_id": "team_general", "text": "late"}}},

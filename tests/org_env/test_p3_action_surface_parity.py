@@ -392,7 +392,7 @@ if __name__ == "__main__":
     test_p3_p1_p2_action_parity_matrix_is_complete_and_confirmation_gated()
     test_every_registered_action_has_an_auditable_secretary_parity_row()
     test_p3_schema_does_not_hide_any_direct_runtime_handler_parameter()
-    test_p1_p2_global_offers_expose_the_same_complete_registry_surface()
+    test_p1_p2_global_offers_expose_the_surface_and_disable_generic_events()
     test_each_registry_category_uses_the_live_gateway_for_allow_and_refusal()
     test_newly_exposed_registry_verbs_keep_live_target_and_channel_boundaries()
     print("All P3 action-surface parity tests passed!")

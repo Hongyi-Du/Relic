@@ -78,6 +78,34 @@ def test_main_defaults_to_local_evaluator_without_binding(
     assert manifest["execution"]["evaluator"]["bindings"] == {}
 
 
+@pytest.mark.parametrize("model_source", ["environment", "cli"])
+def test_unresolved_dry_plan_resolves_model_before_first_execution(tmp_path, monkeypatch, model_source):
+    for key in ("RELIC_RUNTIME_MODEL", "ORG_LLM_RUNTIME_MODEL", "OPENAI_MODEL", "ORG_LLM_MODEL",
+                "RELIC_CLAUDE_OPUS_4_6_MODEL"):
+        monkeypatch.delenv(key, raising=False)
+    calls = []
+    monkeypatch.setattr("relic.source_runner._invoke_source_batch",
+                        lambda argv, _runtime: _fake_source_batch(list(argv), calls))
+    result = run_source_main(model="claude-opus-4.6", output_root=tmp_path,
+                             dry_run=True, workloads=("w01",), seeds=(1401,))
+    before = json.loads(result.manifest_path.read_text())
+    assert before["plan"]["model"]["runtime_model"] == ""
+    overrides = {}
+    if model_source == "environment":
+        monkeypatch.setenv("RELIC_CLAUDE_OPUS_4_6_MODEL", "my-deployment")
+    else:
+        overrides["runtime_model"] = "my-deployment"
+    run_source_main(manifest_path=result.manifest_path, resume=True,
+                    workloads=("w01",), seeds=(1401,), **overrides)
+    after = json.loads(result.manifest_path.read_text())
+    assert after["plan"]["model"]["runtime_model"] == "my-deployment"
+    assert after["plan"]["model"]["runtime"]["ORG_LLM_MODEL"] == "my-deployment"
+    assert after["plan"]["plan_sha256"] != before["plan"]["plan_sha256"]
+    with pytest.raises(SourceMainRunnerError, match="resume_runtime_model_mismatch"):
+        run_source_main(manifest_path=result.manifest_path, resume=True,
+                        runtime_model="a-different-model", workloads=("w01",), seeds=(1401,))
+
+
 def test_transfer_defaults_to_local_evaluator_without_binding(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
