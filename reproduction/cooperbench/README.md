@@ -11,6 +11,11 @@ reasoning effort. That is a paper result in
 [`artifacts/paper_results/`](../../artifacts/paper_results/), not a claim that
 the historical run artifacts are shipped here.
 
+New runs do not require those historical artifacts, the historical task-image
+digest ledger, or an author-published evaluator binding. Configure your own
+provider model and prepare the upstream dataset, task images, Docker, and Redis
+described below. The fixed selection and official scoring contract still apply.
+
 ## Source-fixed paper selection
 
 The selection is not reconstructed from the PDF or substituted with the
@@ -107,6 +112,11 @@ upstream dataset flow, and keep data, image cache, and logs outside this
 checkout. The adapter requires Docker; Relic's core Compose image deliberately
 does not include a nested Docker runtime.
 
+The worker records the task image's observed local image ID and platform in a
+runtime receipt and checks the isolated executor and entrypoint. These checks
+protect the current task execution; they do not require a historical image
+ledger, a registry digest, or a fixed `linux/amd64` platform.
+
 ## Gateway boundary
 
 The adapter uses the source's OpenAI-compatible gateway route. It does not
@@ -121,12 +131,12 @@ export ORG_LLM_API_KEY='<secret>'
 export ORG_LLM_WIRE_API=chat_completions
 export ORG_LLM_JSON_TRANSPORT=prompt_only
 export ORG_LLM_REASONING_EFFORT=high
-export ORG_LLM_MODEL='<gateway alias for the reported Claude Opus 4.6 model>'
+export ORG_LLM_MODEL='<your-provider-model-name>'
 ```
 
-The gateway alias is the exact value passed to upstream `-m` and should be
-recorded with a new run. It can differ from the paper's reported model label;
-the source runbook explicitly distinguishes the two. `run-cooper` adds only
+Your provider's model name is the exact value passed to upstream `-m` and is
+recorded with the new run. It can differ from the paper's human-readable model
+label; the authors' original private gateway alias is not required. `run-cooper` adds only
 the source adapter import seam (`PYTHONPATH` and
 `COOPERBENCH_EXTERNAL_AGENTS`) to its child process. It never prints or saves
 credentials.

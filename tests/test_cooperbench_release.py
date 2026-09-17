@@ -161,6 +161,26 @@ def test_missing_report_recognizes_retained_source_selection() -> None:
     assert "paper_48_historical_raw_artifacts_missing" in report["release_gaps"]
 
 
+def test_cli_check_allows_new_runs_without_historical_artifacts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    import relic.cooper_release as cooper_release
+
+    dataset = _write_subset(tmp_path, _subset_document())
+    monkeypatch.setattr(cooper_release, "verify_cooperbench_checkout", lambda _: tmp_path)
+    monkeypatch.setattr(cooper_release, "resolve_cooperbench_binary", lambda _: "cooperbench")
+    assert main([
+        "check-cooper", "--cooperbench-root", str(tmp_path),
+        "--cooperbench-bin", "cooperbench", "--dataset-dir", str(dataset),
+    ]) == 0
+    report = json.loads(capsys.readouterr().out)
+    assert report["runtime_ready"] is True
+    assert report["runtime_missing"] == []
+    assert report["source_selection"]["pairs"] == 48
+    assert "paper_48_historical_raw_artifacts_missing" in report["release_gaps"]
+    assert "paper_48_historical_task_image_digest_ledger_missing" in report["release_gaps"]
+
+
 def test_cli_dry_run_uses_source_subset_and_absolute_default_config(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:

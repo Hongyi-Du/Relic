@@ -849,7 +849,7 @@ def build_parser() -> argparse.ArgumentParser:
     cooper_check.add_argument("--cooperbench-root", type=Path, default=None)
     cooper_check.add_argument("--dataset-dir", type=Path, default=None)
     cooper_check.add_argument("--cooperbench-bin", default=None)
-    cooper_check.add_argument("--model", default="", help="gateway alias for reported Claude Opus 4.6")
+    cooper_check.add_argument("--model", default="", help="runtime model name from your own provider")
     cooper_check.add_argument(
         "--check-provider",
         action="store_true",
@@ -889,7 +889,7 @@ def build_parser() -> argparse.ArgumentParser:
     cooper_run.add_argument("--dataset-dir", type=Path, required=True)
     cooper_run.add_argument("--log-dir", type=Path, required=True)
     cooper_run.add_argument("--run-name", required=True)
-    cooper_run.add_argument("--model", required=True, help="gateway alias for reported Claude Opus 4.6")
+    cooper_run.add_argument("--model", required=True, help="runtime model name from your own provider")
     cooper_run.add_argument("--concurrency", type=int, default=1)
     cooper_run.add_argument("--eval-concurrency", type=int, default=1)
     cooper_run.add_argument("--redis-url", default="redis://localhost:6379")
