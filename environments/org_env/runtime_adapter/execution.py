@@ -4123,6 +4123,51 @@ class OrgExecutionAdapter:
                                      int(getattr(s, "violation_count", 0) or 0),
                                      int(getattr(s, "enforcement_count", 0) or 0))
                      for s in self._adopted_specs(w)}
+        # Transfer-v2 bindings are transition admission controls, not just
+        # candidate hints.  This shared hard guard remains before every handler
+        # so a direct invocation cannot mutate repository or release state after
+        # bypassing candidate construction.
+        from environments.org_env.policy.compiled_protocols import (
+            authorize_before_action,
+        )
+
+        authorization = authorize_before_action(
+            w,
+            agent_id,
+            at,
+            params,
+            tick=tick,
+        )
+        if not authorization.allowed:
+            blocked = authorization.blocking_decisions
+            first = blocked[0]
+            codes = ",".join(dict.fromkeys(d.reason_code for d in blocked))
+            res.success = False
+            res.failure_reason = f"compiled_protocol_blocked:{codes}"
+            res.events.append(
+                {
+                    "type": "governance_event",
+                    "subtype": "compiled_protocol_action_blocked",
+                    "agent_id": agent_id,
+                    "action_type": at,
+                    "tick": tick,
+                    "protocol_id": first.protocol_id,
+                    "protocol_spec_id": first.protocol_spec_id,
+                    "binding_id": first.binding_id,
+                    "reason_code": first.reason_code,
+                    "reason": first.reason,
+                    "object_type": first.target_type,
+                    "object_id": first.target_id,
+                    "blocking_protocol_ids": [d.protocol_id for d in blocked],
+                    "blocking_binding_ids": [d.binding_id for d in blocked],
+                }
+            )
+            return res
+        if at == "formal_pr_review" and authorization.decisions:
+            # The compound handler has an inner approval transition. Mark its
+            # central admission so the defense-in-depth check below does not
+            # credit the same organizational action twice.
+            res.__dict__["_compiled_formal_pr_review_authorized"] = True
         handler = getattr(self, f"_h_{at}", None)
         try:
             if handler is not None:
@@ -4829,6 +4874,13 @@ class OrgExecutionAdapter:
         """Blocking, thorough review: appraise -> generate a grounded review COMMENT
         via the text layer -> request_changes (if issues) or approve (if clean)."""
         pr_id = p.get("pr_id", "")
+        pr = w.repo_system.repo.pull_requests.get(pr_id) if pr_id else None
+        pr_status = getattr(pr, "status", "") if pr is not None else ""
+        pr_status = str(getattr(pr_status, "value", pr_status) or "").lower()
+        if pr is None or pr_status in {"merged", "closed", "stale"}:
+            res.success = False
+            res.failure_reason = "no_live_pr_to_review"
+            return
         appr = None
         if pr_id and w._loop.get("object_appraiser"):
             appr = w._loop["object_appraiser"].appraise(agent_id=aid, target_object_id=pr_id,
@@ -4849,8 +4901,51 @@ class OrgExecutionAdapter:
                 res.graph_edges.append((aid, "requested_changes", pr_id))
                 self._maybe_review_protocol(w, aid, tick, res)
         else:
-            ok = w.repo_system.approve_pr(reviewer_id=aid, pr_id=pr_id,
-                                          comment=comment, tick=tick)
+            # ``formal_pr_review`` performs an inner approval transition. The
+            # action-level check above sees its compound action name, so retain
+            # the exact approval guard at this mutation boundary too.
+            from environments.org_env.policy.compiled_protocols import (
+                authorize_before_action,
+            )
+
+            authorization = None
+            if not res.__dict__.get("_compiled_formal_pr_review_authorized"):
+                authorization = authorize_before_action(
+                    w,
+                    aid,
+                    "approve_pr",
+                    {"pr_id": pr_id},
+                    tick=tick,
+                )
+            if authorization is not None and not authorization.allowed:
+                blocked = authorization.blocking_decisions[0]
+                res.success = False
+                res.failure_reason = (
+                    f"compiled_protocol_blocked:{blocked.reason_code}"
+                )
+                res.events.append(
+                    {
+                        "type": "governance_event",
+                        "subtype": "compiled_protocol_action_blocked",
+                        "agent_id": aid,
+                        "action_type": "approve_pr",
+                        "tick": tick,
+                        "protocol_id": blocked.protocol_id,
+                        "protocol_spec_id": blocked.protocol_spec_id,
+                        "binding_id": blocked.binding_id,
+                        "reason_code": blocked.reason_code,
+                        "reason": blocked.reason,
+                        "object_type": blocked.target_type,
+                        "object_id": blocked.target_id,
+                    }
+                )
+                return
+            ok = w.repo_system.approve_pr(
+                reviewer_id=aid,
+                pr_id=pr_id,
+                comment=comment,
+                tick=tick,
+            )
             if ok:
                 res.modified_objects.append(pr_id)
                 res.events.append({"type": "repo_event", "subtype": "pr_reviewed", "agent_id": aid,
@@ -5104,6 +5199,11 @@ class OrgExecutionAdapter:
             if (
                 getattr(w, "institutionalization_enabled", True)
                 and not mechanism_disabled(w, INSTITUTIONALIZATION)
+                and not bool(
+                    getattr(w, "__dict__", {}).get(
+                        "_fixed_protocol_landscape", False
+                    )
+                )
                 and "proto_experiment_logging" not in w.protocol_registry.protocols
             ):
                 # propose only — adoption emerges from repeated use/support (§34.14/15),
@@ -5379,6 +5479,11 @@ class OrgExecutionAdapter:
         if (
             not getattr(w, "institutionalization_enabled", True)
             or mechanism_disabled(w, INSTITUTIONALIZATION)
+            or bool(
+                getattr(w, "__dict__", {}).get(
+                    "_fixed_protocol_landscape", False
+                )
+            )
         ):
             return
         reg = w.protocol_registry
@@ -7607,6 +7712,10 @@ class OrgExecutionAdapter:
         """Agent-initiated policy repair: file a policy_repair_proposal to RELAX or DEPRECATE an
         adopted protocol (routed to _amend_protocol on adoption). Fixes the previously-dead
         amend_protocol vocabulary so a self-binding rule can be undone."""
+        if bool(getattr(w, "__dict__", {}).get("_fixed_protocol_landscape")):
+            res.success = False
+            res.failure_reason = "endogenous_protocol_formation_disabled"
+            return
         pm = getattr(w, "proposal_manager", None)
         pid = p.get("protocol_id") or p.get("target_protocol_id")
         if pm is None:
@@ -7733,9 +7842,29 @@ class OrgExecutionAdapter:
             )
             res.graph_edges.append((aid, "proposed_amendment", str(pid)))
             return
+        requested_kind = (
+            "deprecate" if p.get("repair_kind") == "deprecate" else "relax"
+        )
+        if (
+            str(getattr(spec, "compiler_status", "") or "") == "compiled"
+            and requested_kind != "deprecate"
+        ):
+            res.success = False
+            res.failure_reason = "compiled_protocol_amendment_requires_recompilation"
+            res.events.append(
+                {
+                    "type": "governance_event",
+                    "subtype": "compiled_protocol_amendment_blocked",
+                    "protocol_spec_id": str(pid or ""),
+                    "repair_kind": requested_kind,
+                    "agent_id": aid,
+                    "tick": tick,
+                }
+            )
+            return
         from environments.org_env.proposals.objects import Proposal
         from environments.org_env.backend.protocol.harm import rule_is_doing_harm
-        kind = "deprecate" if p.get("repair_kind") == "deprecate" else "relax"
+        kind = requested_kind
         name = getattr(spec, "name", pid)
         # Say what the rule has cost. The bare assertion that something is
         # "over-constraining the org" is the whole of what an approver used to
@@ -7758,6 +7887,10 @@ class OrgExecutionAdapter:
         res.graph_edges.append((aid, "proposed_amendment", pid))
 
     def _h_propose_protocol(self, w, aid, p, res, tick):
+        if bool(getattr(w, "__dict__", {}).get("_fixed_protocol_landscape")):
+            res.success = False
+            res.failure_reason = "endogenous_protocol_formation_disabled"
+            return
         reg = w.protocol_registry
         cd = w.__dict__.setdefault("_proto_cd", {"agent": {}, "global": -999, "day": {}})
         day = tick // 24
@@ -7853,6 +7986,10 @@ class OrgExecutionAdapter:
         return f"{base}_{i}"
 
     def _h_support_protocol(self, w, aid, p, res, tick):
+        if bool(getattr(w, "__dict__", {}).get("_fixed_protocol_landscape")):
+            res.success = False
+            res.failure_reason = "endogenous_protocol_formation_disabled"
+            return
         pid = p.get("protocol_id")
         protocol = w.protocol_registry.protocols.get(pid)
         if not protocol_is_live(protocol):

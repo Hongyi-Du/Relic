@@ -19,6 +19,7 @@ LAUNCHERS = {
     "smoke": "smoke",
     "run_cell": "run_cell",
     "run_main_120": "run_main_120",
+    "run_transfer": "run_transfer",
     "evaluate": "evaluate",
     "start_inspector": "start_inspector",
 }

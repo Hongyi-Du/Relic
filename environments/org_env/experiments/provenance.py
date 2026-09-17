@@ -13,6 +13,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
+from relic.research.repository_digest import repository_digest as _source_repository_digest
+
 MappingSource = Mapping[str, Any] | str | os.PathLike[str]
 _SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 
@@ -139,18 +141,7 @@ def file_sha256(path: str | os.PathLike[str]) -> str:
 def repository_digest(path: str | os.PathLike[str]) -> str:
     """Use the same repository digest as the frozen final evaluator."""
 
-    root = Path(path).expanduser().resolve()
-    if not root.is_dir():
-        raise ValueError(f"repository path is not a directory: {root}")
-    # The final evaluator owns the repository-digest contract.  Reusing its
-    # execution-profile implementation avoids a second almost-identical tree
-    # walker drifting on platform I/O or repository-path policy while the
-    # record/evaluator comparison in ``records`` remains a fail-closed gate.
-    from society_core.code_landing.environment import (
-        build_workspace_execution_profile,
-    )
-
-    return build_workspace_execution_profile(root).repo_hash
+    return _source_repository_digest(path)
 
 
 def directory_content_hash(path: str | os.PathLike[str]) -> str:

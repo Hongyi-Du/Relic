@@ -180,6 +180,40 @@ def _run_main(args: argparse.Namespace) -> int:
     return 0 if result.failed_batches == 0 else 2
 
 
+def _run_transfer(args: argparse.Namespace) -> int:
+    from relic.source_runner import SourceMainRunnerError
+    from relic.transfer_runner import TransferRunnerError, run_transfer
+
+    try:
+        result = run_transfer(
+            arm=args.arm,
+            model=args.model,
+            output_root=args.output_root,
+            manifest_path=args.manifest,
+            max_parallel=args.max_parallel,
+            dry_run=args.dry_run,
+            resume=args.resume,
+            retry_failed=args.retry_failed,
+            evaluator_bindings_path=args.evaluator_bindings,
+            batch_ids=args.batch,
+            workloads=args.workload,
+            seeds=args.seed,
+        )
+    except (SourceMainRunnerError, TransferRunnerError) as exc:
+        print(json.dumps({"status": "failed", "error": exc.code}), file=sys.stderr)
+        return 2
+    except KeyboardInterrupt:
+        print(json.dumps({"status": "interrupted", "error": "scheduler_interrupted"}), file=sys.stderr)
+        return 130
+    print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
+    if args.dry_run:
+        print(
+            "Dry run only: no provider or condition subprocess was started; "
+            "source B2 transfer case plans were materialized under source-dry-run/."
+        )
+    return 0 if result.failed_target_runs == 0 else 2
+
+
 def _evaluate_cell(args: argparse.Namespace) -> int:
     from relic.cell_worker import CellWorkerError, evaluate_cell
     from relic.evaluation.user_run_batch import UserRunBatchError, evaluate_user_run_batch
@@ -530,6 +564,61 @@ def build_parser() -> argparse.ArgumentParser:
         help="narrow safely to one canonical seed (repeatable)",
     )
     main_run.set_defaults(func=_run_main)
+
+    transfer = subparsers.add_parser(
+        "run-transfer",
+        aliases=["run-transfer-v2"],
+        help=(
+            "run or plan the final fresh-B2 Text/Exec transfer targets through "
+            "the source baseline runner"
+        ),
+    )
+    transfer.add_argument(
+        "--arm",
+        choices=("text", "exec", "both"),
+        default="both",
+        help="new target arm(s); Fresh is the existing B2 main-study reference",
+    )
+    transfer.add_argument(
+        "--model",
+        default="gpt-5.6-terra",
+        help="fixed final-transfer model (must be gpt-5.6-terra)",
+    )
+    transfer.add_argument("--output-root", type=Path, default=None)
+    transfer.add_argument("--manifest", type=Path, default=None)
+    transfer.add_argument("--max-parallel", type=int, default=1)
+    transfer.add_argument("--dry-run", action="store_true")
+    transfer.add_argument("--resume", action="store_true")
+    transfer.add_argument("--retry-failed", action="store_true")
+    transfer.add_argument(
+        "--evaluator-bindings",
+        type=Path,
+        default=None,
+        help=(
+            "JSON mapping of each formal pack to a digest-pinned evaluator binding; "
+            "required before any non-dry-run source target starts"
+        ),
+    )
+    transfer.add_argument(
+        "--batch",
+        action="append",
+        default=[],
+        help="narrow to one workload/seed batch, e.g. w01__seed1401 (repeatable)",
+    )
+    transfer.add_argument(
+        "--workload",
+        action="append",
+        default=[],
+        help="narrow to one canonical workload id, e.g. w01 (repeatable)",
+    )
+    transfer.add_argument(
+        "--seed",
+        action="append",
+        type=int,
+        default=[],
+        help="narrow to one canonical seed (repeatable)",
+    )
+    transfer.set_defaults(func=_run_transfer)
 
     status = subparsers.add_parser(
         "status", help="read public status and verified checkpoint sidecars"

@@ -64,6 +64,17 @@ def _clean_repackage_exists(world: Any, issue_id: str) -> bool:
             continue
         if list(getattr(pr, "linked_issue_ids", []) or []) == [issue_id]:
             return True
+    # A compiled admission guard can stop repair after branch/commit but before
+    # PR creation.  Keep that staged branch as the in-flight repair rather than
+    # creating one blocked branch per deterministic sweep.
+    for branch in getattr(world.repo_system.repo, "branches", {}).values():
+        if not getattr(branch, "_delivery_repackage", False):
+            continue
+        if str(getattr(branch, "linked_issue", "") or "") != str(issue_id):
+            continue
+        if str(getattr(getattr(branch, "status", ""), "value", getattr(branch, "status", ""))) \
+                not in {"merged", "abandoned"}:
+            return True
     return False
 
 
@@ -101,6 +112,9 @@ def repackage_and_land(
             "reason": "programbench_requires_verified_integration_candidate",
         }
     from environments.org_env.product.patch_objects import CodePatch
+    from environments.org_env.policy.compiled_protocols import (
+        authorize_before_action,
+    )
 
     arts = getattr(world, "product_artifacts", {}) or {}
     targets = [aid for aid in artifact_ids
@@ -109,13 +123,25 @@ def repackage_and_land(
         return {"issue_id": issue_id, "landed": False, "reason": "nothing_ahead"}
 
     actor, reviewer = _actor_and_reviewer(world)
+    linked_task_ids = sorted({
+        str(task_id)
+        for artifact_id in targets
+        for task_id in (getattr(arts[artifact_id], "linked_task_ids", []) or [])
+        if str(task_id)
+    })
     repo = world.repo_system
-    branch = repo.create_branch(owner_id=actor, base="main", tick=tick)
+    branch = repo.create_branch(
+        owner_id=actor,
+        base="main",
+        linked_task=(linked_task_ids[0] if linked_task_ids else None),
+        tick=tick,
+    )
     # A repackage does not spend the organization's 16-branch coordination
     # budget (workflow.MAX_ACTIVE_BRANCHES): it is the repair path, not a member
     # carrying work, and counting it would let the congestion it clears keep it
     # from clearing it. The flag also marks the branch's request as a repackage.
     setattr(branch, "_delivery_repackage", True)
+    branch.linked_issue = issue_id
 
     patch_ids: List[str] = []
     for aid in targets:
@@ -137,18 +163,49 @@ def repackage_and_land(
         message=f"deliver {issue_id} from desk",
         changed_files=[getattr(arts[a], "linked_file_path", "") or a for a in targets],
         tick=tick, test_status="passed", risk_level="low",
+        linked_task_id=(linked_task_ids[0] if linked_task_ids else None),
         patch_ids=patch_ids, artifact_ids=list(targets))
     if commit is None:
         return {"issue_id": issue_id, "landed": False, "reason": "commit_failed"}
+    commit.linked_task_ids = list(linked_task_ids)
+    commit.linked_issue_ids = [issue_id]
 
+    authorization = authorize_before_action(
+        world,
+        actor,
+        "open_pr",
+        {"source_branch": branch.branch_id},
+        tick=tick,
+    )
+    if not authorization.allowed:
+        return {
+            "issue_id": issue_id,
+            "branch_id": branch.branch_id,
+            "landed": False,
+            "reason": "compiled_protocol_blocked:open_pr",
+        }
     pr = repo.open_pr(agent_id=actor, source_branch=branch.branch_id,
                       reviewers=[reviewer])
     pr.linked_issue_ids = [issue_id]
-    pr.linked_task_ids = sorted({t for a in targets
-                                 for t in (getattr(arts[a], "linked_task_ids", []) or [])})
+    pr.linked_task_ids = list(linked_task_ids)
     pr.__dict__["_delivery_repackage"] = True
 
     # The issue-scoped gate on the mainline plus exactly this request's patches.
+    authorization = authorize_before_action(
+        world,
+        actor,
+        "run_ci",
+        {"pr_id": pr.pr_id},
+        tick=tick,
+    )
+    if not authorization.allowed:
+        return {
+            "issue_id": issue_id,
+            "pr_id": pr.pr_id,
+            "ci_passed": False,
+            "landed": False,
+            "reason": "compiled_protocol_blocked:run_ci",
+        }
     ci = repo.run_ci(pr_id=pr.pr_id, tick=tick)
     run_ci = ci_runner or _default_ci
     verdict = run_ci(world, pr)
@@ -159,10 +216,31 @@ def repackage_and_land(
 
     landed = False
     if getattr(pr, "ci_passed", False):
-        repo.approve_pr(reviewer_id=reviewer, pr_id=pr.pr_id, tick=tick)
-        if repo.merge_pr(pr_id=pr.pr_id, tick=tick):
-            world.apply_merged_pr(pr, actor, tick)
-            landed = True
+        review_authorization = authorize_before_action(
+            world,
+            reviewer,
+            "approve_pr",
+            {"pr_id": pr.pr_id},
+            tick=tick,
+        )
+        if review_authorization.allowed and repo.approve_pr(
+            reviewer_id=reviewer,
+            pr_id=pr.pr_id,
+            tick=tick,
+        ):
+            merge_authorization = authorize_before_action(
+                world,
+                actor,
+                "merge_pr",
+                {"pr_id": pr.pr_id},
+                tick=tick,
+            )
+            if merge_authorization.allowed and repo.merge_pr(
+                pr_id=pr.pr_id,
+                tick=tick,
+            ):
+                world.apply_merged_pr(pr, actor, tick)
+                landed = True
 
     world.events.append({
         "type": "governance_event", "subtype": "delivery_repackaged",
