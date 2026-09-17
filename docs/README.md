@@ -16,7 +16,6 @@ current release boundary rather than promising unavailable author assets.
 | [Evaluator](evaluator.md) | Default local evaluator and optional strict bindings |
 | [Release scope](release-scope.md) | Branch topology, exclusions, and synchronization policy |
 | [Source provenance](source-provenance.md) | Frozen source closure and narrow release adaptations |
-| [Next-stage validation](next_stage_validation.md) | Current tests and clean-install evidence |
 | [Historical reproduction report](REPRODUCTION_RUN_REPORT.md) | Earlier snapshot's local checks; not current release requirements |
 | [Scope and validation limits](KNOWN_RELEASE_GAPS.md) | Historical evidence and external benchmark boundaries |
 

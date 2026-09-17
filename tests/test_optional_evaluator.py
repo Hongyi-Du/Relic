@@ -17,7 +17,11 @@ from relic.source_runner import (
     build_source_main_manifest,
     run_source_main,
 )
-from relic.transfer_runner import run_transfer
+from relic.transfer_runner import (
+    TransferRunnerError,
+    _plan_digest as transfer_plan_digest,
+    run_transfer,
+)
 from tools.run_org_baselines import build_case_environment
 
 
@@ -104,6 +108,70 @@ def test_unresolved_dry_plan_resolves_model_before_first_execution(tmp_path, mon
     with pytest.raises(SourceMainRunnerError, match="resume_runtime_model_mismatch"):
         run_source_main(manifest_path=result.manifest_path, resume=True,
                         runtime_model="a-different-model", workloads=("w01",), seeds=(1401,))
+
+
+@pytest.mark.parametrize("model_source", ["environment", "cli"])
+def test_transfer_unresolved_dry_plan_resolves_once_before_execution(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, model_source: str
+) -> None:
+    for key in (
+        "RELIC_RUNTIME_MODEL",
+        "ORG_LLM_RUNTIME_MODEL",
+        "OPENAI_MODEL",
+        "ORG_LLM_MODEL",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    calls: list[list[str]] = []
+    monkeypatch.setattr(
+        "relic.transfer_runner._invoke_source_batch",
+        lambda argv, _runtime: _fake_source_batch(list(argv), calls),
+    )
+
+    result = run_transfer(
+        output_root=tmp_path / "transfer",
+        arm="text",
+        dry_run=True,
+        workloads=("w01",),
+        seeds=(1401,),
+    )
+    path = result.manifest_path
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    # Simulate a provider-free plan from a model configuration whose deployment
+    # name is unresolved.  The fixed transfer paper ID remains unchanged.
+    payload["plan"]["model"]["runtime_model"] = ""
+    payload["plan"]["model"]["runtime"]["ORG_LLM_MODEL"] = ""
+    payload["plan"]["plan_sha256"] = transfer_plan_digest(payload["plan"])
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    overrides: dict[str, str] = {}
+    if model_source == "environment":
+        monkeypatch.setenv("RELIC_RUNTIME_MODEL", "transfer-deployment")
+    else:
+        overrides["runtime_model"] = "transfer-deployment"
+    run_transfer(
+        manifest_path=path,
+        resume=True,
+        arm="text",
+        workloads=("w01",),
+        seeds=(1401,),
+        **overrides,
+    )
+    after = json.loads(path.read_text(encoding="utf-8"))
+    assert after["plan"]["model"]["runtime_model"] == "transfer-deployment"
+    assert after["plan"]["model"]["runtime"]["ORG_LLM_MODEL"] == "transfer-deployment"
+    assert len(calls) == 2
+
+    with pytest.raises(
+        TransferRunnerError, match="transfer_resume_runtime_model_mismatch"
+    ):
+        run_transfer(
+            manifest_path=path,
+            resume=True,
+            arm="text",
+            runtime_model="a-different-model",
+            workloads=("w01",),
+            seeds=(1401,),
+        )
 
 
 def test_transfer_defaults_to_local_evaluator_without_binding(

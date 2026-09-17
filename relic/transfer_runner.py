@@ -35,9 +35,12 @@ from relic.source_runner import (
     EvaluatorBinding,
     _batch_status,
     _invoke_source_batch,
+    _load_model_config,
+    _load_study,
     _require_selected_bindings,
     _select_batches,
     _source_batch_argv,
+    _runtime_model,
     build_source_main_manifest,
     load_evaluator_bindings,
 )
@@ -484,6 +487,19 @@ def run_transfer(
         if str(plan["model"].get("canonical_model") or "") != canonical_model:
             raise TransferRunnerError("transfer_resume_model_mismatch")
         planned_runtime_model = str(plan["model"].get("runtime_model") or "")
+        if (
+            not planned_runtime_model
+            and payload.get("execution", {}).get("status") == "planned"
+        ):
+            # A provider-free dry plan may leave the deployment name unset.
+            # Resolve it once before execution; an executed plan keeps its identity.
+            planned_runtime_model = _runtime_model(
+                _load_model_config(str(plan["model"]["canonical_model"]), _load_study()),
+                runtime_model,
+            )
+            plan["model"]["runtime_model"] = planned_runtime_model
+            plan["model"]["runtime"]["ORG_LLM_MODEL"] = planned_runtime_model
+            plan["plan_sha256"] = _plan_digest(plan)
         if runtime_model is not None and str(runtime_model).strip() != planned_runtime_model:
             raise TransferRunnerError("transfer_resume_runtime_model_mismatch")
         active_root = plan_root

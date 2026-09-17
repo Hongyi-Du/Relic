@@ -11,8 +11,8 @@ the paper executor.
 - HCI-only code, configs, replay assets, or tests: use `hci`.
 - CooperBench adapter, upstream compatibility material, or Cooper-specific
   tests: use `cooper`.
-- Additional sanitized core regression coverage: use `full-tests` only after it
-  is created from a canonical release tag.
+- Additional sanitized core regression coverage: keep it in the ordinary
+  repository test suite.
 
 Do not put ProgramBench assets or entrypoints in any public branch. Do not turn
 an extension branch into a divergent copy of the core runtime.
