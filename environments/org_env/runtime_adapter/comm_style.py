@@ -3,7 +3,7 @@
 Internal persona stays numeric, but what we hand the surface realizer is a DISCRETE
 low/medium/high style (never raw floats) plus natural-language anchors, so the
 generated text is persona-grounded but bounded. Calvin reads terse + evidence-
-demanding; Scarlett warm + relationship-preserving; Sean fast + low-process; etc.
+demanding; Los Xi warm + relationship-preserving; Sean fast + low-process; etc.
 """
 from __future__ import annotations
 

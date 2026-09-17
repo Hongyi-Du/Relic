@@ -316,4 +316,8 @@ localStorage.removeItem("socio.seat.token");
 location.reload();
 ```
 
-设计依据见 `docs/design/env_org.md §68`；实现计划见 `docs/superpowers/plans/2026-09-08/2026-09-08-hci-p2-p3-liaison.md`。
+本公开指南是 P2/P3 的当前操作与行为契约说明。运行与平台边界见
+[环境与平台支持](environment.md)，公开观察/回放的隐私边界见
+[Relic Inspector](inspector.md)，源代码来源与受控适配范围见
+[Source provenance](source-provenance.md)。开发期的私有设计和计划文档不属于
+release 文档集，也不作为公开使用前提。

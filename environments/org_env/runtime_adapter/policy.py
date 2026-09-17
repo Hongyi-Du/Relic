@@ -6,7 +6,7 @@ weight(agent, f)   = BASE_WEIGHT[f] + Σ_trait profile_or_skill[trait]·COEFF[tr
 
 In B3 the persona therefore *actually* changes the chosen action (O1 §2 #10): Calvin
 up-weights review/reproducibility/protocol-use; Sean up-weights progress/demo and
-discounts review; Scarlett up-weights external/customer; Will up-weights
+discounts review; Los Xi up-weights external/customer; Will up-weights
 review/claim-evidence; etc. B0/B1/B2 do not call ``select`` when an LLM client is
 available. Their client-free test path sets ``use_profile_conditioning=False``
 and uses deterministic argmax. Scoring modes:
@@ -85,7 +85,7 @@ PROFILE_COEFFS: List[Tuple[str, str, float]] = [
     ("claim_wording", "claim_evidence_gain", 0.5),
     ("clarity_review", "review_quality_gain", 0.4),
     ("communication_clarity", "clarity_gain", 0.4),
-    # Scarlett — community / customer
+    # Los Xi — community / customer
     ("external_community_sensing", "external_signal_value", 0.6),
     ("customer_sense", "customer_pressure", 0.5),
     ("customer_sense", "customer_relevance", 0.5),

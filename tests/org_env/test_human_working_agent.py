@@ -1016,7 +1016,7 @@ def test_model_compiler_rejects_an_incomplete_batch_without_leaving_partial_draf
 def test_assignment_question_is_answered_as_information_not_a_decision_or_action():
     rt = _runtime()
     try:
-        answer = ("你当前负责 1 项。第一部分由 Scarlett 负责，第三部分尚未认领；"
+        answer = ("你当前负责 1 项。第一部分由 Los Xi 负责，第三部分尚未认领；"
                   "可见候选人是 Calvin 和 Iris。")
         agent = WorkingAgentSession(rt, SEAT, llm_client=_scripted({"reply": answer}))
         agent.send("第一部分和第三部分有人认领吗，没有的话我能 assign 谁？")

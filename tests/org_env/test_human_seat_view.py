@@ -105,6 +105,20 @@ def test_two_seats_see_different_organizations():
             or not mine["member"]["my_tasks"])
 
 
+def test_hci_roster_uses_the_public_los_xi_identity_with_a_stable_key():
+    """The release-facing roster may rename a member without rewriting IDs."""
+    world = _world(ticks=0)
+    member = world.agents["scarlett"]
+    roster_member = next(row for row in build_seat_view(world, SEAT)["member"]["members"]
+                         if row["agent_id"] == "scarlett")
+
+    assert member.id == "scarlett"
+    assert member.name == "Los Xi"
+    assert member.codename == "Xi"
+    assert roster_member["name"] == "Los Xi"
+    assert roster_member["codename"] == "Xi"
+
+
 # ---- private things stay private ----------------------------------------- #
 def test_another_members_private_work_is_not_in_the_view():
     from environments.org_env.backend.entities import Document, Task

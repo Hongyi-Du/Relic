@@ -113,7 +113,7 @@ SEED_TEAM: List[SeedMember] = [
                      "deep_work_preference": 0.85, "meeting_tolerance": 0.3, "late_night_bias": 0.1},
     ),
     SeedMember(
-        agent_id="scarlett", agent_name="Scarlett Ember", codename="Ember",
+        agent_id="scarlett", agent_name="Los Xi", codename="Xi",
         role="community", is_founder=False,
         initial_identity="Community / Customer Voice / Narrative Operator — pro community+customer sense, morale; young, limited tech depth, overcommits.",
         profile={
