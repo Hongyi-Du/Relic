@@ -75,7 +75,11 @@ def canonical_capability(carrier_type: str, kind: str) -> str:
     if carrier_type in table:
         return table[carrier_type]
     # A type that already IS a registry slug needs no translation.
-    from society_core.organizational_capabilities import (
+    # Relic deliberately ships the source registry without the excluded
+    # SocietyCore runtime.  This is its source-equivalent compatibility
+    # boundary; keep the lookup closed and exact rather than inferring a
+    # capability from free text.
+    from relic.governance.capabilities import (
         ORGANIZATIONAL_CAPABILITY_LABELS,
     )
 

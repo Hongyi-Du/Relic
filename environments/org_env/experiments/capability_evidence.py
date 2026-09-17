@@ -372,15 +372,15 @@ def _by_capability(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     formed, the experiment tracker did not" is. A rate over an unnamed pool
     cannot distinguish those.
 
-    Classification reuses ``society_core``'s registry unchanged, which matches
-    exact slugs only and drops everything else. That is deliberately
+    Classification reuses Relic's source-equivalent closed registry, which
+    matches exact slugs only and drops everything else. That is deliberately
     conservative: an open-vocabulary protocol type the LLM invented is left
     unmapped rather than argued into a bucket, so this can understate capability
     formation but never overstate it. ``unmapped_protocol_types`` reports what
     fell out, so the shortfall is visible instead of silently absorbed.
     """
     try:
-        from society_core.organizational_capabilities import (
+        from relic.governance.capabilities import (
             CAPABILITY_KIND_ORGANIZATIONAL,
             ORGANIZATIONAL_CAPABILITY_LABELS,
             classify_capability_kind,
@@ -407,7 +407,7 @@ def _by_capability(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
         bucket["weak_count"] += int(row["emergence_level"] in {"weak", "strong"})
         bucket["strong_count"] += int(row["emergence_level"] == "strong")
         bucket["protocol_ids"].append(str(row.get("protocol_id") or ""))
-    from society_core.organizational_capabilities import (
+    from relic.governance.capabilities import (
         EXPLORATORY_CAPABILITIES,
         PREREGISTERED_CAPABILITIES,
     )

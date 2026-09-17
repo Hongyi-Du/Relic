@@ -19,7 +19,6 @@ from pathlib import Path
 from typing import Any, Iterator, Mapping
 
 from environments.org_env.backend.simulation.world import OrgWorld
-from environments.org_env.backend.entities.work import TaskStatus
 from environments.org_env.config.scenarios import oss_time_machine_formal
 from environments.org_env.experiments.resources import (
     ExperimentResourceExhausted,
@@ -39,14 +38,17 @@ from environments.org_env.runtime_adapter.checkpoint import (
 from relic.cell_spec import CellSpec, load_frozen_cell_spec, stable_sha256
 from relic.evaluation.execution import ExecutionPolicy, build_command_executor
 from relic.evaluation.time_machine import build_time_machine_evaluation_plan
+from relic.replay.source_export import (
+    SourceTraceExportError,
+    export_source_world_trace,
+    public_trace_path,
+)
 from relic.research.openai_runtime import configured_openai_default_headers
 
 PUBLIC_STATUS_SCHEMA_VERSION = "relic-cell-status-v1"
-PUBLIC_TRACE_SCHEMA_VERSION = "relic-public-trace-v1"
 EXECUTION_BINDING_SCHEMA_VERSION = "relic-execution-binding-v1"
 PRIVATE_STATE_SCHEMA_VERSION = "relic-private-cell-state-v1"
 
-_TERMINAL_STATUSES = frozenset({"completed", "failed", "infra_error", "blocked"})
 _ENVIRONMENT_LOCK = threading.RLock()
 
 
@@ -547,70 +549,6 @@ def _latest_checkpoint(
     return path, metadata
 
 
-def _public_frame(world: OrgWorld) -> dict[str, Any]:
-    task_statuses: dict[str, int] = {}
-    for task in world.tasks.values():
-        status = str(getattr(getattr(task, "status", None), "value", None) or "unknown")
-        if status not in {item.value for item in TaskStatus}:
-            raise CellWorkerError("public_trace_task_status_forbidden")
-        task_statuses[status] = task_statuses.get(status, 0) + 1
-    proposal_manager = getattr(world, "proposal_manager", None)
-    proposals = getattr(proposal_manager, "proposals", {}) if proposal_manager else {}
-    return {
-        "tick": int(world.world_tick),
-        "counts": {
-            "members": len(world.agents),
-            "tasks": len(world.tasks),
-            "task_statuses": dict(sorted(task_statuses.items())),
-            "episodes": len(getattr(world.episode_manager, "episodes", {}) or {}),
-            "proposals": len(proposals or {}),
-            "protocols": len(world.protocol_registry.protocols),
-            "pull_requests": len(world.repo_system.repo.pull_requests),
-            "releases": len(getattr(world.repo_system.repo, "releases", {}) or {}),
-        },
-    }
-
-
-def _validate_public_frame(frame: Mapping[str, Any]) -> dict[str, Any]:
-    if set(frame) != {"tick", "counts"} or not isinstance(frame.get("tick"), int):
-        raise CellWorkerError("public_trace_frame_invalid")
-    counts = frame.get("counts")
-    count_fields = {
-        "members",
-        "tasks",
-        "task_statuses",
-        "episodes",
-        "proposals",
-        "protocols",
-        "pull_requests",
-        "releases",
-    }
-    if not isinstance(counts, Mapping) or set(counts) != count_fields:
-        raise CellWorkerError("public_trace_counts_invalid")
-    for field in count_fields - {"task_statuses"}:
-        value = counts.get(field)
-        if not isinstance(value, int) or isinstance(value, bool) or value < 0:
-            raise CellWorkerError(f"public_trace_count_invalid:{field}")
-    statuses = counts.get("task_statuses")
-    allowed_statuses = {item.value for item in TaskStatus}
-    if not isinstance(statuses, Mapping) or not set(statuses).issubset(allowed_statuses):
-        raise CellWorkerError("public_trace_task_statuses_invalid")
-    if any(
-        not isinstance(value, int) or isinstance(value, bool) or value < 0
-        for value in statuses.values()
-    ):
-        raise CellWorkerError("public_trace_task_status_count_invalid")
-    return {
-        "tick": int(frame["tick"]),
-        "counts": {
-            **{field: int(counts[field]) for field in count_fields - {"task_statuses"}},
-            "task_statuses": {
-                str(key): int(value) for key, value in sorted(statuses.items())
-            },
-        },
-    }
-
-
 def _write_public_trace(
     cell_dir: Path,
     spec: CellSpec,
@@ -618,60 +556,41 @@ def _write_public_trace(
     status: str,
     world: OrgWorld | None = None,
 ) -> None:
-    path = cell_dir / "public" / "trace.json"
-    frames: list[dict[str, Any]] = []
-    if path.exists():
-        prior = _read_json(path)
-        expected_fields = {
-            "schema_version",
-            "projection_profile",
-            "cell_id",
-            "study",
-            "model_label",
-            "workload",
-            "arm",
-            "seed",
-            "target_tick",
-            "terminal_status",
-            "frames",
-        }
-        if set(prior) != expected_fields:
-            raise CellWorkerError("public_trace_fields_mismatch")
-        if prior.get("schema_version") != PUBLIC_TRACE_SCHEMA_VERSION:
-            raise CellWorkerError("public_trace_schema_mismatch")
-        if prior.get("projection_profile") != "relic-public-allowlist-v1":
-            raise CellWorkerError("public_trace_projection_profile_mismatch")
-        if prior.get("cell_id") != spec.cell_id:
-            raise CellWorkerError("public_trace_cell_mismatch")
-        prior_frames = prior.get("frames")
-        if not isinstance(prior_frames, list):
-            raise CellWorkerError("public_trace_frames_invalid")
-        frames = [
-            _validate_public_frame(frame)
-            for frame in prior_frames
-            if isinstance(frame, Mapping)
-        ]
-        if len(frames) != len(prior_frames):
-            raise CellWorkerError("public_trace_frame_invalid")
-    if world is not None:
-        frame = _validate_public_frame(_public_frame(world))
-        frames = [existing for existing in frames if existing.get("tick") != frame["tick"]]
-        frames.append(frame)
-        frames.sort(key=lambda value: int(value["tick"]))
-    payload = {
-        "schema_version": PUBLIC_TRACE_SCHEMA_VERSION,
-        "projection_profile": "relic-public-allowlist-v1",
-        "cell_id": spec.cell_id,
-        "study": spec.study,
-        "model_label": spec.model_config["paper_label"],
-        "workload": spec.workload.upper(),
-        "arm": spec.arm.upper(),
+    """Project a live cell through the common source public-trace boundary.
+
+    The legacy count-only sidecar deliberately is not upgraded in place: it
+    lacks objects and event history and therefore cannot be made into a valid
+    Inspector trace after the fact.  A fresh cell writes every source tick via
+    the same append-only exporter used by the canonical paired runner.
+    """
+
+    if world is None:
+        return
+    legacy_path = cell_dir / "public" / "trace.json"
+    if legacy_path.exists():
+        raise CellWorkerError("public_trace_legacy_sidecar_rejected")
+    record_path = cell_dir / "run-record.json"
+    record = _read_json(record_path) if record_path.exists() else None
+    context = {
+        "run_id": spec.run_id,
+        "organization_id": spec.run_id,
+        "config_digest": spec.fingerprint,
+        "case_id": spec.cell_id,
+        "condition": spec.condition_id,
+        "benchmark": spec.dataset_id,
+        "model": str(spec.model_config.get("paper_label") or spec.model),
         "seed": spec.seed,
-        "target_tick": spec.ticks,
-        "terminal_status": status if status in _TERMINAL_STATUSES else None,
-        "frames": frames,
+        "source_commit": str(spec.source["commit"]),
     }
-    _atomic_write_json(path, payload, mode=0o644)
+    try:
+        export_source_world_trace(
+            world,
+            destination=public_trace_path(cell_dir),
+            context=context,
+            run_record=record,
+        )
+    except SourceTraceExportError as exc:
+        raise CellWorkerError(f"public_trace_export_failed:{exc.code}") from exc
 
 
 def _write_status(
@@ -929,6 +848,7 @@ def run_cell(spec: CellSpec, *, cell_dir: Path | None = None, resume: bool = Fal
                     world = _build_world(spec, client)
 
                 stage = "rollout"
+                _write_public_trace(destination, spec, status="running", world=world)
                 _write_status(
                     destination,
                     spec,
@@ -939,12 +859,10 @@ def run_cell(spec: CellSpec, *, cell_dir: Path | None = None, resume: bool = Fal
                 )
                 while world.world_tick < spec.ticks:
                     world.step()
+                    _write_public_trace(destination, spec, status="running", world=world)
                     if world.world_tick % spec.checkpoint_every == 0:
                         last_checkpoint, last_receipt = _checkpoint_world(
                             world, destination, spec
-                        )
-                        _write_public_trace(
-                            destination, spec, status="running", world=world
                         )
                         _write_status(
                             destination,

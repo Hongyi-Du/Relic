@@ -25,7 +25,6 @@ from relic.cell_worker import (
     _execution_binding,
     _identity_environment,
     _latest_checkpoint,
-    _public_frame,
     _scoped_environment,
     _validate_execution_binding,
     _validate_world_binding,
@@ -35,6 +34,8 @@ from relic.cell_worker import (
     run_cell,
 )
 from relic.cli import main
+from relic.replay import load_trace
+from relic.replay.source_export import public_trace_path
 
 
 def _spec(tmp_path: Path, *, arm: str = "B3", model: str = "gpt-5.6-terra"):
@@ -219,45 +220,28 @@ def test_evaluator_preflight_happens_before_client_construction(
     assert (spec.cell_dir / "public" / "status.json").read_bytes() == frozen_status
 
 
-def test_public_projection_is_an_explicit_count_allowlist() -> None:
+def test_public_projection_uses_only_explicit_source_fields(tmp_path: Path) -> None:
+    spec = _spec(tmp_path)
     secret = "sk-private-canary-never-publish"
 
-    class Status:
-        value = "open"
+    world = _build_world(spec, MockOrgLLMClient())
+    world.messages = [{"body": secret}]
+    world.memory = {"paul": [{"secret": secret}]}
+    task = next(iter(world.tasks.values()))
+    task.description = secret
+    _write_public_trace(spec.cell_dir, spec, status="running", world=world)
 
-    world = SimpleNamespace(
-        world_tick=24,
-        agents={"private-agent-name": SimpleNamespace(memory=secret)},
-        tasks={"task-1": SimpleNamespace(status=Status(), body=secret)},
-        episode_manager=SimpleNamespace(episodes={"episode-private": secret}),
-        proposal_manager=SimpleNamespace(proposals={"proposal-private": secret}),
-        protocol_registry=SimpleNamespace(protocols={"protocol-private": secret}),
-        repo_system=SimpleNamespace(
-            repo=SimpleNamespace(
-                pull_requests={"pr-private": secret}, releases={"release-private": secret}
-            )
-        ),
-        llm_client=SimpleNamespace(api_key=secret),
-        messages=[{"body": secret}],
-        private_state=secret,
-    )
-    payload = _public_frame(world)
-    encoded = json.dumps(payload, sort_keys=True)
+    path = public_trace_path(spec.cell_dir)
+    payload = load_trace(path)
+    encoded = path.read_text(encoding="utf-8")
     assert secret not in encoded
-    assert "private-agent-name" not in encoded
-    assert payload == {
-        "tick": 24,
-        "counts": {
-            "members": 1,
-            "tasks": 1,
-            "task_statuses": {"open": 1},
-            "episodes": 1,
-            "proposals": 1,
-            "protocols": 1,
-            "pull_requests": 1,
-            "releases": 1,
-        },
+    assert payload["schema_version"] == "relic-trace-v1"
+    assert payload["privacy"] == {
+        "private_reflections_included": False,
+        "private_memories_included": False,
+        "provider_messages_included": False,
     }
+    assert "description" not in payload["frames"][0]["organization"]["tasks"][0]
 
 
 def test_status_verifies_sidecar_without_unpickling_checkpoint(tmp_path: Path) -> None:
@@ -444,7 +428,7 @@ def test_status_rejects_foreign_checkpoint_without_unpickling(tmp_path: Path) ->
     assert marker.exists() is False
 
 
-def test_trace_rejects_unallowlisted_prior_frame(tmp_path: Path) -> None:
+def test_trace_rejects_legacy_count_only_sidecar(tmp_path: Path) -> None:
     spec = _spec(tmp_path)
     (spec.cell_dir / "public").mkdir(parents=True)
     malicious = {
@@ -463,25 +447,21 @@ def test_trace_rejects_unallowlisted_prior_frame(tmp_path: Path) -> None:
     (spec.cell_dir / "public" / "trace.json").write_text(
         json.dumps(malicious), encoding="utf-8"
     )
-    with pytest.raises(CellWorkerError, match="public_trace_frame_invalid"):
-        _write_public_trace(spec.cell_dir, spec, status="running")
+    world = _build_world(spec, MockOrgLLMClient())
+    with pytest.raises(CellWorkerError, match="public_trace_legacy_sidecar_rejected"):
+        _write_public_trace(spec.cell_dir, spec, status="running", world=world)
 
 
-def test_trace_rejects_dynamic_task_status_text() -> None:
+def test_trace_drops_unallowlisted_task_text(tmp_path: Path) -> None:
     secret = "private-status-canary"
-    world = SimpleNamespace(
-        world_tick=1,
-        agents={},
-        tasks={"task": SimpleNamespace(status=SimpleNamespace(value=secret))},
-        episode_manager=SimpleNamespace(episodes={}),
-        proposal_manager=SimpleNamespace(proposals={}),
-        protocol_registry=SimpleNamespace(protocols={}),
-        repo_system=SimpleNamespace(
-            repo=SimpleNamespace(pull_requests={}, releases={})
-        ),
-    )
-    with pytest.raises(CellWorkerError, match="public_trace_task_status_forbidden"):
-        _public_frame(world)
+    spec = _spec(tmp_path)
+    world = _build_world(spec, MockOrgLLMClient())
+    task = next(iter(world.tasks.values()))
+    task.description = secret
+    task.progress_evidence = [secret]
+    _write_public_trace(spec.cell_dir, spec, status="running", world=world)
+
+    assert secret not in public_trace_path(spec.cell_dir).read_text(encoding="utf-8")
 
 
 def test_cli_exposes_canonical_runner_commands(capsys: pytest.CaptureFixture[str]) -> None:
