@@ -1,6 +1,14 @@
 # Relic
 
-Research artifact for the Relic agent-organization paper.
+Public research artifact and partial reproduction harness for the Relic
+agent-organization paper. This checkout is not a complete reproduction of the
+historical paper experiments: it can materialize source-backed plans, run
+no-provider mock/source-closure checks, and locally qualify the OSS evaluator,
+but formal model runs remain fail-closed until the authors publish the required
+evaluator bindings and evidence assets. See
+[`docs/KNOWN_RELEASE_GAPS.md`](docs/KNOWN_RELEASE_GAPS.md) and
+[`docs/REPRODUCTION_RUN_REPORT.md`](docs/REPRODUCTION_RUN_REPORT.md) for the
+current, tested release state.
 
 Scientific facts and reported results follow the final paper. Repository scope
 follows the two-repository release handoff. Core and HCI provenance is frozen
