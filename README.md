@@ -62,6 +62,8 @@ plans and receipts. The runtime-name precedence is the CLI option, then
 `RELIC_CLAUDE_OPUS_4_6_MODEL` to the gateway deployment alias when no generic
 runtime override is present. A missing runtime name reports the variable that
 needs to be set and the `--runtime-model` alternative.
+An unresolved dry plan can fill this name from the CLI or environment on its
+first execution. Once execution starts, resume keeps the recorded model identity.
 
 ## Plan and run the main study
 
