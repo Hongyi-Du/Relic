@@ -601,22 +601,58 @@ def _formal_mode(world: Any) -> bool:
 def _frozen_evaluator_executor():
     from relic.evaluation.execution import ExecutionPolicy, build_command_executor
 
+    raw_mode = str(os.environ.get("RELIC_EVALUATOR_MODE") or "").strip().lower()
+    mode = raw_mode
     values = {
         "backend": os.environ.get("RELIC_EVALUATOR_BACKEND"),
         "container_image": os.environ.get("RELIC_EVALUATOR_CONTAINER_IMAGE"),
         "container_platform": os.environ.get("RELIC_EVALUATOR_CONTAINER_PLATFORM"),
     }
-    missing = sorted(key for key, value in values.items() if not value)
+    strict = str(
+        os.environ.get("RELIC_EVALUATOR_STRICT_REPRODUCIBILITY") or "0"
+    ).strip().lower() in {"1", "true", "yes", "on"}
+    if not mode:
+        # Only a complete ambient backend/image pair opts into container mode.
+        # An incomplete legacy environment remains the default host path.
+        mode = "container" if values["backend"] and values["container_image"] else "local"
+    if mode not in {"local", "container"}:
+        raise RuntimeError("evaluator_runtime_mode_invalid")
+    # The public release uses the host evaluator when no binding was supplied.
+    # ``local`` is an explicit receipt marker for the same path.  Keep the
+    # container construction below for supplied bindings and strict mode.
+    if mode == "local":
+        if strict:
+            raise RuntimeError("strict_reproducibility_requires_container_evaluator")
+        # Local runs carry ``backend=local`` in their scoped identity so the
+        # receipt records which evaluator path was used.  Only a container
+        # backend/image/platform is contradictory to an explicit local mode.
+        if raw_mode and (
+            str(values["backend"] or "").strip().lower() not in {"", "local"}
+            or values["container_image"]
+            or values["container_platform"]
+        ):
+            raise RuntimeError("local_evaluator_binding_conflict")
+        return None
+    required_values = {
+        key: value
+        for key, value in values.items()
+        if key in {"backend", "container_image"}
+        or strict
+    }
+    missing = sorted(key for key, value in required_values.items() if not value)
     if missing:
         raise RuntimeError(
-            "formal_evaluator_runtime_binding_missing:" + ",".join(missing)
+            "evaluator_runtime_binding_missing:" + ",".join(missing)
         )
     return build_command_executor(
         ExecutionPolicy(
             trust_level="untrusted",
             backend=str(values["backend"]),
             container_image=str(values["container_image"]),
-            container_platform=str(values["container_platform"]),
+            container_platform=str(values["container_platform"])
+            if values["container_platform"]
+            else None,
+            strict_reproducibility=strict,
             network_enabled=False,
         )
     )

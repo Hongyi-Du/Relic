@@ -22,8 +22,9 @@ bytes that executed the cell, including local modifications.
 The development repository is a source pool, not an authority for reported
 experimental facts. The final Relic paper is authoritative for experimental
 design, model and workload identities, seeds, metrics, denominators, aggregate
-results, and scientific claims. The Relic two-repository release handoff is
-authoritative for repository scope and release acceptance.
+results, and scientific claims. The current next-stage specification defines
+this stage's engineering scope and acceptance; historical handoff documents do
+not add runtime or release prerequisites.
 
 The controlled source closure for the official paired reproduction path is:
 
@@ -53,10 +54,12 @@ source snapshot's existing graph representation is used when that frontend
 module is absent. Because the release excludes the source synthetic default,
 live/mock sessions bind the public frozen `mini_blobstore_v1` OSS pack instead.
 
-Formal evaluator bindings remain an author-asset dependency. Relic does not
-invent a container image digest, evaluator environment hash, or qualification
-hash; `run-main` requires an explicit published per-pack mapping before any
-formal source child or provider client can start.
+Evaluator bindings are optional provenance in the default reproduction path.
+Relic does not invent a container image digest, evaluator environment hash, or
+qualification hash: without a binding, `run-main` and `run-transfer` execute
+the public host evaluator and record the observed metadata. Use
+`--strict-reproducibility` with an explicit per-pack mapping when a formally
+reproducible container boundary is required.
 
 The final transfer-specific closure is intentionally narrower and separate
 from the core HCI closure. The canonical v2 bundle, closed compiler, six guard
@@ -88,9 +91,10 @@ revision: `.evaluator_image/Dockerfile`, `.cursor/build_evaluators.sh`,
 `evaluator-preflight` commands, and thin `tools/` compatibility wrappers. The
 release adaptation removes source proxy/development-machine assumptions and
 does not port the source ProgramBench-specific images or assets. Local image
-IDs and local qualification hashes are deliberately marked non-paper; the
-source main runner still rejects a local `sha256:...` image ID as an evaluator
-binding.
+IDs and local qualification hashes are deliberately marked non-paper. Strict
+mode still rejects a local `sha256:...` image ID as an evaluator binding, while
+non-strict operator bindings may retain mutable tags or omitted platform/hash
+metadata as provenance.
 
 Historical raw runs, private model transcripts, private memories,
 developer-machine paths, credentials, ProgramBench reproduction assets,

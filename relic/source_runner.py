@@ -6,10 +6,10 @@ deterministically ordered B0--B3 pack/seed block.  This module is deliberately
 thin.  It expands the paper's 10-pack x 3-seed design into 30 such source
 batches; it does not substitute the older per-cell compatibility worker.
 
-Formal execution needs a per-pack evaluator binding.  The released artifact
-does not invent the unpublished digest-pinned images or their qualification
-hashes, so a non-dry run rejects a missing binding before invoking any source
-batch or provider client.
+Formal execution can use the public evaluator source on the host by default.
+An explicit per-pack container binding remains available as reproducibility
+provenance, and ``strict_reproducibility`` restores the digest/platform/hash
+gate for operators who need the historical formal boundary.
 """
 
 from __future__ import annotations
@@ -41,6 +41,10 @@ SOURCE_BASELINE_RUNNER = "tools/run_org_baselines.py"
 SOURCE_CASES = ("b0", "b1", "b2", "b3")
 _IMAGE_DIGEST = re.compile(r"^.+@sha256:[0-9a-fA-F]{64}$")
 _SHA256 = re.compile(r"^[0-9a-fA-F]{64}$")
+_CONTAINER_PLATFORM = re.compile(
+    r"^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*"
+    r"(?:/[a-z0-9][a-z0-9._-]*)?$"
+)
 _ALLOWED_EVALUATOR_BACKENDS = frozenset({"docker", "apptainer"})
 _SCOPED_RUNTIME_KEYS = frozenset(
     {
@@ -74,7 +78,12 @@ class SourceMainRunnerError(RuntimeError):
 
 @dataclass(frozen=True)
 class EvaluatorBinding:
-    """The explicit, per-pack formal evaluator identity."""
+    """The explicit, per-pack evaluator identity supplied by an operator.
+
+    Hashes and platform are retained as metadata even in the default
+    non-strict mode.  Empty values mean that the operator supplied a useful
+    runtime locator without author-published qualification values.
+    """
 
     backend: str
     container_image: str
@@ -235,13 +244,38 @@ def _load_model_config(model: str, study: Mapping[str, Any]) -> dict[str, Any]:
     return payload
 
 
-def _runtime_model(model_config: Mapping[str, Any]) -> str:
+def _runtime_model(
+    model_config: Mapping[str, Any],
+    override: str | None = None,
+    *,
+    allow_unresolved: bool = False,
+) -> str:
+    explicit = str(override or "").strip()
+    if explicit:
+        return explicit
+    # Keep paper model IDs stable while allowing an operator's gateway to use
+    # its own deployment name.  The generic variables cover GPT and custom
+    # gateways; the model-specific variable remains the compatibility path for
+    # the Claude arm.
+    for environment_name in (
+        "RELIC_RUNTIME_MODEL",
+        "ORG_LLM_RUNTIME_MODEL",
+        "OPENAI_MODEL",
+        "ORG_LLM_MODEL",
+    ):
+        value = os.environ.get(environment_name, "").strip()
+        if value:
+            return value
     configured_env = str(model_config.get("runtime_model_env") or "").strip()
     if configured_env:
         value = os.environ.get(configured_env, "").strip()
         if not value:
+            if allow_unresolved:
+                return ""
             raise SourceMainRunnerError(
-                f"runtime_model_binding_missing:{configured_env}"
+                "runtime_model_binding_missing:"
+                f"{configured_env}; set {configured_env} to the provider "
+                "deployment name or pass --runtime-model"
             )
         return value
     return _nonempty_text(
@@ -324,6 +358,8 @@ def build_source_main_manifest(
     model: str,
     output_root: Path | None = None,
     max_parallel: int = 1,
+    strict_reproducibility: bool = False,
+    runtime_model: str | None = None,
 ) -> dict[str, Any]:
     """Freeze the 30 paired source batches / 120 paper cells for one model."""
 
@@ -332,8 +368,18 @@ def build_source_main_manifest(
     study = _load_study()
     source_config = _source_runner_config(study)
     model_config = _load_model_config(model, study)
-    runtime_model = _runtime_model(model_config)
-    runtime_environment = _runtime_environment(model_config, runtime_model=runtime_model)
+    # Planning is intentionally provider-agnostic.  A model-specific gateway
+    # alias may be unavailable while the user is still materializing a dry
+    # plan; the non-dry runner checks the empty value before any child starts.
+    resolved_runtime_model = _runtime_model(
+        model_config,
+        runtime_model,
+        allow_unresolved=True,
+    )
+    runtime_environment = _runtime_environment(
+        model_config,
+        runtime_model=resolved_runtime_model,
+    )
     workloads = _load_workloads(study)
     conditions = _source_conditions(study)
     try:
@@ -388,7 +434,8 @@ def build_source_main_manifest(
         "model": {
             "canonical_model": str(model_config["model"]),
             "paper_label": str(model_config.get("paper_label") or ""),
-            "runtime_model": runtime_model,
+            "runtime_model_env": str(model_config.get("runtime_model_env") or ""),
+            "runtime_model": resolved_runtime_model,
             "runtime": runtime_environment,
         },
         "ticks": int(study["ticks"]),
@@ -397,9 +444,11 @@ def build_source_main_manifest(
         "mechanism_ablations": list(source_config["mechanism_ablations"]),
         "resource_ceilings": dict(source_config["resource_ceilings"]),
         "evaluator_binding": {
-            "required_for_formal_execution": True,
-            "binding_file_required": True,
+            "required_for_formal_execution": bool(strict_reproducibility),
+            "binding_file_required": bool(strict_reproducibility),
             "per_pack": True,
+            "default_mode": "local",
+            "strict_reproducibility": bool(strict_reproducibility),
             "unpublished_values_are_not_fabricated": True,
         },
         "batches": batches,
@@ -450,6 +499,13 @@ def _validate_manifest(payload: Mapping[str, Any]) -> Mapping[str, Any]:
         raise SourceMainRunnerError("source_main_plan_source_mismatch")
     if plan.get("mechanism_ablations") != ["work_rhythm"]:
         raise SourceMainRunnerError("source_main_plan_work_rhythm_policy_mismatch")
+    evaluator_binding = plan.get("evaluator_binding")
+    if not isinstance(evaluator_binding, Mapping):
+        raise SourceMainRunnerError("source_main_plan_evaluator_binding_missing")
+    if "strict_reproducibility" in evaluator_binding and not isinstance(
+        evaluator_binding.get("strict_reproducibility"), bool
+    ):
+        raise SourceMainRunnerError("source_main_plan_evaluator_binding_invalid")
     batches = plan.get("batches")
     if not isinstance(batches, list) or len(batches) != 30:
         raise SourceMainRunnerError("source_main_plan_batches_invalid")
@@ -459,7 +515,12 @@ def _validate_manifest(payload: Mapping[str, Any]) -> Mapping[str, Any]:
     return plan
 
 
-def _binding_from_mapping(pack: str, value: object) -> EvaluatorBinding:
+def _binding_from_mapping(
+    pack: str,
+    value: object,
+    *,
+    strict_reproducibility: bool = True,
+) -> EvaluatorBinding:
     raw = _require_mapping(value, f"evaluator_binding_invalid:{pack}")
     expected = {
         "backend",
@@ -468,38 +529,40 @@ def _binding_from_mapping(pack: str, value: object) -> EvaluatorBinding:
         "environment_hash",
         "qualification_plan_hash",
     }
-    if set(raw) != expected:
+    unknown = set(raw) - expected
+    if unknown or not {"backend", "container_image"} <= set(raw):
         raise SourceMainRunnerError(f"evaluator_binding_shape_invalid:{pack}")
     binding = EvaluatorBinding(
         backend=_nonempty_text(raw.get("backend"), f"evaluator_binding_backend_missing:{pack}"),
         container_image=_nonempty_text(
             raw.get("container_image"), f"evaluator_binding_image_missing:{pack}"
         ),
-        container_platform=_nonempty_text(
-            raw.get("container_platform"), f"evaluator_binding_platform_missing:{pack}"
-        ),
-        environment_hash=_nonempty_text(
-            raw.get("environment_hash"), f"evaluator_binding_environment_hash_missing:{pack}"
-        ),
-        qualification_plan_hash=_nonempty_text(
-            raw.get("qualification_plan_hash"),
-            f"evaluator_binding_qualification_hash_missing:{pack}",
-        ),
+        container_platform=str(raw.get("container_platform") or "").strip(),
+        environment_hash=str(raw.get("environment_hash") or "").strip(),
+        qualification_plan_hash=str(raw.get("qualification_plan_hash") or "").strip(),
     )
     if binding.backend not in _ALLOWED_EVALUATOR_BACKENDS:
         raise SourceMainRunnerError(f"evaluator_binding_backend_invalid:{pack}")
-    if binding.container_platform != "linux/amd64":
+    if binding.container_platform and not _CONTAINER_PLATFORM.fullmatch(
+        binding.container_platform
+    ):
         raise SourceMainRunnerError(f"evaluator_binding_platform_invalid:{pack}")
-    if not _IMAGE_DIGEST.fullmatch(binding.container_image):
+    if strict_reproducibility and binding.container_platform != "linux/amd64":
+        raise SourceMainRunnerError(f"evaluator_binding_platform_invalid:{pack}")
+    if strict_reproducibility and not _IMAGE_DIGEST.fullmatch(binding.container_image):
         raise SourceMainRunnerError(f"evaluator_binding_image_not_digest_pinned:{pack}")
-    if not _SHA256.fullmatch(binding.environment_hash):
+    if strict_reproducibility and not _SHA256.fullmatch(binding.environment_hash):
         raise SourceMainRunnerError(f"evaluator_binding_environment_hash_invalid:{pack}")
-    if not _SHA256.fullmatch(binding.qualification_plan_hash):
+    if strict_reproducibility and not _SHA256.fullmatch(binding.qualification_plan_hash):
         raise SourceMainRunnerError(f"evaluator_binding_qualification_hash_invalid:{pack}")
     return binding
 
 
-def load_evaluator_bindings(path: Path) -> dict[str, EvaluatorBinding]:
+def load_evaluator_bindings(
+    path: Path,
+    *,
+    strict_reproducibility: bool = True,
+) -> dict[str, EvaluatorBinding]:
     """Load an explicit JSON mapping of frozen pack IDs to evaluator bindings.
 
     The accepted file shape is either ``{"pack": {...}}`` or the same mapping
@@ -522,7 +585,9 @@ def load_evaluator_bindings(path: Path) -> dict[str, EvaluatorBinding]:
         raise SourceMainRunnerError("evaluator_bindings_file_empty")
     return {
         _nonempty_text(pack, "evaluator_binding_pack_empty"): _binding_from_mapping(
-            str(pack), binding
+            str(pack),
+            binding,
+            strict_reproducibility=strict_reproducibility,
         )
         for pack, binding in raw.items()
     }
@@ -641,9 +706,24 @@ def _source_batch_argv(
     dry_run: bool,
     resume: bool,
     binding: EvaluatorBinding | None,
+    strict_reproducibility: bool = False,
 ) -> list[str]:
     model = _require_mapping(plan.get("model"), "source_main_plan_model_missing")
     runtime = _require_mapping(model.get("runtime"), "source_main_plan_model_runtime_missing")
+    runtime_model = str(model.get("runtime_model") or "").strip()
+    if not runtime_model and not dry_run:
+        configured_env = str(model.get("runtime_model_env") or "").strip()
+        raise SourceMainRunnerError(
+            "runtime_model_binding_missing:"
+            + (configured_env or "RELIC_RUNTIME_MODEL")
+            + "; set the named variable to the provider deployment name or "
+            "pass --runtime-model"
+        )
+    # Child dry-run manifests still need a non-empty identity for their
+    # canonical case plans.  They never construct a provider, so use the paper
+    # model ID as a visible placeholder while keeping the outer plan's runtime
+    # model empty and actionable for the eventual run.
+    runtime_model_for_argv = runtime_model or str(model.get("canonical_model") or "")
     ceilings = _require_mapping(plan.get("resource_ceilings"), "source_main_plan_ceilings_missing")
     argv = [
         "--cases",
@@ -664,7 +744,7 @@ def _source_batch_argv(
         "--provider",
         str(runtime["ORG_LLM_PROVIDER"]),
         "--model",
-        str(model["runtime_model"]),
+        runtime_model_for_argv,
         "--max-parallel",
         str(max_parallel),
         "--max-llm-calls",
@@ -688,21 +768,27 @@ def _source_batch_argv(
         argv.append("--dry-run")
     if resume:
         argv.append("--resume")
-    if binding is not None:
-        argv.extend(
-            [
-                "--evaluator-backend",
-                binding.backend,
-                "--evaluator-container-image",
-                binding.container_image,
-                "--evaluator-container-platform",
-                binding.container_platform,
-                "--expected-evaluator-environment-hash",
-                binding.environment_hash,
-                "--expected-qualification-plan-hash",
-                binding.qualification_plan_hash,
-            ]
+    argv.extend(
+        (
+            "--evaluator-mode",
+            "container" if binding is not None else "local",
         )
+    )
+    if strict_reproducibility:
+        argv.append("--strict-reproducibility")
+    if binding is not None:
+        argv.extend(["--evaluator-backend", binding.backend])
+        argv.extend(["--evaluator-container-image", binding.container_image])
+        if binding.container_platform:
+            argv.extend(["--evaluator-container-platform", binding.container_platform])
+        if binding.environment_hash:
+            argv.extend(
+                ["--expected-evaluator-environment-hash", binding.environment_hash]
+            )
+        if binding.qualification_plan_hash:
+            argv.extend(
+                ["--expected-qualification-plan-hash", binding.qualification_plan_hash]
+            )
     return argv
 
 
@@ -743,6 +829,9 @@ def _batch_status(batch_root: Path, returncode: int) -> dict[str, Any]:
     except (OSError, ValueError):
         return result
     cases = manifest.get("cases") if isinstance(manifest, Mapping) else None
+    evaluator = manifest.get("evaluator") if isinstance(manifest, Mapping) else None
+    if isinstance(evaluator, Mapping):
+        result["evaluator"] = dict(evaluator)
     if isinstance(cases, list):
         result["cases"] = [
             {
@@ -767,6 +856,8 @@ def run_source_main(
     resume: bool = False,
     retry_failed: bool = False,
     evaluator_bindings_path: Path | None = None,
+    strict_reproducibility: bool = False,
+    runtime_model: str | None = None,
     batch_ids: Sequence[str] = (),
     workloads: Sequence[str] = (),
     seeds: Sequence[int] = (),
@@ -799,6 +890,9 @@ def run_source_main(
             raise SourceMainRunnerError("source_main_resume_output_root_mismatch")
         if model is not None and str(plan["model"].get("canonical_model") or "") != model:
             raise SourceMainRunnerError("source_main_resume_model_mismatch")
+        planned_runtime_model = str(plan["model"].get("runtime_model") or "")
+        if runtime_model is not None and str(runtime_model).strip() != planned_runtime_model:
+            raise SourceMainRunnerError("source_main_resume_runtime_model_mismatch")
         output_root = plan_root
     else:
         if model is None:
@@ -807,6 +901,8 @@ def run_source_main(
             model=model,
             output_root=default_root,
             max_parallel=max_parallel,
+            strict_reproducibility=strict_reproducibility,
+            runtime_model=runtime_model,
         )
         plan = _validate_manifest(payload)
         output_root = default_root
@@ -820,21 +916,45 @@ def run_source_main(
         workloads=workloads,
         seeds=seeds,
     )
+    plan_evaluator = _require_mapping(
+        plan.get("evaluator_binding"), "source_main_plan_evaluator_binding_missing"
+    )
+    planned_strict = bool(plan_evaluator.get("strict_reproducibility", False))
+    if planned_strict != bool(strict_reproducibility):
+        raise SourceMainRunnerError("source_main_reproducibility_mode_mismatch")
     bindings = (
-        load_evaluator_bindings(evaluator_bindings_path)
+        load_evaluator_bindings(
+            evaluator_bindings_path,
+            strict_reproducibility=strict_reproducibility,
+        )
         if evaluator_bindings_path is not None
         else None
     )
-    if not dry_run:
+    # A binding file is an explicit provenance request even in non-strict mode,
+    # so a missing selected pack is still diagnosed.  With no file, local host
+    # evaluation is the documented default.  Strict mode additionally requires
+    # the file before a source child can start.
+    if bindings is not None or strict_reproducibility:
         bindings = _require_selected_bindings(selected, bindings)
 
     execution = _require_mapping(payload.get("execution"), "source_main_execution_missing")
     execution_batches = execution.get("batches")
     if not isinstance(execution_batches, dict):
         raise SourceMainRunnerError("source_main_execution_batches_invalid")
+    execution["evaluator"] = {
+        "mode": "container" if bindings is not None else "local",
+        "strict_reproducibility": bool(strict_reproducibility),
+        "bindings": {
+            pack: binding.document()
+            for pack, binding in (bindings or {}).items()
+            if pack in {str(batch["pack"]) for batch in selected}
+        },
+    }
     runtime = _require_mapping(plan["model"].get("runtime"), "source_main_plan_model_runtime_missing")
     if set(runtime) != _SCOPED_RUNTIME_KEYS or not all(
-        isinstance(value, str) and value for value in runtime.values()
+        isinstance(value, str)
+        and (bool(value) or key == "ORG_LLM_MODEL")
+        for key, value in runtime.items()
     ):
         raise SourceMainRunnerError("source_main_plan_model_runtime_invalid")
 
@@ -868,11 +988,19 @@ def run_source_main(
             dry_run=dry_run,
             resume=resume and not dry_run,
             binding=binding,
+            strict_reproducibility=strict_reproducibility,
         )
         result_code = _invoke_source_batch(argv, runtime)
         status = _batch_status(batch_root, result_code)
         if dry_run:
             status["status"] = "dry_run" if result_code == 0 else "failed"
+        observed = status.get("evaluator")
+        if isinstance(observed, Mapping):
+            observed_batches = execution["evaluator"].setdefault(
+                "observed_batches", {}
+            )
+            if isinstance(observed_batches, dict):
+                observed_batches[batch_id] = dict(observed)
         execution_batches[batch_id] = status
         if result_code == 0:
             completed += 1

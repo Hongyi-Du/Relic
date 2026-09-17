@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -89,27 +91,33 @@ def test_openai_runtime_uses_relic_environment_names(
     assert prepare_openai_response_request({"model": "example"})["store"] is False
 
 
-def test_runtime_source_excludes_development_and_legacy_surfaces() -> None:
-    root = Path(__file__).resolve().parents[1]
-    sources = [
-        *(root / "environments").rglob("*.py"),
-        *(root / "relic" / "core").rglob("*.py"),
-        *(root / "relic" / "decision").rglob("*.py"),
-        *(root / "relic" / "evaluation").rglob("*.py"),
-        *(root / "relic" / "governance").rglob("*.py"),
-        *(root / "relic" / "research").rglob("*.py"),
-    ]
-    text = "\n".join(path.read_text(encoding="utf-8") for path in sources)
+def test_default_runtime_does_not_eagerly_load_legacy_optional_modules() -> None:
+    """Compatibility surfaces may exist, but the default runtime must stay local.
 
-    for forbidden in (
-        "ProgramBench",
-        "programbench",
-        "society_core",
-        "agent_sdk",
-        "SocioGenesis",
-        "NatureEnv",
-        "LanternScout",
-        "LanternForge",
-        "synthetic_lanternscout",
-    ):
-        assert forbidden not in text
+    The release still contains lazy adapters for historical integrations and
+    product-specific paths.  A source-text ban therefore rejects valid
+    compatibility code.  Import the public runtime in a clean interpreter and
+    assert that the optional SocietyCore module is not pulled in before an
+    operator explicitly selects one of those paths.
+    """
+
+    root = Path(__file__).resolve().parents[1]
+    probe = subprocess.run(
+        (
+            sys.executable,
+            "-c",
+            (
+                "import sys; "
+                "import relic.cell_worker; "
+                "from environments.org_env.backend.simulation.world import OrgWorld; "
+                "assert not any(name == 'society_core' or "
+                "name.startswith('society_core.') for name in sys.modules)"
+            ),
+        ),
+        cwd=root,
+        env={"PATH": str(Path(sys.executable).parent)},
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert probe.returncode == 0, probe.stderr

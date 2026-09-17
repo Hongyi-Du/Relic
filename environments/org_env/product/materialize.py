@@ -835,9 +835,28 @@ def _formal_product_executor():
     mode = str(os.environ.get("ORG_OSS_MODE") or "").lower()
     if mode not in {"formal", "pilot"}:
         return None
-    from society_core.execution import ExecutionPolicy, build_command_executor
+    evaluator_mode = str(
+        os.environ.get("ORG_EVALUATOR_MODE") or ""
+    ).strip().lower()
+    backend = str(os.environ.get("ORG_EVALUATOR_BACKEND") or "").strip().lower()
+    # A normal Relic run evaluates the public product tree with the host
+    # evaluator.  The explicit marker also prevents an ambient, incomplete
+    # container configuration from turning a valid local run into a preflight
+    # failure.
+    strict = str(
+        os.environ.get("ORG_EVALUATOR_STRICT_REPRODUCIBILITY") or "0"
+    ).strip().lower() in {"1", "true", "yes", "on"}
+    image = str(os.environ.get("ORG_EVALUATOR_CONTAINER_IMAGE") or "").strip()
+    if evaluator_mode == "local" or backend in {"", "local"}:
+        if strict:
+            raise RuntimeError(
+                "strict_reproducibility_requires_container_evaluator"
+            )
+        return None
+    if not evaluator_mode and not strict and not image:
+        return None
+    from relic.evaluation.execution import ExecutionPolicy, build_command_executor
 
-    backend = str(os.environ.get("ORG_EVALUATOR_BACKEND") or "")
     if backend == "bubblewrap":
         if mode != "pilot":
             raise RuntimeError("formal_product_runtime_requires_container")
@@ -866,7 +885,12 @@ def _formal_product_executor():
             "ORG_EVALUATOR_CONTAINER_PLATFORM"
         ),
     }
-    missing = sorted(key for key, value in values.items() if not value)
+    required_values = {
+        key: value
+        for key, value in values.items()
+        if key in {"backend", "container_image"} or strict
+    }
+    missing = sorted(key for key, value in required_values.items() if not value)
     if missing:
         raise RuntimeError(
             "formal_product_runtime_binding_missing:"
@@ -877,7 +901,12 @@ def _formal_product_executor():
             trust_level="untrusted",
             backend=str(values["backend"]),
             container_image=str(values["container_image"]),
-            container_platform=str(values["container_platform"]),
+            container_platform=(
+                str(values["container_platform"])
+                if values["container_platform"]
+                else None
+            ),
+            strict_reproducibility=strict,
             network_enabled=False,
             memory_limit_mb=2048,
             cpu_limit=2.0,
@@ -3081,7 +3110,8 @@ def _product_smoke_root() -> str:
         return root
     containerized = (
         str(os.environ.get("ORG_OSS_MODE") or "").lower() == "formal"
-        and (os.environ.get("ORG_EVALUATOR_BACKEND") or "").strip()
+        and (os.environ.get("ORG_EVALUATOR_BACKEND") or "").strip().lower()
+        in {"docker", "apptainer"}
     )
     if containerized:
         root = os.path.join(

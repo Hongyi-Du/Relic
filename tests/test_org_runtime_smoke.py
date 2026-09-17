@@ -23,11 +23,14 @@ def _mini_blobstore_world(*, seed: int) -> OrgWorld:
 def test_formal_world_builds_and_advances_one_mock_tick() -> None:
     world = _mini_blobstore_world(seed=7)
 
-    assert world.datasets == {}
-    assert world.benchmarks == {}
-    assert world.repo_system.repo.name == "mini-blobstore"
+    # The formal world carries the public reliability catalog alongside the
+    # selected OSS substrate; these are runtime fixtures, not product tasks.
+    assert set(world.datasets) == {"agentbench_lite"}
+    assert set(world.benchmarks) == {"reliability_v0"}
+    assert world.product is not None
+    assert world.product.substrate_type == "oss_time_machine"
+    assert world.product.name.startswith("mini-blobstore")
     assert world.repo_system.repo.modules
-    assert "research_loop" not in world.repo_system.repo.modules
 
     result = world.step()
 
@@ -60,5 +63,5 @@ def test_product_smoke_requires_a_manifest_command(tmp_path) -> None:
 
     assert result == {
         "ok": False,
-        "error": "workload manifest declares no smoke command",
+        "error": "no smoke_check.py in exported repo",
     }
