@@ -23,6 +23,7 @@ def _plan_main(args: argparse.Namespace) -> int:
             manifest_path=args.manifest,
             max_parallel=args.max_parallel,
             dry_run=True,
+            runtime_model=args.runtime_model,
         )
     except SourceMainRunnerError as exc:
         print(json.dumps({"status": "failed", "error": exc.code}), file=sys.stderr)
@@ -161,6 +162,8 @@ def _run_main(args: argparse.Namespace) -> int:
             resume=args.resume,
             retry_failed=args.retry_failed,
             evaluator_bindings_path=args.evaluator_bindings,
+            strict_reproducibility=args.strict_reproducibility,
+            runtime_model=args.runtime_model,
             batch_ids=args.batch,
             workloads=args.workload,
             seeds=args.seed,
@@ -204,6 +207,8 @@ def _run_transfer(args: argparse.Namespace) -> int:
             resume=args.resume,
             retry_failed=args.retry_failed,
             evaluator_bindings_path=args.evaluator_bindings,
+            strict_reproducibility=args.strict_reproducibility,
+            runtime_model=args.runtime_model,
             batch_ids=args.batch,
             workloads=args.workload,
             seeds=args.seed,
@@ -430,6 +435,11 @@ def build_parser() -> argparse.ArgumentParser:
         "plan-main", help="materialize the source-backed 30-batch / 120-cell dry plan"
     )
     plan.add_argument("--model", required=True, help="canonical model config name")
+    plan.add_argument(
+        "--runtime-model",
+        default=None,
+        help="provider deployment name for the canonical model",
+    )
     plan.add_argument("--output-root", type=Path, default=None)
     plan.add_argument("--manifest", type=Path, default=None)
     plan.add_argument("--max-parallel", type=int, default=1)
@@ -538,6 +548,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="run or resume the source-backed paired 120-cell single-model study",
     )
     main_run.add_argument("--model", default=None, help="required for a new run")
+    main_run.add_argument(
+        "--runtime-model",
+        default=None,
+        help=(
+            "provider deployment name; keeps the canonical paper --model ID "
+            "unchanged"
+        ),
+    )
     main_run.add_argument("--output-root", type=Path, default=None)
     main_run.add_argument("--manifest", type=Path, default=None)
     main_run.add_argument("--max-parallel", type=int, default=1)
@@ -549,8 +567,16 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=None,
         help=(
-            "JSON mapping of each formal pack to its digest-pinned evaluator binding; "
-            "required before any non-dry-run source batch starts"
+            "optional JSON mapping of each pack to evaluator provenance; "
+            "use --strict-reproducibility to require pinned values"
+        ),
+    )
+    main_run.add_argument(
+        "--strict-reproducibility",
+        action="store_true",
+        help=(
+            "require digest-pinned linux/amd64 evaluator bindings and their "
+            "qualification hashes"
         ),
     )
     main_run.add_argument(
@@ -593,6 +619,14 @@ def build_parser() -> argparse.ArgumentParser:
         default="gpt-5.6-terra",
         help="fixed final-transfer model (must be gpt-5.6-terra)",
     )
+    transfer.add_argument(
+        "--runtime-model",
+        default=None,
+        help=(
+            "provider deployment name; keeps the canonical paper --model ID "
+            "unchanged"
+        ),
+    )
     transfer.add_argument("--output-root", type=Path, default=None)
     transfer.add_argument("--manifest", type=Path, default=None)
     transfer.add_argument("--max-parallel", type=int, default=1)
@@ -604,8 +638,16 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=None,
         help=(
-            "JSON mapping of each formal pack to a digest-pinned evaluator binding; "
-            "required before any non-dry-run source target starts"
+            "optional JSON mapping of each pack to evaluator provenance; "
+            "use --strict-reproducibility to require pinned values"
+        ),
+    )
+    transfer.add_argument(
+        "--strict-reproducibility",
+        action="store_true",
+        help=(
+            "require digest-pinned linux/amd64 evaluator bindings and their "
+            "qualification hashes"
         ),
     )
     transfer.add_argument(

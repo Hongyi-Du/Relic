@@ -263,6 +263,8 @@ class CasePlan:
             "ORG_MODEL_BINDING_FINGERPRINT",
             "ORG_EXECUTION_RESOURCE_BUDGET_FINGERPRINT",
             "ORG_EVALUATOR_BACKEND",
+            "ORG_EVALUATOR_MODE",
+            "ORG_EVALUATOR_STRICT_REPRODUCIBILITY",
             "ORG_EVALUATOR_CONTAINER_IMAGE",
             "ORG_EVALUATOR_CONTAINER_PLATFORM",
             "ORG_EVALUATOR_EXPECTED_ENVIRONMENT_HASH",
@@ -340,7 +342,15 @@ def _resolve_llm_identity(
     ).lower()
     if provider == "generic":
         provider = "http"
-    model = str(model_override or config.get("model") or "unknown")
+    model = str(
+        model_override
+        or os.environ.get("RELIC_RUNTIME_MODEL")
+        or os.environ.get("ORG_LLM_RUNTIME_MODEL")
+        or os.environ.get("OPENAI_MODEL")
+        or os.environ.get("ORG_LLM_MODEL")
+        or config.get("model")
+        or "unknown"
+    )
     return provider, model
 
 
@@ -482,6 +492,8 @@ def build_case_environment(
     evaluation_perturbation: str | None = None,
     experiment_mode: str = "formal",
     evaluator_backend: str | None = None,
+    evaluator_mode: str | None = None,
+    strict_reproducibility: bool = False,
     evaluator_container_image: str | None = None,
     evaluator_container_platform: str | None = None,
     evaluator_virtualenv: str | None = None,
@@ -512,6 +524,31 @@ def build_case_environment(
     normalized_ablations = MechanismAblations.from_values(
         (mechanism_ablations or "").split(",")
     )
+    normalized_evaluator_mode = str(evaluator_mode or "").strip().lower()
+    if not normalized_evaluator_mode:
+        normalized_evaluator_mode = (
+            "container"
+            if evaluator_backend and str(evaluator_backend).strip().lower() != "local"
+            else "local"
+        )
+    if normalized_evaluator_mode not in {"local", "container"}:
+        raise ValueError("unknown evaluator mode: " + normalized_evaluator_mode)
+    if strict_reproducibility and normalized_evaluator_mode != "container":
+        raise ValueError("strict_reproducibility_requires_container_evaluator")
+    effective_evaluator_backend = str(evaluator_backend or "").strip().lower()
+    if normalized_evaluator_mode == "local":
+        if effective_evaluator_backend not in {"", "local"}:
+            raise ValueError("local_evaluator_cannot_use_container_backend")
+        effective_evaluator_backend = "local"
+        evaluator_container_image = None
+        evaluator_container_platform = None
+        evaluator_virtualenv = None
+        expected_evaluator_environment_hash = None
+        expected_qualification_plan_hash = None
+    elif effective_evaluator_backend == "local":
+        raise ValueError("container_evaluator_requires_container_backend")
+    elif not effective_evaluator_backend:
+        raise ValueError("container_evaluator_backend_required")
     # Kept in the API for old callers. The condition now owns WHAT selection:
     # B0/B1/B2 force llm_direct when a client exists, independently of this flag.
     operating_system_keys = {
@@ -572,6 +609,8 @@ def build_case_environment(
         "ORG_MODEL_BINDING_FINGERPRINT",
         "ORG_EXECUTION_RESOURCE_BUDGET_FINGERPRINT",
         "ORG_EVALUATOR_BACKEND",
+        "ORG_EVALUATOR_MODE",
+        "ORG_EVALUATOR_STRICT_REPRODUCIBILITY",
         "ORG_EVALUATOR_CONTAINER_IMAGE",
         "ORG_EVALUATOR_CONTAINER_PLATFORM",
         "ORG_EVALUATOR_VENV",
@@ -586,6 +625,17 @@ def build_case_environment(
             if key in provider_passthrough
         }
     )
+    # Direct baseline invocations use the same documented OpenAI-compatible
+    # variables as the Relic runners.  Bridge them into the source runtime's
+    # names only in the child environment; these values never enter the public
+    # case plan or manifest.
+    for destination, source in (
+        ("ORG_LLM_API_KEY", "OPENAI_API_KEY"),
+        ("ORG_LLM_BASE_URL", "OPENAI_BASE_URL"),
+        ("ORG_LLM_DEFAULT_HEADERS_JSON", "RELIC_OPENAI_DEFAULT_HEADERS_JSON"),
+    ):
+        if destination not in env and parent.get(source):
+            env[destination] = parent[source]
     env.update(
         {
             "PYTHONPATH": str(REPO_ROOT),
@@ -651,7 +701,11 @@ def build_case_environment(
         "ORG_EXPERIMENT_RANDOMIZATION_BLOCK": randomization_block,
         "ORG_EXPERIMENT_RANDOMIZATION_ORDER": randomization_order,
         "ORG_EXPERIMENT_REPLICATION_ID": replication_id,
-        "ORG_EVALUATOR_BACKEND": evaluator_backend,
+        "ORG_EVALUATOR_BACKEND": effective_evaluator_backend,
+        "ORG_EVALUATOR_MODE": normalized_evaluator_mode,
+        "ORG_EVALUATOR_STRICT_REPRODUCIBILITY": (
+            "1" if strict_reproducibility else "0"
+        ),
         "ORG_EVALUATOR_CONTAINER_IMAGE": evaluator_container_image,
         "ORG_EVALUATOR_CONTAINER_PLATFORM": evaluator_container_platform,
         "ORG_EVALUATOR_VENV": evaluator_virtualenv,
@@ -675,7 +729,11 @@ def build_case_environment(
     # RELIC_* names.  Carry both values from one argument set rather than let
     # an ambient host binding select a different evaluator after planning.
     evaluator_bridge = {
-        "RELIC_EVALUATOR_BACKEND": evaluator_backend,
+        "RELIC_EVALUATOR_BACKEND": effective_evaluator_backend,
+        "RELIC_EVALUATOR_MODE": normalized_evaluator_mode,
+        "RELIC_EVALUATOR_STRICT_REPRODUCIBILITY": (
+            "1" if strict_reproducibility else "0"
+        ),
         "RELIC_EVALUATOR_CONTAINER_IMAGE": evaluator_container_image,
         "RELIC_EVALUATOR_CONTAINER_PLATFORM": evaluator_container_platform,
         "RELIC_EVALUATOR_EXPECTED_ENVIRONMENT_HASH": (
@@ -731,6 +789,21 @@ def build_case_plans(args: argparse.Namespace, batch_root: Path) -> tuple[CasePl
             config=load_org_llm_config(str(REPO_ROOT)),
         )
     transfer_env = _transfer_environment(args)
+    strict_reproducibility = bool(
+        getattr(args, "strict_reproducibility", False)
+    )
+    evaluator_mode = str(getattr(args, "evaluator_mode", "") or "").strip().lower()
+    evaluator_backend = str(getattr(args, "evaluator_backend", "") or "").strip().lower()
+    if not evaluator_mode:
+        evaluator_mode = (
+            "container"
+            if evaluator_backend and evaluator_backend != "local"
+            else "local"
+        )
+    if evaluator_mode == "local":
+        evaluator_backend = "local"
+    elif not evaluator_backend:
+        raise ValueError("container_evaluator_backend_required")
     randomization_block = build_randomization_block(
         # The block names a repository, not a filesystem location: two jobs on
         # the same pack must land in the same block whether the DAG addressed
@@ -813,7 +886,9 @@ def build_case_plans(args: argparse.Namespace, batch_root: Path) -> tuple[CasePl
             experiment_mode=(
                 "pilot" if getattr(args, "pilot", False) else "formal"
             ),
-            evaluator_backend=args.evaluator_backend,
+            evaluator_backend=evaluator_backend,
+            evaluator_mode=evaluator_mode,
+            strict_reproducibility=strict_reproducibility,
             evaluator_container_image=args.evaluator_container_image,
             evaluator_container_platform=args.evaluator_container_platform,
             evaluator_virtualenv=(
@@ -2009,7 +2084,24 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--evaluator-backend",
-        choices=("docker", "apptainer", "bubblewrap"),
+        choices=("local", "docker", "apptainer", "bubblewrap"),
+    )
+    parser.add_argument(
+        "--evaluator-mode",
+        choices=("local", "container"),
+        default=None,
+        help=(
+            "evaluator execution mode; local uses the public host evaluator "
+            "and is the default when no container binding is supplied"
+        ),
+    )
+    parser.add_argument(
+        "--strict-reproducibility",
+        action="store_true",
+        help=(
+            "require an explicit digest-pinned evaluator, linux/amd64, and "
+            "qualification hashes"
+        ),
     )
     parser.add_argument("--evaluator-container-image")
     parser.add_argument("--evaluator-container-platform")
@@ -2035,7 +2127,15 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="deprecated compatibility flag; baseline conditions force LLM-direct actions",
     )
-    parser.add_argument("--model", default=os.environ.get("ORG_LLM_MODEL"))
+    parser.add_argument(
+        "--model",
+        default=(
+            os.environ.get("RELIC_RUNTIME_MODEL")
+            or os.environ.get("ORG_LLM_RUNTIME_MODEL")
+            or os.environ.get("OPENAI_MODEL")
+            or os.environ.get("ORG_LLM_MODEL")
+        ),
+    )
     parser.add_argument("--provider", default=os.environ.get("ORG_LLM_PROVIDER"))
     parser.add_argument("--replication-id")
     parser.add_argument(
@@ -2187,10 +2287,47 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
     if args.max_ticks is None:
         args.max_ticks = args.ticks
+    if args.evaluator_mode is None:
+        args.evaluator_mode = (
+            "container"
+            if args.evaluator_backend and args.evaluator_backend != "local"
+            else "local"
+        )
+    if args.evaluator_mode == "local":
+        if args.evaluator_backend not in (None, "local"):
+            raise SystemExit(
+                "local evaluator mode cannot use a container backend"
+            )
+        if args.strict_reproducibility:
+            raise SystemExit(
+                "--strict-reproducibility requires --evaluator-mode container"
+            )
+        args.evaluator_backend = "local"
+    elif args.evaluator_backend in (None, "", "local"):
+        raise SystemExit(
+            "container evaluator mode requires --evaluator-backend docker, "
+            "apptainer, or bubblewrap"
+        )
     if args.pilot and args.evaluator_backend != "bubblewrap":
         raise SystemExit("--pilot requires --evaluator-backend bubblewrap")
     if not args.pilot and args.evaluator_backend == "bubblewrap":
         raise SystemExit("bubblewrap evaluator requires --pilot")
+    if args.strict_reproducibility and args.evaluator_mode == "container" and not args.pilot:
+        strict_required = {
+            "--evaluator-container-image": args.evaluator_container_image,
+            "--evaluator-container-platform": args.evaluator_container_platform,
+            "--expected-evaluator-environment-hash": (
+                args.expected_evaluator_environment_hash
+            ),
+            "--expected-qualification-plan-hash": (
+                args.expected_qualification_plan_hash
+            ),
+        }
+        missing_strict = [flag for flag, value in strict_required.items() if not value]
+        if missing_strict:
+            raise SystemExit(
+                "strict reproducibility requires: " + ", ".join(missing_strict)
+            )
     if not args.dry_run:
         required_limits = {
             "--max-llm-calls": args.max_llm_calls,
@@ -2206,36 +2343,44 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "formal B0-B3 runs require frozen resource ceilings: "
                 + ", ".join(missing_limits)
             )
-        required_evaluator = (
-            {
-                "--evaluator-backend": args.evaluator_backend,
-                "--evaluator-venv": args.evaluator_venv,
-            }
-            if args.pilot
-            else {
-                "--evaluator-backend": args.evaluator_backend,
-                "--evaluator-container-image": args.evaluator_container_image,
-                "--evaluator-container-platform": args.evaluator_container_platform,
-                "--expected-evaluator-environment-hash": (
-                    args.expected_evaluator_environment_hash
-                ),
-                "--expected-qualification-plan-hash": (
-                    args.expected_qualification_plan_hash
-                ),
-            }
-        )
-        missing_evaluator = [
-            flag for flag, value in required_evaluator.items() if not value
-        ]
-        if missing_evaluator:
-            raise SystemExit(
-                (
-                    "pilot runs require a Bubblewrap virtualenv: "
-                    if args.pilot
-                    else "formal runs require a frozen evaluator runtime: "
-                )
-                + ", ".join(missing_evaluator)
+        if args.evaluator_mode == "container":
+            required_evaluator = (
+                {
+                    "--evaluator-backend": args.evaluator_backend,
+                    "--evaluator-venv": args.evaluator_venv,
+                }
+                if args.pilot
+                else {
+                    "--evaluator-backend": args.evaluator_backend,
+                    "--evaluator-container-image": args.evaluator_container_image,
+                }
             )
+            if args.strict_reproducibility and not args.pilot:
+                required_evaluator.update(
+                    {
+                        "--evaluator-container-platform": (
+                            args.evaluator_container_platform
+                        ),
+                        "--expected-evaluator-environment-hash": (
+                            args.expected_evaluator_environment_hash
+                        ),
+                        "--expected-qualification-plan-hash": (
+                            args.expected_qualification_plan_hash
+                        ),
+                    }
+                )
+            missing_evaluator = [
+                flag for flag, value in required_evaluator.items() if not value
+            ]
+            if missing_evaluator:
+                raise SystemExit(
+                    (
+                        "pilot runs require a Bubblewrap virtualenv: "
+                        if args.pilot
+                        else "container evaluator mode requires: "
+                    )
+                    + ", ".join(missing_evaluator)
+                )
 
     args.provider, args.model = _resolve_llm_identity(
         args.provider,
@@ -2343,6 +2488,47 @@ def main(argv: Sequence[str] | None = None) -> int:
             ),
             encoding="utf-8",
         )
+    observed_evaluator_metadata: list[dict[str, Any]] = []
+    for result in results:
+        environment = result.get("environment") or {}
+        record_path = result.get("experiment_run_record")
+        record: Mapping[str, Any] | None = None
+        if record_path:
+            try:
+                loaded = json.loads(
+                    (REPO_ROOT / str(record_path)).read_text(encoding="utf-8")
+                )
+            except (OSError, ValueError):
+                loaded = None
+            if isinstance(loaded, Mapping):
+                record = loaded
+        final = record.get("final_evaluation") if record else None
+        if not isinstance(final, Mapping):
+            final = {}
+        qualified = final.get("qualified_plan")
+        if not isinstance(qualified, Mapping):
+            qualified = {}
+        observed_evaluator_metadata.append(
+            {
+                "case": result.get("case"),
+                "mode": environment.get("ORG_EVALUATOR_MODE")
+                or ("container" if environment.get("ORG_EVALUATOR_BACKEND") else "local"),
+                "backend": record.get("evaluator_backend")
+                if record
+                else environment.get("ORG_EVALUATOR_BACKEND", "local"),
+                "container_image": environment.get("ORG_EVALUATOR_CONTAINER_IMAGE"),
+                "container_platform": environment.get("ORG_EVALUATOR_CONTAINER_PLATFORM"),
+                "environment_hash": (
+                    record.get("evaluator_environment_hash")
+                    if record
+                    else qualified.get("evaluator_environment_hash")
+                ),
+                "qualification_plan_hash": (
+                    final.get("plan_hash")
+                    or qualified.get("plan_hash")
+                ),
+            }
+        )
     manifest = {
         "batch_id": batch_id,
         "paired_seed": args.seed,
@@ -2358,6 +2544,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         "arm_map": args.arm_map,
         "randomization_order_override": args.randomization_order_override,
         "evaluation_perturbation": args.evaluation_perturbation,
+        "evaluator": {
+            "mode": args.evaluator_mode,
+            "backend": args.evaluator_backend,
+            "strict_reproducibility": bool(args.strict_reproducibility),
+            "binding_supplied": args.evaluator_mode == "container",
+            "observed": observed_evaluator_metadata,
+        },
         "action_selection_mode": {
             plan.short_name: plan.action_selection_mode for plan in plans
         },

@@ -21,8 +21,11 @@ uv run relic smoke --mode mock
 
 These commands install the release package, verify frozen benchmark bytes, and
 exercise the no-provider core path. They do not establish a formal paper run.
-Use `scripts/bash/` for thin shell conveniences; all execution logic remains in
-the `relic` Python CLI.
+Direct `uv run relic ...` commands do not load `.env` implicitly. After
+configuring a provider in `.env`, pass it explicitly with
+`uv run --env-file .env relic ...` for provider-backed commands, or use the thin
+wrappers under `scripts/bash/`, which load the file automatically. All execution
+logic remains in the `relic` Python CLI.
 
 ## Docker / Compose
 
@@ -52,6 +55,9 @@ uv run relic run-main --model gpt-5.6-terra \
   --max-parallel 1 --dry-run
 ```
 
-Formal cells, formal smoke, resume, and formal evaluation remain fail-closed
-until author-published evaluator bindings exist. See [evaluator.md](evaluator.md)
+Model-backed `run-main` and `run-transfer` use the public host evaluator by
+default, so they can run after you configure your provider. Supply
+`--evaluator-bindings` for additional provenance, or add
+`--strict-reproducibility` to require pinned container values. The formal smoke
+command remains a strict container diagnostic. See [evaluator.md](evaluator.md)
 and [KNOWN_RELEASE_GAPS.md](KNOWN_RELEASE_GAPS.md).

@@ -519,7 +519,9 @@ def test_cli_preflight_failure_is_json_and_persisted(tmp_path: Path) -> None:
     assert completed.stdout == ""
     error = json.loads(completed.stderr)
     assert error["status"] == "failed"
-    assert error["error"].startswith("formal_evaluator_runtime_binding_missing")
+    # The default local evaluator preflight succeeds; the next required
+    # binding is the provider credential for the model client.
+    assert error["error"].startswith("model_credential_missing:openai")
     status = json.loads((output / "public" / "status.json").read_text())
     assert status["status"] == "infra_error"
     assert status["stage"] == "preflight"

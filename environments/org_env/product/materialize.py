@@ -138,12 +138,42 @@ def _formal_product_executor():
         return None
     from relic.evaluation.execution import ExecutionPolicy, build_command_executor
 
+    raw_mode = str(os.environ.get("RELIC_EVALUATOR_MODE") or "").strip().lower()
+    mode = raw_mode
     values = {
-        "backend": os.environ.get("RELIC_EVALUATOR_BACKEND"),
-        "container_image": os.environ.get("RELIC_EVALUATOR_CONTAINER_IMAGE"),
-        "container_platform": os.environ.get("RELIC_EVALUATOR_CONTAINER_PLATFORM"),
+        "backend": str(os.environ.get("RELIC_EVALUATOR_BACKEND") or "").strip().lower(),
+        "container_image": str(
+            os.environ.get("RELIC_EVALUATOR_CONTAINER_IMAGE") or ""
+        ).strip(),
+        "container_platform": str(
+            os.environ.get("RELIC_EVALUATOR_CONTAINER_PLATFORM") or ""
+        ).strip(),
     }
-    missing = sorted(key for key, value in values.items() if not value)
+    strict = str(
+        os.environ.get("RELIC_EVALUATOR_STRICT_REPRODUCIBILITY") or "0"
+    ).strip().lower() in {"1", "true", "yes", "on"}
+    if not mode:
+        # Only a complete ambient backend/image pair opts into container mode;
+        # an incomplete legacy environment remains the default host path.
+        mode = "container" if values["backend"] and values["container_image"] else "local"
+    if mode not in {"local", "container"}:
+        raise RuntimeError("evaluator_runtime_mode_invalid")
+    if mode == "local":
+        if strict:
+            raise RuntimeError("strict_reproducibility_requires_container_evaluator")
+        if raw_mode and (
+            values["backend"] not in {"", "local"}
+            or values["container_image"]
+            or values["container_platform"]
+        ):
+            raise RuntimeError("local_evaluator_binding_conflict")
+        return None
+    required_values = {
+        key: value
+        for key, value in values.items()
+        if key in {"backend", "container_image"} or strict
+    }
+    missing = sorted(key for key, value in required_values.items() if not value)
     if missing:
         raise RuntimeError(
             "formal_product_runtime_binding_missing:"
@@ -154,7 +184,12 @@ def _formal_product_executor():
             trust_level="untrusted",
             backend=str(values["backend"]),
             container_image=str(values["container_image"]),
-            container_platform=str(values["container_platform"]),
+            container_platform=(
+                str(values["container_platform"])
+                if values["container_platform"]
+                else None
+            ),
+            strict_reproducibility=strict,
             network_enabled=False,
             memory_limit_mb=2048,
             cpu_limit=2.0,
@@ -935,7 +970,8 @@ def _product_smoke_root() -> str:
         return root
     containerized = (
         str(os.environ.get("ORG_OSS_MODE") or "").lower() == "formal"
-        and (os.environ.get("RELIC_EVALUATOR_BACKEND") or "").strip()
+        and (os.environ.get("RELIC_EVALUATOR_BACKEND") or "").strip().lower()
+        in {"docker", "apptainer"}
     )
     if containerized:
         root = os.path.join(

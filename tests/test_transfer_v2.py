@@ -219,7 +219,7 @@ def test_transfer_dry_plan_is_b2_only_and_uses_the_canonical_v2_bundle(
         assert environment["ORG_TRANSFER_ROSTER_ORIGIN"] == "fresh_roster"
 
 
-def test_transfer_formal_run_requires_bindings_before_source_invocation(
+def test_transfer_strict_run_requires_bindings_before_source_invocation(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     def forbidden(*_args: object, **_kwargs: object) -> int:
@@ -229,6 +229,7 @@ def test_transfer_formal_run_requires_bindings_before_source_invocation(
     with pytest.raises(SourceMainRunnerError, match="^formal_evaluator_bindings_required$"):
         run_transfer(
             output_root=tmp_path / "formal",
+            strict_reproducibility=True,
             workloads=("w01",),
             seeds=(1401,),
         )

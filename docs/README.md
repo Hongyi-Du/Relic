@@ -13,10 +13,10 @@ current release boundary rather than promising unavailable author assets.
 | [Protocol lifecycle](protocol_lifecycle.md) | What B3 records as proposal, adoption, use, enforcement, revision, and retirement |
 | [Inspector](inspector.md) | `relic-trace-v1`, replay, privacy, and network boundary |
 | [Transfer](transfer.md) | Final Text/Exec transfer design and its locked protocol bundle |
-| [Evaluator](evaluator.md) | Local source closure versus the formal-paper binding gap |
+| [Evaluator](evaluator.md) | Default local evaluator and optional strict bindings |
 | [Release scope](release-scope.md) | Branch topology, exclusions, and synchronization policy |
 | [Source provenance](source-provenance.md) | Frozen source closure and narrow release adaptations |
-| [Reproduction run report](REPRODUCTION_RUN_REPORT.md) | What was actually executed in the final local run |
-| [Known release gaps](KNOWN_RELEASE_GAPS.md) | Author, legal, tag, remote, and external benchmark dependencies |
+| [Historical reproduction report](REPRODUCTION_RUN_REPORT.md) | Earlier snapshot's local checks; not current release requirements |
+| [Scope and validation limits](KNOWN_RELEASE_GAPS.md) | Historical evidence and external benchmark boundaries |
 
 Paper-facing command and asset mapping lives in [`../reproduction/`](../reproduction/README.md).

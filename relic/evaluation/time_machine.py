@@ -833,9 +833,14 @@ def _formal_executor_blocking_reasons(
         reasons.append("formal_untrusted_execution_required")
     if policy.network_enabled:
         reasons.append("formal_network_isolation_required")
-    if not digest_pinned:
+    # A non-strict container binding is useful provenance for a local
+    # reproduction and may name a mutable tag or the host platform.  Those
+    # identities are deliberately warnings at the release layer; callers that
+    # need a formal, byte-reproducible claim set ``strict_reproducibility`` on
+    # the policy and get the historical hard gate here.
+    if bool(getattr(policy, "strict_reproducibility", True)) and not digest_pinned:
         reasons.append("formal_digest_pinned_image_required")
-    if not policy.container_platform:
+    if bool(getattr(policy, "strict_reproducibility", True)) and not policy.container_platform:
         reasons.append("formal_container_platform_required")
     if not callable(getattr(executor, "run_with_read_only_evaluator", None)):
         reasons.append("formal_read_only_evaluator_mount_required")

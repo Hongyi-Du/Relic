@@ -11,6 +11,15 @@ import yaml
 from relic.paths import benchmark_root
 
 
+# Benchmark packs contain exported third-party repositories.  Running local
+# tooling in one of those repositories can create ignored interpreter/linter
+# caches; these are host state rather than frozen benchmark content and must
+# not change the published pack digest.
+_TRANSIENT_TREE_DIRS = frozenset(
+    {".mypy_cache", ".pytest_cache", ".ruff_cache", ".tox", "__pycache__"}
+)
+
+
 def benchmark_directory() -> Path:
     return benchmark_root() / "relic-main-v1"
 
@@ -26,7 +35,12 @@ def load_benchmark_manifest() -> dict[str, Any]:
 def tree_digest(directory: Path) -> tuple[int, str]:
     """Hash a directory using the algorithm declared by the manifest."""
     digest = hashlib.sha256()
-    files = sorted(path for path in directory.rglob("*") if path.is_file())
+    files = sorted(
+        path
+        for path in directory.rglob("*")
+        if path.is_file()
+        and not any(part in _TRANSIENT_TREE_DIRS for part in path.relative_to(directory).parts)
+    )
     for path in files:
         relative = path.relative_to(directory).as_posix().encode("utf-8")
         file_digest = hashlib.sha256(path.read_bytes()).hexdigest().encode("ascii")
@@ -58,4 +72,3 @@ def verify_benchmark() -> list[str]:
     if extra:
         failures.append(f"unexpected pack directories: {', '.join(extra)}")
     return failures
-

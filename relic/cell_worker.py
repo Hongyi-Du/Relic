@@ -207,13 +207,26 @@ def _scoped_environment(values: Mapping[str, str]) -> Iterator[None]:
 
 
 def _runtime_model(model_config: Mapping[str, Any]) -> str:
+    for environment_name in (
+        "RELIC_RUNTIME_MODEL",
+        "ORG_LLM_RUNTIME_MODEL",
+        "OPENAI_MODEL",
+        "ORG_LLM_MODEL",
+    ):
+        override = str(os.environ.get(environment_name) or "").strip()
+        if override:
+            return override
     default = str(model_config.get("runtime_model_default") or "").strip()
     if default:
         return default
     environment_name = str(model_config.get("runtime_model_env") or "").strip()
     resolved = str(os.environ.get(environment_name) or "").strip() if environment_name else ""
     if not resolved:
-        raise CellWorkerError("runtime_model_binding_missing")
+        raise CellWorkerError(
+            "runtime_model_binding_missing:"
+            + (environment_name or "RELIC_RUNTIME_MODEL")
+            + "; set the named variable to the provider deployment name"
+        )
     return resolved
 
 
@@ -265,6 +278,8 @@ def _build_openai_client(spec: CellSpec) -> tuple[OpenAIOrgLLMClient, dict[str, 
 
 
 def _preflight_evaluator(spec: CellSpec) -> dict[str, Any]:
+    raw_mode = str(os.environ.get("RELIC_EVALUATOR_MODE") or "").strip().lower()
+    mode = raw_mode
     values = {
         "backend": str(os.environ.get("RELIC_EVALUATOR_BACKEND") or "").strip().lower(),
         "container_image": str(
@@ -274,21 +289,81 @@ def _preflight_evaluator(spec: CellSpec) -> dict[str, Any]:
             os.environ.get("RELIC_EVALUATOR_CONTAINER_PLATFORM") or ""
         ).strip(),
     }
-    missing = sorted(key for key, value in values.items() if not value)
+    if not mode:
+        # A partial ambient evaluator configuration is not an author binding;
+        # keep the normal local path usable until the operator explicitly asks
+        # for a container mode.
+        mode = (
+            "container"
+            if values["backend"] and values["container_image"]
+            else "local"
+        )
+    if mode not in {"local", "container"}:
+        raise CellWorkerError("formal_evaluator_mode_invalid")
+    strict = str(
+        os.environ.get("RELIC_EVALUATOR_STRICT_REPRODUCIBILITY") or "0"
+    ).strip().lower() in {"1", "true", "yes", "on"}
+    if mode == "local":
+        if strict:
+            raise CellWorkerError("strict_reproducibility_requires_container_evaluator")
+        # ``build_case_environment`` records the selected local backend as
+        # ``RELIC_EVALUATOR_BACKEND=local``.  That is the normal receipt
+        # identity, not a conflicting container binding.  Reject only
+        # container-specific values that would make the local mode ambiguous.
+        if raw_mode and (
+            values["backend"] not in {"", "local"}
+            or values["container_image"]
+            or values["container_platform"]
+        ):
+            raise CellWorkerError("local_evaluator_binding_conflict")
+        policy_payload = {
+            "trust_level": "trusted",
+            "backend": "local",
+            "container_image": None,
+            "container_platform": None,
+            "strict_reproducibility": False,
+            "network_enabled": False,
+        }
+        try:
+            plan = build_time_machine_evaluation_plan(
+                dataset_id=spec.dataset_id,
+                timeout_seconds=int(
+                    os.environ.get("ORG_OSS_QUALIFICATION_TIMEOUT", "180")
+                ),
+                executor=None,
+            )
+        except Exception as exc:
+            raise CellWorkerError("local_evaluator_preflight_error") from exc
+        if not plan.operational_ready:
+            raise CellWorkerError("local_evaluator_not_ready")
+        return {
+            "execution_policy": policy_payload,
+            "execution_policy_sha256": stable_sha256(policy_payload),
+            "qualification_plan_sha256": plan.plan_hash,
+            "evaluator_environment_sha256": plan.evaluator_environment_hash,
+            "dataset_id": plan.dataset_id,
+        }
+
+    missing = sorted(
+        key for key, value in values.items() if key in {"backend", "container_image"} and not value
+    )
+    if strict and not values["container_platform"]:
+        missing.append("container_platform")
     if missing:
         raise CellWorkerError("formal_evaluator_runtime_binding_missing:" + ",".join(missing))
     allowed = tuple(spec.study_config["formal_evaluator_policy"]["allowed_backends"])
     if values["backend"] not in allowed:
         raise CellWorkerError("formal_evaluator_backend_forbidden")
     expected_platform = str(spec.study_config["formal_evaluator_policy"]["platform"])
-    if values["container_platform"] != expected_platform:
+    if strict and values["container_platform"] != expected_platform:
         raise CellWorkerError("formal_evaluator_platform_mismatch")
     try:
         policy = ExecutionPolicy(
             trust_level="untrusted",
             backend=values["backend"],
             container_image=values["container_image"],
-            container_platform=values["container_platform"],
+            container_platform=values["container_platform"] or None,
+            strict_reproducibility=strict,
             network_enabled=False,
         )
         executor = build_command_executor(policy)
@@ -301,13 +376,14 @@ def _preflight_evaluator(spec: CellSpec) -> dict[str, Any]:
         raise
     except Exception as exc:
         raise CellWorkerError("formal_evaluator_preflight_error") from exc
-    if not plan.formal_ready:
+    if not plan.operational_ready:
         raise CellWorkerError("formal_evaluator_not_ready")
     policy_payload = {
         "trust_level": policy.trust_level,
         "backend": policy.backend,
         "container_image": policy.container_image,
         "container_platform": policy.container_platform,
+        "strict_reproducibility": policy.strict_reproducibility,
         "network_enabled": policy.network_enabled,
     }
     return {
@@ -379,6 +455,11 @@ def _validate_execution_binding(spec: CellSpec, binding: Mapping[str, Any]) -> N
 
 def _identity_environment(spec: CellSpec, binding: Mapping[str, Any]) -> dict[str, str]:
     evaluator = binding["evaluator"]
+    policy = evaluator.get("execution_policy")
+    if not isinstance(policy, Mapping):
+        raise CellWorkerError("execution_binding_policy_invalid")
+    backend = str(policy.get("backend") or "")
+    mode = "local" if backend == "local" else "container"
     return {
         "ORG_OSS_MODE": "formal",
         "ORG_OSS_DATASET": spec.dataset_id,
@@ -391,6 +472,20 @@ def _identity_environment(spec: CellSpec, binding: Mapping[str, Any]) -> dict[st
         "ORG_SOURCE_PROVENANCE_FINGERPRINT": spec.source_provenance_fingerprint,
         "ORG_MODEL_BINDING_FINGERPRINT": str(binding["model_binding_sha256"]),
         "ORG_EXECUTION_RESOURCE_BUDGET_FINGERPRINT": spec.resource_budget.fingerprint,
+        "ORG_EVALUATOR_MODE": mode,
+        "ORG_EVALUATOR_BACKEND": backend,
+        "ORG_EVALUATOR_STRICT_REPRODUCIBILITY": (
+            "1"
+            if bool(policy.get("strict_reproducibility", False))
+            else "0"
+        ),
+        "RELIC_EVALUATOR_MODE": mode,
+        "RELIC_EVALUATOR_BACKEND": backend,
+        "RELIC_EVALUATOR_STRICT_REPRODUCIBILITY": (
+            "1"
+            if bool(policy.get("strict_reproducibility", False))
+            else "0"
+        ),
         "RELIC_EVALUATOR_EXPECTED_ENVIRONMENT_HASH": str(
             evaluator["evaluator_environment_sha256"]
         ),

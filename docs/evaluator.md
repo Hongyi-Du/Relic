@@ -4,9 +4,10 @@ Relic's OSS time-machine evaluator has two distinct layers:
 
 1. A public, source-derived Python environment and qualification path, included
    here so a fresh checkout can build and smoke-test the evaluator runtime.
-2. The paper evaluator binding: an author-published immutable image reference
-   and per-pack qualification hashes. That binding is not present in the
-   available source assets, so paper runs remain fail-closed.
+2. An optional evaluator binding: an operator or author may supply an immutable
+   image reference and per-pack qualification hashes as reproducibility
+   provenance. The default reproduction path runs the public evaluator on the
+   host and records the observed evaluator metadata.
 
 The build context and tools are ported from
 `SocioGenesis/hci-human-seat@dda36fb563375060ae8d8850300db01eb4695d29`:
@@ -19,7 +20,9 @@ The build context and tools are ported from
 The release adaptation deliberately removes the source build proxy argument,
 development-machine paths, private registry assumptions, and repository-specific
 ProgramBench images. It retains the existing `relic.evaluation` isolated,
-network-disabled executor and the source-backed `run-main` binding gate.
+network-disabled executor and the source-backed evaluator contract. A strict
+reproducibility run can restore the binding gate with
+`--strict-reproducibility`.
 
 ## Local source-closure check
 
@@ -43,6 +46,21 @@ The equivalent thin checkout wrapper is:
 ```bash
 uv run python tools/build_evaluator_image.py --smoke
 ```
+
+To verify the public host evaluator without an API key or model call, run:
+
+```bash
+env RELIC_EVALUATOR_MODE=local \
+  RELIC_EVALUATOR_BACKEND=local \
+  RELIC_EVALUATOR_STRICT_REPRODUCIBILITY=0 \
+  RELIC_EVALUATOR_CONTAINER_IMAGE= \
+  RELIC_EVALUATOR_CONTAINER_PLATFORM= \
+  uv run python -c 'from pathlib import Path; from relic.cell_spec import compile_cell_spec; from relic.cell_worker import _preflight_evaluator; s=compile_cell_spec(model="gpt-5.6-terra", workload="W01", arm="B0", seed=1401, output_root=Path("/tmp/relic-local-evaluator-smoke")); b=_preflight_evaluator(s); print({"backend": b["execution_policy"]["backend"], "dataset": b["dataset_id"], "plan_hash": b["qualification_plan_sha256"]})'
+```
+
+The output reports the selected local backend, dataset, and qualification plan
+hash. It is an operational smoke check; it does not create historical paper
+evidence.
 
 ## Local qualification diagnostics
 
@@ -81,15 +99,14 @@ the wall-clock timestamp and is deterministic for identical observed inputs.
 
 ## What these commands do not establish
 
-A local Docker image ID (`sha256:...`) and locally calculated hashes are not a
-published evaluator image digest or a paper qualification binding. In
-particular, do not turn their output into an `--evaluator-bindings` file.
-`relic run-main` accepts only digest-pinned registry references of the form
-`...@sha256:<64-hex>` and still requires author-supplied per-pack bindings
-before it starts any provider process.
+A local Docker image ID (`sha256:...`) and locally calculated hashes are not an
+author-published evaluator image digest or paper qualification binding. They
+remain useful local provenance, but do not describe them as historical paper
+evidence. A non-strict run may use an explicit operator binding with a tag or
+omitted platform; strict mode accepts only digest-pinned values.
 
-The following required release inputs were not found in the available HCI or
-other source branches and remain explicit gaps:
+The following historical provenance assets are not included in the available
+source branches:
 
 - the author-published immutable evaluator registry digest(s);
 - the author-approved per-pack evaluator-environment and qualification-plan
@@ -97,10 +114,15 @@ other source branches and remain explicit gaps:
 - the first-author leaf-case / contract scoring ledger needed to expose
   paper-named user aggregate metrics.
 
-Until those assets are supplied, `check-env --scope formal`, formal smoke, and
-non-dry-run paper reproduction must remain fail-closed. A successful local
-build or preflight is useful source-closure evidence only, not a reproduction
-claim.
+These assets are optional for normal local runs and for publishing this source
+release. They matter only when making a historical byte-level reproducibility
+claim or reconstructing paper-named aggregate evidence.
+
+`check-env --scope formal` and `smoke --mode formal` remain strict diagnostics
+for a formally reproducible container claim. They can report a missing binding
+even though the normal `run-main`, `run-transfer`, and legacy cell paths are
+allowed to use the host evaluator. A successful local build or preflight is
+useful source-closure evidence only, not a historical paper claim.
 
 ## Release scope
 

@@ -540,8 +540,9 @@ def main() -> None:
         emit("")
         emit("  WARNING: no final evaluation was produced, so this run has no "
              "oss_hidden_pass_rate.")
-        emit("  run_oss_final_evaluation requires ORG_OSS_MODE=formal with a "
-             "container binding, or ORG_OSS_MODE=pilot with a Bubblewrap venv.")
+        emit("  run_oss_final_evaluation requires the public host evaluator by "
+             "default, a supplied container binding, or ORG_OSS_MODE=pilot "
+             "with a Bubblewrap venv.")
         evaluation_missing = "final_evaluation_not_produced:run_oss_final_evaluation_disabled"
     else:
         evaluation_missing = None

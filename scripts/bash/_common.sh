@@ -44,10 +44,12 @@ relic_load_repo_env() {
         # indirect execution primitive. Keep this list aligned with the public
         # environment contract instead.
         case "$key" in
-            OPENAI_API_KEY | OPENAI_BASE_URL | \
+            OPENAI_API_KEY | OPENAI_BASE_URL | OPENAI_MODEL | \
             RELIC_OPENAI_DEFAULT_HEADERS_JSON | RELIC_OPENAI_DISABLE_RESPONSE_STORAGE | \
+            RELIC_EVALUATOR_MODE | RELIC_EVALUATOR_STRICT_REPRODUCIBILITY | \
             RELIC_EVALUATOR_BACKEND | RELIC_EVALUATOR_CONTAINER_IMAGE | \
-            RELIC_EVALUATOR_CONTAINER_PLATFORM | RELIC_OUTPUT_ROOT | \
+            RELIC_EVALUATOR_CONTAINER_PLATFORM | RELIC_RUNTIME_MODEL | \
+            ORG_LLM_RUNTIME_MODEL | RELIC_OUTPUT_ROOT | \
             RELIC_BENCHMARK_ROOT | RELIC_CACHE_ROOT | RELIC_INSPECTOR_PORT | \
             RELIC_UID | RELIC_GID | RELIC_TRACE_FILE | \
             RELIC_CLAUDE_OPUS_4_6_MODEL | \

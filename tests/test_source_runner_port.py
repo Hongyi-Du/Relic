@@ -177,7 +177,7 @@ def test_source_case_environment_bridges_one_explicit_evaluator_binding() -> Non
     ]
 
 
-def test_formal_source_main_requires_bindings_before_source_invocation(
+def test_strict_source_main_requires_bindings_before_source_invocation(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     def forbidden(*_args: object, **_kwargs: object) -> int:
@@ -188,6 +188,7 @@ def test_formal_source_main_requires_bindings_before_source_invocation(
         run_source_main(
             model="gpt-5.6-terra",
             output_root=tmp_path / "formal",
+            strict_reproducibility=True,
             workloads=("w01",),
             seeds=(1401,),
         )
