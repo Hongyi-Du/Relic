@@ -1054,6 +1054,8 @@ def build_trace(
     organization_id: str,
     config_digest: str,
     frames: list[dict[str, Any]],
+    run_metadata: Mapping[str, Any] | None = None,
+    evaluation_annotations: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Build, validate, and digest a public trace from curated public frames."""
 
@@ -1069,6 +1071,10 @@ def build_trace(
         },
         "frames": frames,
     }
+    if run_metadata is not None:
+        trace["run_metadata"] = dict(run_metadata)
+    if evaluation_annotations is not None:
+        trace["evaluation_annotations"] = list(evaluation_annotations)
     validate_trace(trace, verify_digest=False)
     trace["trace_sha256"] = canonical_sha256(trace)
     return validate_trace(trace)

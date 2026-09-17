@@ -252,10 +252,15 @@ def _status(args: argparse.Namespace) -> int:
 
 
 def _replay_trace(args: argparse.Namespace) -> int:
-    from relic.replay import load_trace
+    from relic.replay import load_trace, resolve_public_trace_path
 
     try:
-        trace = load_trace(args.trace)
+        path = resolve_public_trace_path(
+            trace_path=args.trace,
+            run_directory=args.run_dir,
+            cell_directory=args.cell_dir,
+        )
+        trace = load_trace(path)
     except (OSError, ValueError) as exc:
         print(json.dumps({"status": "failed", "error": str(exc)}), file=sys.stderr)
         return 2
@@ -284,10 +289,16 @@ def _replay_trace(args: argparse.Namespace) -> int:
 
 def _inspect_trace(args: argparse.Namespace) -> int:
     from relic.inspector import serve_inspector
+    from relic.replay import resolve_public_trace_path
 
     try:
-        serve_inspector(
+        path = resolve_public_trace_path(
             trace_path=args.trace,
+            run_directory=args.run_dir,
+            cell_directory=args.cell_dir,
+        )
+        serve_inspector(
+            trace_path=path,
             host=args.host,
             port=args.port,
             mode=args.mode,
@@ -298,6 +309,45 @@ def _inspect_trace(args: argparse.Namespace) -> int:
     except (OSError, ValueError) as exc:
         print(json.dumps({"status": "failed", "error": str(exc)}), file=sys.stderr)
         return 2
+    return 0
+
+
+def _export_trace(args: argparse.Namespace) -> int:
+    """Validate and optionally copy an already exported public trace.
+
+    This command does not reconstruct a trace from private checkpoints or a
+    legacy replay.  New source runs export incrementally while their public
+    state is available; historic records without that asset remain a gap.
+    """
+
+    from relic.replay import copy_public_trace_prefix, load_trace, resolve_public_trace_path
+
+    try:
+        path = resolve_public_trace_path(
+            trace_path=args.trace,
+            run_directory=args.run_dir,
+            cell_directory=args.cell_dir,
+        )
+        if args.output is not None:
+            path = copy_public_trace_prefix(path, args.output)
+        trace = load_trace(path)
+    except (OSError, ValueError) as exc:
+        print(json.dumps({"status": "failed", "error": str(exc)}), file=sys.stderr)
+        return 2
+    print(
+        json.dumps(
+            {
+                "schema_version": "relic-public-trace-export-v1",
+                "status": "passed",
+                "trace_path": str(path),
+                "trace_sha256": trace["trace_sha256"],
+                "frames": len(trace["frames"]),
+                "run_id": trace["run_id"],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
     return 0
 
 
@@ -312,6 +362,21 @@ def _add_inspector_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--open-browser", action="store_true")
     parser.add_argument("--verbose", action="store_true")
     parser.add_argument("--allow-remote", action="store_true")
+
+
+def _add_trace_source_arguments(parser: argparse.ArgumentParser) -> None:
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--trace", type=Path)
+    source.add_argument(
+        "--run-dir",
+        type=Path,
+        help="source-run directory containing public/relic-trace-v1.json",
+    )
+    source.add_argument(
+        "--cell-dir",
+        type=Path,
+        help="single-cell directory containing public/relic-trace-v1.json",
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -478,15 +543,28 @@ def build_parser() -> argparse.ArgumentParser:
     replay = subparsers.add_parser(
         "replay", help="validate and summarize one public relic-trace-v1 file"
     )
-    replay.add_argument("--trace", type=Path, required=True)
+    _add_trace_source_arguments(replay)
     replay.set_defaults(func=_replay_trace)
 
     inspect = subparsers.add_parser(
         "inspect", help="open the public Inspector for a relic-trace-v1 file"
     )
-    inspect.add_argument("--trace", type=Path, required=True)
+    _add_trace_source_arguments(inspect)
     _add_inspector_arguments(inspect)
     inspect.set_defaults(func=_inspect_trace)
+
+    export_trace = subparsers.add_parser(
+        "export-trace",
+        help="validate or copy one already-exported public relic-trace-v1 file",
+    )
+    _add_trace_source_arguments(export_trace)
+    export_trace.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help="new destination for a verified immutable public trace copy",
+    )
+    export_trace.set_defaults(func=_export_trace)
 
     evaluate = subparsers.add_parser(
         "evaluate",

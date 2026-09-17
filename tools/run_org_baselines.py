@@ -80,6 +80,12 @@ from relic.research.process_compat import (  # noqa: E402
     new_process_group_kwargs,
     terminate_process_tree,
 )
+from relic.replay import load_trace  # noqa: E402
+from relic.replay.source_export import (  # noqa: E402
+    SourceTraceExportError,
+    append_run_record_evidence,
+    public_trace_path,
+)
 
 DEFAULT_CASES = ("b0", "b1", "b2", "b3")
 # A direct source-runner invocation is one paired four-arm batch.  The
@@ -1000,6 +1006,24 @@ def _case_record_path(result: Mapping[str, object]) -> Path | None:
     return None
 
 
+def _case_public_trace_path(run_folder: str | None) -> tuple[str | None, str | None]:
+    """Return a verified public trace locator, never a private replay locator."""
+
+    if not run_folder:
+        return None, None
+    candidate = public_trace_path(Path(run_folder))
+    if candidate.is_symlink() or not candidate.is_file():
+        return None, "public_trace_missing"
+    try:
+        load_trace(candidate)
+    except (OSError, ValueError):
+        return None, "public_trace_invalid"
+    try:
+        return os.path.relpath(candidate.resolve(), REPO_ROOT), None
+    except ValueError:
+        return None, "public_trace_outside_repository"
+
+
 def _formal_case_record_errors(
     plan: CasePlan,
     record_path: Path,
@@ -1743,6 +1767,7 @@ def _run_case(
                 REPO_ROOT,
             )
             llm_usage = _load_llm_usage(candidate_record)
+    public_trace, public_trace_error = _case_public_trace_path(run_folder)
     child_failure = _child_failure_evidence(
         returncode=returncode,
         stderr=stderr,
@@ -1767,6 +1792,7 @@ def _run_case(
             "passed"
             if returncode == 0
             and experiment_run_record is not None
+            and public_trace is not None
             and treatment_failure is None
             and not formal_record_errors
             else ("timeout" if timed_out else "failed")
@@ -1774,6 +1800,7 @@ def _run_case(
         "returncode": returncode,
         "run_folder": run_folder,
         "experiment_run_record": experiment_run_record,
+        "public_trace": public_trace,
         "llm_usage": llm_usage,
         "resume": {
             "used_checkpoint": resume_checkpoint is not None,
@@ -1810,19 +1837,28 @@ def _run_case(
             "formal_record_validation_failed:"
             + "|".join(formal_record_errors)
         )
+    elif public_trace_error and returncode == 0 and experiment_run_record is not None:
+        result["failure_reason"] = public_trace_error
     elif timed_out:
         result["failure_reason"] = "case_wall_clock_timeout"
     (plan.output_dir / "case_result.json").write_text(
         json.dumps(result, indent=2, sort_keys=True),
         encoding="utf-8",
     )
-    _stamp_verdict_on_run_record(result, run_folder)
+    trace_update_error = _stamp_verdict_on_run_record(result, run_folder)
+    if trace_update_error is not None:
+        result["status"] = "failed"
+        result["failure_reason"] = trace_update_error
+        (plan.output_dir / "case_result.json").write_text(
+            json.dumps(result, indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
     return result
 
 
 def _stamp_verdict_on_run_record(
     result: Mapping[str, Any], run_folder: str | None
-) -> None:
+) -> str | None:
     """Write the batch's verdict back into the run's own record.
 
     The record is written by the child process before this verdict is computed,
@@ -1836,14 +1872,14 @@ def _stamp_verdict_on_run_record(
     case has no second line of defence.
     """
     if not run_folder or str(result.get("status")) == "passed":
-        return
+        return None
     record_path = Path(run_folder) / "experiment_run_record.json"
     if not record_path.is_file():
-        return
+        return None
     try:
         record = json.loads(record_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        return
+        return "public_trace_verdict_record_unreadable"
     record["status"] = str(result.get("status") or "failed")
     reason = result.get("failure_reason")
     if reason:
@@ -1859,7 +1895,13 @@ def _stamp_verdict_on_run_record(
             encoding="utf-8",
         )
     except OSError:
-        return
+        return "public_trace_verdict_record_write_failed"
+    trace_path = public_trace_path(Path(run_folder))
+    try:
+        append_run_record_evidence(trace_path, record)
+    except SourceTraceExportError:
+        return "public_trace_verdict_append_failed"
+    return None
 
 
 def _transfer_source_bundle(args: argparse.Namespace) -> str:
