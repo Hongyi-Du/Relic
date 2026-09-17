@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime as dt
 import os
 import shutil
 from pathlib import Path
@@ -13,6 +14,7 @@ from environments.org_env.product.substrates.final_evaluation import (
     FINAL_EVIDENCE_SCHEMA_VERSION,
     run_final_evaluation,
     validate_final_evaluation_evidence,
+    write_experiment_run_record,
 )
 from environments.org_env.product.substrates.loader import load_oss_substrate_spec
 from relic.evaluation.execution import (
@@ -200,3 +202,18 @@ def test_final_evaluator_dependency_injection_uses_source_schema(
         dataset_manifest=spec.manifest,
     )
     assert normalized["artifact_hash"] == artifact.payload["artifact_hash"]
+
+    record = write_experiment_run_record(
+        world,
+        tmp_path / "experiment_run_record.json",
+        final_evaluator=artifact,
+        started_at=dt.datetime(2026, 9, 17, tzinfo=dt.timezone.utc),
+        status="completed",
+        checkpoint=None,
+    )
+    for field in (
+        "starter_repo_digest",
+        "reference_repo_digest",
+        "candidate_repo_digest",
+    ):
+        assert record[field] == artifact.payload[field]

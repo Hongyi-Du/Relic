@@ -8,11 +8,12 @@ import hashlib
 import json
 import os
 import re
-import stat
 from collections.abc import Mapping
 from enum import Enum
 from pathlib import Path
 from typing import Any
+
+from relic.research.repository_digest import repository_digest as _source_repository_digest
 
 MappingSource = Mapping[str, Any] | str | os.PathLike[str]
 _SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
@@ -140,109 +141,7 @@ def file_sha256(path: str | os.PathLike[str]) -> str:
 def repository_digest(path: str | os.PathLike[str]) -> str:
     """Use the same repository digest as the frozen final evaluator."""
 
-    root = Path(path).expanduser().resolve()
-    if not root.is_dir():
-        raise ValueError(f"repository path is not a directory: {root}")
-    files: list[tuple[object, ...]] = []
-    for candidate in sorted(root.rglob("*")):
-        if _repo_entry_ignored(candidate, root):
-            continue
-        relative = candidate.relative_to(root).as_posix()
-        try:
-            metadata = candidate.lstat()
-        except OSError:
-            files.append((relative, "unreadable_entry"))
-            continue
-        if stat.S_ISLNK(metadata.st_mode):
-            try:
-                target = os.readlink(candidate)
-            except OSError:
-                target = "unreadable"
-            files.append((relative, "symlink", target, metadata.st_mode))
-        elif stat.S_ISREG(metadata.st_mode):
-            try:
-                digest = file_sha256(candidate)
-            except OSError:
-                files.append(
-                    (
-                        relative,
-                        "unreadable_file",
-                        metadata.st_size,
-                        metadata.st_mtime_ns,
-                        metadata.st_mode,
-                    )
-                )
-            else:
-                files.append(
-                    (
-                        relative,
-                        "file",
-                        metadata.st_size,
-                        metadata.st_mode,
-                        digest,
-                    )
-                )
-        else:
-            entry_type = "directory" if stat.S_ISDIR(metadata.st_mode) else "other"
-            files.append((relative, entry_type, metadata.st_mode))
-    return stable_fingerprint(
-        {
-            "files": files,
-            "dependency_state": _dependency_state_inputs(root),
-        }
-    )
-
-
-def _repo_entry_ignored(path: Path, root: Path) -> bool:
-    return any(
-        part
-        in {
-            ".git",
-            ".mypy_cache",
-            ".pytest_cache",
-            ".ruff_cache",
-            ".venv",
-            "__pycache__",
-            "node_modules",
-            "outputs",
-        }
-        for part in path.relative_to(root).parts
-    )
-
-
-def _dependency_state_inputs(
-    root: Path,
-) -> tuple[tuple[object, ...], ...]:
-    entries: list[tuple[object, ...]] = []
-    for name in ("node_modules", ".venv"):
-        dependency_root = root / name
-        if dependency_root.is_symlink() or not dependency_root.is_dir():
-            continue
-        for path in sorted(dependency_root.rglob("*")):
-            relative = path.relative_to(root).as_posix()
-            try:
-                metadata = path.lstat()
-            except OSError:
-                continue
-            if path.is_symlink():
-                try:
-                    target = path.readlink().as_posix()
-                except OSError:
-                    target = "unreadable"
-                entries.append((relative, "symlink", target, metadata.st_mtime_ns))
-            elif path.is_file():
-                entries.append(
-                    (
-                        relative,
-                        "file",
-                        metadata.st_size,
-                        metadata.st_mtime_ns,
-                        metadata.st_mode,
-                    )
-                )
-            elif path.is_dir():
-                entries.append((relative, "directory", metadata.st_mode))
-    return tuple(entries)
+    return _source_repository_digest(path)
 
 
 def directory_content_hash(path: str | os.PathLike[str]) -> str:
