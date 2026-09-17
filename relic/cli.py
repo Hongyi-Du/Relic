@@ -172,6 +172,15 @@ def _run_main(args: argparse.Namespace) -> int:
         print(json.dumps({"status": "interrupted", "error": "scheduler_interrupted"}), file=sys.stderr)
         return 130
     print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
+    if result.parallelism_warning:
+        print(
+            "WARNING: requested --max-parallel "
+            f"{result.requested_max_parallel} exceeds the visible-RAM recommendation "
+            f"of {result.recommended_max_parallel} (about 16 GiB per active cell; "
+            f"{result.visible_memory_gib:.2f} GiB visible). On WSL2, also check the "
+            "WSL/Docker memory limit.",
+            file=sys.stderr,
+        )
     if args.dry_run:
         print(
             "Dry run only: no provider or condition subprocess was started; "

@@ -22,6 +22,7 @@ LAUNCHERS = {
     "run_transfer": "run_transfer",
     "evaluate": "evaluate",
     "start_inspector": "start_inspector",
+    "build_paper_results": "build_paper_results",
 }
 
 
