@@ -29,6 +29,9 @@ forming a new one.
 from __future__ import annotations
 
 import copy
+from hashlib import sha256
+import json
+import re
 from typing import Any, Mapping, Sequence
 
 from environments.org_env.experiments.capability_carriers import (
@@ -37,7 +40,44 @@ from environments.org_env.experiments.capability_carriers import (
     canonical_capability,
 )
 
-BUNDLE_SCHEMA_VERSION = "org_capability_bundle_v1"
+BUNDLE_SCHEMA_VERSION_V1 = "org_capability_bundle_v1"
+BUNDLE_SCHEMA_VERSION_V2 = "org_capability_bundle_v2"
+# Keep the default export format pinned to v1.  V2 is an opt-in, curated
+# transfer artifact with closed machine bindings; accepting it must not alter
+# historic v1 bundle semantics.
+BUNDLE_SCHEMA_VERSION = BUNDLE_SCHEMA_VERSION_V1
+SUPPORTED_BUNDLE_SCHEMA_VERSIONS = (
+    BUNDLE_SCHEMA_VERSION_V1,
+    BUNDLE_SCHEMA_VERSION_V2,
+)
+
+CANONICAL_V1_SHA256 = "ce3c96cd2263c79e2a53a4969167f52a61814f32ab14dfa83d0a9e7fda44cff5"
+CANONICAL_V1_GIT_COMMIT = "d7353db891b2b66e66116cbce8db1dcba4faf3b5"
+CANONICAL_V2_BUNDLE_SHA256 = "a627adfcf6c299d0fabb185345bbc01106ea6901380aa0fbfee37c830ad8cdb6"
+
+_V2_TOP_LEVEL_KEYS = frozenset(
+    {
+        "schema_version",
+        "source_repository_id",
+        "source_seed",
+        "source_tick",
+        "provenance",
+        "protocols",
+        "documents",
+        "roster",
+        "capabilities",
+    }
+)
+_V2_PROVENANCE_KEYS = frozenset(
+    {
+        "roster_source",
+        "roster_source_sha256",
+        "roster_snapshot_sha256",
+        "roster_source_git_commit",
+        "protocol_source_repository_id",
+        "curation",
+    }
+)
 
 ROSTER_ORIGIN_RETAINED = "retained_source_roster"
 ROSTER_ORIGIN_FRESH = "fresh_roster"
@@ -72,16 +112,11 @@ TEXT_ONLY_DOC_TYPE = "inherited_capability_description"
 
 
 def _adopted_protocols(world: Any) -> list[Any]:
-    from environments.org_env.backend.protocol.registry import (
-        protocol_is_live,
-    )
-
     registry = getattr(world, "protocol_registry", None)
     return [
         protocol
         for protocol in (getattr(registry, "protocols", {}) or {}).values()
-        if protocol_is_live(protocol)
-        and str(getattr(protocol, "adoption_status", "")) == "adopted"
+        if str(getattr(protocol, "adoption_status", "")) == "adopted"
     ]
 
 
@@ -166,15 +201,118 @@ def export_capability_bundle(
 
 
 def validate_capability_bundle(bundle: Mapping[str, Any]) -> None:
-    if bundle.get("schema_version") != BUNDLE_SCHEMA_VERSION:
+    """Validate a legacy v1 or sealed canonical v2 transfer bundle."""
+
+    schema_version = bundle.get("schema_version")
+    if schema_version not in SUPPORTED_BUNDLE_SCHEMA_VERSIONS:
         raise ValueError(
             f"capability_bundle_schema_unsupported:{bundle.get('schema_version')}"
         )
-    if not str(bundle.get("source_repository_id") or ""):
+    source_repository_id = str(bundle.get("source_repository_id") or "")
+    if not source_repository_id.strip():
         raise ValueError("capability_bundle_source_repository_required")
     for key in ("protocols", "documents", "roster"):
         if not isinstance(bundle.get(key), list):
             raise ValueError(f"capability_bundle_{key}_must_be_a_list")
+    if schema_version != BUNDLE_SCHEMA_VERSION_V2:
+        return
+
+    from environments.org_env.policy.compiled_protocols import (
+        validate_protocol_row_v2,
+    )
+
+    keys = frozenset(bundle.keys())
+    if keys != _V2_TOP_LEVEL_KEYS:
+        missing = sorted(_V2_TOP_LEVEL_KEYS - keys)
+        unknown = sorted(keys - _V2_TOP_LEVEL_KEYS)
+        raise ValueError(
+            "capability_bundle_v2_top_level_schema_mismatch:"
+            f"missing={','.join(missing)}:unknown={','.join(unknown)}"
+        )
+    provenance = bundle.get("provenance")
+    if (
+        not isinstance(provenance, Mapping)
+        or frozenset(provenance.keys()) != _V2_PROVENANCE_KEYS
+    ):
+        raise ValueError("capability_bundle_v2_provenance_schema_mismatch")
+    for key in _V2_PROVENANCE_KEYS:
+        if not str(provenance.get(key) or "").strip():
+            raise ValueError(f"capability_bundle_v2_provenance_{key}_required")
+    for field in ("source_seed", "source_tick"):
+        value = bundle.get(field)
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise ValueError(f"capability_bundle_v2_{field}_must_be_nonnegative_int")
+    if re.fullmatch(
+        r"[0-9a-f]{64}", str(provenance.get("roster_source_sha256") or "")
+    ) is None:
+        raise ValueError("capability_bundle_v2_roster_source_sha256_invalid")
+    if re.fullmatch(
+        r"[0-9a-f]{40}", str(provenance.get("roster_source_git_commit") or "")
+    ) is None:
+        raise ValueError("capability_bundle_v2_roster_source_git_commit_invalid")
+    roster = bundle.get("roster") or []
+    roster_ids: list[str] = []
+    for index, member in enumerate(roster):
+        if not isinstance(member, Mapping):
+            raise ValueError(f"capability_bundle_v2_roster_{index}_must_be_an_object")
+        agent_id = str(member.get("agent_id") or "")
+        if not agent_id:
+            raise ValueError(f"capability_bundle_v2_roster_{index}_agent_id_required")
+        roster_ids.append(agent_id)
+    if len(set(roster_ids)) != len(roster_ids):
+        raise ValueError("capability_bundle_v2_roster_agent_ids_must_be_unique")
+    roster_projection = json.dumps(
+        roster,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
+    if str(provenance.get("roster_snapshot_sha256") or "") != sha256(
+        roster_projection
+    ).hexdigest():
+        raise ValueError("capability_bundle_v2_roster_snapshot_hash_mismatch")
+    if bundle.get("documents") != []:
+        raise ValueError("capability_bundle_v2_documents_must_be_empty")
+    protocols = bundle.get("protocols") or []
+    if not protocols:
+        raise ValueError("capability_bundle_v2_protocols_required")
+    seen: set[str] = set()
+    for row in protocols:
+        if not isinstance(row, Mapping):
+            raise ValueError("capability_bundle_v2_protocol_row_must_be_an_object")
+        validate_protocol_row_v2(row)
+        protocol_id = str(row.get("protocol_id") or "")
+        if protocol_id in seen:
+            raise ValueError(f"capability_bundle_v2_duplicate_protocol:{protocol_id}")
+        seen.add(protocol_id)
+    expected_capabilities = sorted(
+        {str(row.get("capability") or "") for row in protocols}
+    )
+    if bundle.get("capabilities") != expected_capabilities:
+        raise ValueError("capability_bundle_v2_capabilities_mismatch")
+    if source_repository_id == "canonical_v2":
+        if (
+            str(provenance.get("roster_source_sha256") or "")
+            != CANONICAL_V1_SHA256
+            or str(provenance.get("roster_source_git_commit") or "")
+            != CANONICAL_V1_GIT_COMMIT
+            or str(provenance.get("protocol_source_repository_id") or "")
+            != "canonical_v1"
+            or capability_bundle_sha256(bundle) != CANONICAL_V2_BUNDLE_SHA256
+        ):
+            raise ValueError("capability_bundle_v2_canonical_identity_mismatch")
+
+
+def capability_bundle_sha256(bundle: Mapping[str, Any]) -> str:
+    """Content identity for the exact validated transfer input."""
+
+    encoded = json.dumps(
+        bundle,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
+    return sha256(encoded).hexdigest()
 
 
 def _inject_roster(world: Any, roster: Sequence[Mapping[str, Any]]) -> list[str]:
@@ -226,8 +364,15 @@ def _inherited_id(protocol_id: str) -> str:
     return f"{INHERITED_PREFIX}{base}" if base else ""
 
 
-def _inherited_spec(world: Any, registry_id: str, row: Mapping[str, Any],
-                    tick: int, index: int) -> str:
+def _inherited_spec(
+    world: Any,
+    registry_id: str,
+    row: Mapping[str, Any],
+    tick: int,
+    index: int,
+    *,
+    bundle_schema_version: str = BUNDLE_SCHEMA_VERSION_V1,
+) -> str:
     """Give a transferred rule the spec that makes it countable and repairable.
 
     Injection wrote only to ``protocol_registry``, but every counter and every
@@ -247,22 +392,69 @@ def _inherited_spec(world: Any, registry_id: str, row: Mapping[str, Any],
     spec_id = f"protospec_inherited{index}"
     rule = str(row.get("rule_summary") or "")
     supporters = [str(value) for value in (row.get("supporters") or []) if str(value)]
-    spec = ProtocolSpec(
-        protocol_id=spec_id,
-        name=rule[:80],
-        # The counters select a spec by keyword against name + trigger +
-        # enforcement, so the rule has to be readable in all three or an
-        # inherited protocol is invisible to the very moments it governs.
-        trigger_condition=rule,
-        enforcement_rule=rule,
-        family=str(row.get("protocol_type") or ""),
-        scope=str(row.get("scope") or ""),
-        status="adopted",
-        proposed_by=supporters[0] if supporters else "inherited",
-        adopted_by=list(supporters),
-        created_at_tick=tick,
-        adopted_at_tick=tick,
-    )
+    common = {
+        "protocol_id": spec_id,
+        "name": str(row.get("name") or rule[:80]),
+        "family": str(row.get("protocol_type") or ""),
+        "status": "adopted",
+        "proposed_by": supporters[0] if supporters else "inherited",
+        "adopted_by": list(supporters),
+        "created_at_tick": tick,
+        "adopted_at_tick": tick,
+    }
+    if bundle_schema_version == BUNDLE_SCHEMA_VERSION_V2:
+        from environments.org_env.policy.compiled_protocols import (
+            BINDING_SCHEMA_VERSION,
+            compile_protocol_row_v2,
+        )
+
+        structured = row.get("spec") or {}
+        bindings, binding_hash = compile_protocol_row_v2(row)
+        spec = ProtocolSpec(
+            **common,
+            trigger_condition=str(structured.get("trigger_condition") or ""),
+            required_steps=copy.deepcopy(structured.get("required_steps") or []),
+            required_fields=copy.deepcopy(structured.get("required_fields") or []),
+            enforcement_rule=str(structured.get("enforcement_rule") or ""),
+            violation_condition=str(structured.get("violation_condition") or ""),
+            exception_rule=(
+                str(structured.get("exception_rule"))
+                if structured.get("exception_rule") is not None
+                else None
+            ),
+            problem_evidence=copy.deepcopy(structured.get("problem_evidence") or []),
+            scope=str(structured.get("scope") or row.get("scope") or ""),
+            responsible_roles=copy.deepcopy(
+                structured.get("responsible_roles") or {}
+            ),
+            success_metric=str(structured.get("success_metric") or ""),
+            enforcement_action=str(structured.get("enforcement_action") or ""),
+            sunset_rule=str(structured.get("sunset_rule") or ""),
+            affected_agents=copy.deepcopy(structured.get("affected_agents") or []),
+            affected_actions=copy.deepcopy(structured.get("affected_actions") or []),
+            affected_artifacts=copy.deepcopy(
+                structured.get("affected_artifacts") or []
+            ),
+            binding_schema_version=BINDING_SCHEMA_VERSION,
+            machine_bindings=bindings,
+            binding_source_protocol_id=str(row.get("protocol_id") or ""),
+            binding_spec_snapshot=copy.deepcopy(dict(structured)),
+            binding_row_snapshot=copy.deepcopy({**dict(row), "bindings": bindings}),
+            binding_hash=binding_hash,
+            compiler_status="compiled",
+            benefits=copy.deepcopy(structured.get("benefits") or []),
+            costs=copy.deepcopy(structured.get("costs") or []),
+            risks=copy.deepcopy(structured.get("risks") or []),
+        )
+    else:
+        spec = ProtocolSpec(
+            **common,
+            # Legacy rows remain advisory and retain the historic readable
+            # keyword path; only curated v2 rows receive machine bindings.
+            trigger_condition=rule,
+            enforcement_rule=rule,
+            scope=str(row.get("scope") or ""),
+        )
     manager.protocol_specs[spec_id] = spec
     # The mirror id is derived from the spec id by string elsewhere, which
     # cannot produce a namespaced id; state the pairing instead of deriving it.
@@ -282,11 +474,42 @@ def _inject_executable(
     from environments.org_env.backend.entities import Document
 
     registry = getattr(world, "protocol_registry", None)
+    is_v2 = str(bundle.get("schema_version") or "") == BUNDLE_SCHEMA_VERSION_V2
+    if is_v2:
+        manager = getattr(world, "proposal_manager", None)
+        if registry is None:
+            raise ValueError("capability_bundle_v2_protocol_registry_required")
+        if manager is None or not hasattr(manager, "protocol_specs"):
+            raise ValueError("capability_bundle_v2_proposal_manager_required")
+        proposed_ids = [
+            _inherited_id(str(row.get("protocol_id") or ""))
+            for row in (bundle.get("protocols") or [])
+        ]
+        if any(not protocol_id for protocol_id in proposed_ids):
+            raise ValueError("capability_bundle_v2_inherited_protocol_id_missing")
+        collisions = [
+            protocol_id
+            for protocol_id in proposed_ids
+            if protocol_id in registry.protocols
+        ]
+        if collisions:
+            raise ValueError(
+                "capability_bundle_v2_protocol_collision:"
+                + ",".join(sorted(collisions))
+            )
     protocols: list[str] = []
     if registry is not None:
         for index, row in enumerate(bundle.get("protocols") or [], start=1):
             protocol_id = _inherited_id(str(row.get("protocol_id") or ""))
-            if not protocol_id or protocol_id in registry.protocols:
+            if not protocol_id:
+                if is_v2:
+                    raise ValueError("capability_bundle_v2_inherited_protocol_id_missing")
+                continue
+            if protocol_id in registry.protocols:
+                if is_v2:
+                    raise ValueError(
+                        f"capability_bundle_v2_protocol_collision:{protocol_id}"
+                    )
                 continue
             supporters = [str(value) for value in (row.get("supporters") or [])]
             proposer = supporters[0] if supporters else ""
@@ -308,7 +531,21 @@ def _inject_executable(
                     str(bundle.get("source_repository_id") or "") or "transfer")
             setattr(protocol, "inherited_as", inherited_base_id(row.get("protocol_id")))
             registry.adopt(protocol_id, tick=tick, force=True)
-            _inherited_spec(world, protocol_id, row, tick, index)
+            spec_id = _inherited_spec(
+                world,
+                protocol_id,
+                row,
+                tick,
+                index,
+                bundle_schema_version=str(
+                    bundle.get("schema_version") or BUNDLE_SCHEMA_VERSION_V1
+                ),
+            )
+            if is_v2 and not spec_id:
+                raise ValueError(
+                    "capability_bundle_v2_protocol_spec_injection_failed:"
+                    f"{protocol_id}"
+                )
             protocols.append(protocol_id)
 
     documents: list[str] = []
@@ -332,81 +569,33 @@ def _inject_executable(
 
 
 def capability_as_prose(row: Mapping[str, Any]) -> str:
-    """What the executable form puts in front of a member, written out.
+    """Return exactly the rule text the executable arm exposes to members.
 
-    Matched against what a member of the executable arm can actually read --
-    protocol_review.adopted_rules, which yields the rule summary and the kind of
-    rule and nothing else -- not against what the registry stores.
-
-    This once carried scope, the process governed, who had backed it and how
-    established it had become, on the reasoning that the executable form
-    registers those fields. It does register them, and no prompt renders any of
-    them: they sit on the object where no member sees them. So the extra lines
-    corrected a disadvantage the text arm did not have and handed it a real
-    advantage instead -- four facts about every inherited rule, in front of
-    every decision, that the executable arm is never shown. The contrast is
-    supposed to be binding against merely known; that made it better informed
-    against binding.
-
-    To restore the symmetry the other way -- rendering these fields for both
-    arms -- would change what every B3 run sees, not only the transfer arms.
+    Executable metadata remains on the protocol object but is not part of the
+    prompt.  Rendering it only for Text would change information as well as the
+    executable binding, so the content-matched treatment uses this summary.
     """
-    lines = [f"Rule: {str(row.get('rule_summary') or '').strip()}"]
-    kind = str(row.get("protocol_type") or "").strip()
-    if kind:
-        lines.append(f"Kind of rule: {kind.replace('_', ' ')}")
-    return "\n".join(lines)
+
+    return str(row.get("rule_summary") or "").strip()
 
 
 def _inject_text_only(
     world: Any, bundle: Mapping[str, Any]
 ) -> list[str]:
-    """Write the capabilities down as prose and nothing else.
+    """Put matched prose in the dedicated always-visible prompt state only."""
 
-    The rules are described accurately and completely; what is withheld is their
-    standing as objects the organization can invoke or enforce. Written under a
-    doc_type outside DOCUMENT_TYPE_TO_CAPABILITY so the description is not
-    itself counted as the carrier it describes.
-    """
-    from environments.org_env.backend.entities import Document
-
-    store = getattr(world, "documents", None)
-    if store is None:
-        return []
-    written: list[str] = []
+    state = getattr(world, "__dict__", {})
+    prose = state.setdefault("_inherited_capability_prose", [])
+    injected: list[str] = []
     for row in bundle.get("protocols") or []:
-        doc_id = f"doc_inherited_{row.get('protocol_id') or len(written)}"
-        if doc_id in store:
+        text = capability_as_prose(row)
+        if not text or text in prose:
             continue
-        store[doc_id] = Document(
-            doc_id=doc_id,
-            # Present tense and no verdict. "How the team worked before" told
-            # this arm, and only this arm, that what it had inherited was old
-            # practice -- a difference in framing where the design asks for a
-            # difference in binding.
-            title=f"Working rule: {row.get('protocol_type') or 'team practice'}",
-            doc_type=TEXT_ONLY_DOC_TYPE,
-            author_id="inherited",
-            owner_id="inherited",
-            visibility="team",
-            content_summary=capability_as_prose(row),
+        prose.append(text)
+        injected.append(
+            f"prose_inherited_{row.get('protocol_id') or len(injected)}"
         )
-        written.append(doc_id)
-    for row in bundle.get("documents") or []:
-        doc_id = f"doc_inherited_{row.get('doc_id') or len(written)}"
-        if doc_id in store:
-            continue
-        store[doc_id] = Document(
-            doc_id=doc_id,
-            title=str(row.get("title") or ""),
-            doc_type=TEXT_ONLY_DOC_TYPE,
-            author_id="inherited",
-            owner_id="inherited",
-            visibility="team",
-            content_summary=str(row.get("content_summary") or ""),
-        )
-        written.append(doc_id)
-    return written
+    return injected
 
 
 def inject_capability_bundle(
@@ -416,6 +605,7 @@ def inject_capability_bundle(
     roster_origin: str,
     capability_form: str,
     frozen_episodes: int = 0,
+    fixed_protocol_landscape: bool = False,
 ) -> dict[str, Any]:
     """Apply one arm's inheritance to a freshly built target world."""
     validate_capability_bundle(bundle)
@@ -426,7 +616,7 @@ def inject_capability_bundle(
 
     tick = int(getattr(world, "world_tick", 0) or 0)
     receipt: dict[str, Any] = {
-        "schema_version": BUNDLE_SCHEMA_VERSION,
+        "schema_version": str(bundle.get("schema_version") or BUNDLE_SCHEMA_VERSION),
         "source_repository_id": str(bundle.get("source_repository_id") or ""),
         "source_seed": int(bundle.get("source_seed") or 0),
         "source_tick": int(bundle.get("source_tick") or 0),
@@ -437,23 +627,73 @@ def inject_capability_bundle(
         "protocols_injected": [],
         "documents_injected": [],
         "text_documents_written": [],
+        "prose_entries_injected": [],
+        "compiled_protocols": [],
     }
+    if str(bundle.get("schema_version") or "") == BUNDLE_SCHEMA_VERSION_V2:
+        receipt["bundle_sha256"] = capability_bundle_sha256(bundle)
+        receipt["bundle_snapshot"] = copy.deepcopy(dict(bundle))
 
     if roster_origin == ROSTER_ORIGIN_RETAINED:
         receipt["roster_applied"] = _inject_roster(world, bundle.get("roster") or [])
 
     if capability_form == CAPABILITY_FORM_EXECUTABLE:
         protocols, documents = _inject_executable(world, bundle, tick)
+        if (
+            str(bundle.get("schema_version") or "") == BUNDLE_SCHEMA_VERSION_V2
+            and len(protocols) != len(bundle.get("protocols") or [])
+        ):
+            raise ValueError("capability_bundle_v2_partial_protocol_injection")
         receipt["protocols_injected"] = protocols
         receipt["documents_injected"] = documents
+        manager = getattr(world, "proposal_manager", None)
+        for spec in (getattr(manager, "protocol_specs", {}) or {}).values():
+            if getattr(spec, "compiler_status", "") != "compiled":
+                continue
+            spec_id = str(getattr(spec, "protocol_id", ""))
+            mirror_id = str(
+                (getattr(world, "__dict__", {}).get("_protocol_mirror_ids") or {}).get(
+                    spec_id, ""
+                )
+            )
+            if not mirror_id:
+                mirror_id = str(
+                    getattr(world, "_registry_mirror_id", lambda _id: "")(spec_id)
+                )
+            if mirror_id not in protocols:
+                continue
+            receipt["compiled_protocols"].append(
+                {
+                    "protocol_id": mirror_id,
+                    "protocol_spec_id": str(getattr(spec, "protocol_id", "")),
+                    "binding_hash": str(getattr(spec, "binding_hash", "")),
+                    "binding_ids": [
+                        str(binding.get("binding_id") or "")
+                        for binding in (getattr(spec, "machine_bindings", []) or [])
+                    ],
+                }
+            )
+        if str(bundle.get("schema_version") or "") == BUNDLE_SCHEMA_VERSION_V2:
+            if len(receipt["compiled_protocols"]) != len(
+                bundle.get("protocols") or []
+            ):
+                raise ValueError("capability_bundle_v2_partial_compiled_injection")
+            if {
+                str(row.get("protocol_id") or "")
+                for row in receipt["compiled_protocols"]
+            } != set(protocols):
+                raise ValueError("capability_bundle_v2_compiled_manifest_mismatch")
     elif capability_form == CAPABILITY_FORM_TEXT_ONLY:
-        receipt["text_documents_written"] = _inject_text_only(world, bundle)
+        receipt["prose_entries_injected"] = _inject_text_only(world, bundle)
     # CAPABILITY_FORM_REMOVED injects nothing by construction.
 
     # The freeze is set AFTER injection: the injected objects are inherited, not
     # compiled here, and forcing them in is exactly what the window protects.
     freeze_capability_compilation(world, frozen_episodes)
     receipt["frozen_episodes"] = int(frozen_episodes)
+    if fixed_protocol_landscape:
+        fix_protocol_landscape(world)
+    receipt["fixed_protocol_landscape"] = bool(fixed_protocol_landscape)
     world.__dict__["_capability_transfer_receipt"] = receipt
     return receipt
 
@@ -469,6 +709,17 @@ def inherited_capability_texts(world: Any) -> list[str]:
     fetched on demand" is a different and far smaller claim than the one this
     contrast is for.
     """
+    state = getattr(world, "__dict__", {})
+    direct = [
+        str(text).strip()
+        for text in (state.get("_inherited_capability_prose") or [])
+        if str(text).strip()
+    ]
+    if direct:
+        return direct
+
+    # Compatibility reader for historic v1 checkpoints.  Fresh v2 Text arms
+    # use the non-searchable prompt state above rather than documents.
     store = getattr(world, "documents", None) or {}
     out: list[str] = []
     for document in store.values():
@@ -506,7 +757,12 @@ def inherited_prose_exposure(world: Any) -> dict[str, int]:
             world.__dict__.get("_inherited_prose_prompt_count", 0) or 0
         ),
         "documents_read": reads,
-        "documents_available": len(inherited_capability_texts(world)),
+        "documents_available": sum(
+            1
+            for document in (getattr(world, "documents", None) or {}).values()
+            if str(getattr(document, "doc_type", "")) == TEXT_ONLY_DOC_TYPE
+        ),
+        "prose_entries_available": len(inherited_capability_texts(world)),
     }
 
 
@@ -525,8 +781,24 @@ def freeze_capability_compilation(world: Any, episodes: int) -> None:
         registry.compilation_frozen = episodes > 0
 
 
+def fix_protocol_landscape(world: Any) -> None:
+    """Seal formation and lifecycle mutations for the complete target window."""
+
+    world.__dict__["_fixed_protocol_landscape"] = True
+    registry = getattr(world, "protocol_registry", None)
+    if registry is not None:
+        registry.compilation_frozen = True
+        registry.formation_locked = True
+
+
 def refresh_capability_compilation_freeze(world: Any) -> bool:
     """Lift the freeze once the window has passed. Returns whether it is on."""
+    if bool(world.__dict__.get("_fixed_protocol_landscape", False)):
+        registry = getattr(world, "protocol_registry", None)
+        if registry is not None:
+            registry.compilation_frozen = True
+            registry.formation_locked = True
+        return True
     episodes = int(
         world.__dict__.get("_capability_compilation_frozen_episodes", 0) or 0
     )
@@ -549,6 +821,9 @@ def refresh_capability_compilation_freeze(world: Any) -> bool:
 
 __all__ = [
     "BUNDLE_SCHEMA_VERSION",
+    "BUNDLE_SCHEMA_VERSION_V1",
+    "BUNDLE_SCHEMA_VERSION_V2",
+    "SUPPORTED_BUNDLE_SCHEMA_VERSIONS",
     "CAPABILITY_FORMS",
     "CAPABILITY_FORM_EXECUTABLE",
     "CAPABILITY_FORM_REMOVED",
@@ -559,6 +834,7 @@ __all__ = [
     "TEXT_ONLY_DOC_TYPE",
     "export_capability_bundle",
     "freeze_capability_compilation",
+    "fix_protocol_landscape",
     "inject_capability_bundle",
     "refresh_capability_compilation_freeze",
     "validate_capability_bundle",
