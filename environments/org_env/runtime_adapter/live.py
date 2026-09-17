@@ -170,11 +170,10 @@ class OrgInspectorSession:
                 raise RuntimeError(
                     "ORG_OSS_MODE=formal requires ORG_PRODUCT_SUBSTRATE=oss_time_machine"
                 )
-            # Relic deliberately excludes the source's synthetic/Nature-adjacent
-            # default company. Even mock replays therefore bind one frozen public
-            # benchmark pack rather than constructing a different hidden world.
-            if not _substrate:
-                _substrate = "oss_time_machine"
+            # Match the HCI source default when no product substrate was
+            # explicitly selected.  A pack, environment binding, or formal
+            # run still takes the OSS path below; silently substituting a pack
+            # here changes the source HCI world's visible tasks and scheduling.
             if _substrate == "oss_time_machine":
                 _ds = os.environ.get("ORG_OSS_DATASET", "mini_blobstore_v1")
                 params["experiment_mode"] = _mode
