@@ -175,10 +175,10 @@ daemon is available.
 
 ## Environment variables
 
-CLI arguments and canonical experiment configuration take precedence over
-environment defaults. Cell identity, ticks, arms, seeds, retry policy, and
-evaluation policy are frozen by repository configuration and cannot be
-overridden from `.env`.
+The fixed precedence order is: **explicit CLI argument → canonical experiment
+configuration → documented environment variable → repository default**. Cell
+identity, ticks, arms, seeds, retry policy, and evaluation policy are frozen by
+repository configuration and cannot be overridden from `.env`.
 
 | Variable | Required | Default | Purpose / example format |
 |---|---|---|---|
@@ -225,9 +225,24 @@ source.
 
 `--max-parallel` means at most that many fresh B0--B3 condition processes
 inside one source batch; it is not a cross-batch concurrency setting. Start at
-one and use the source repository's regular-batch guidance plus the available
-WSL/Docker memory limits when raising it. Do not scale the Compose service as a
-substitute for this paired runner.
+one. The release uses a conservative budget of roughly **16 GiB per active
+parallel cell/process** and `check-env --max-parallel N` reports the
+Linux/WSL-visible RAM plus a recommended ceiling:
+
+| Visible RAM | Recommended maximum `--max-parallel` |
+| ---: | ---: |
+| under 32 GiB | 1 |
+| 32--63 GiB | 2 |
+| 64--99 GiB | 4 |
+| 100--127 GiB | up to 8 (128 GiB is preferred) |
+| 128 GiB or more | 8 |
+
+The official `run-main` manifest records the requested parallelism, visible
+memory, 16-GiB budget, recommended ceiling, and whether the request exceeds
+that recommendation, including in `--dry-run`. On Windows/WSL2, check the
+actual WSL2 memory limit, Docker Desktop WSL backend allocation, swap, and
+other host workloads before using 4--8 workers. Do not scale the Compose
+service as a substitute for this paired runner.
 
 ## Windows / WSL2
 

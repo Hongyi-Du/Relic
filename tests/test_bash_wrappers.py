@@ -19,6 +19,7 @@ WRAPPERS = {
     "run_transfer.sh": ("run-transfer",),
     "evaluate.sh": ("evaluate",),
     "start_inspector.sh": ("inspect",),
+    "build_paper_results.sh": ("build-paper-results",),
 }
 
 
