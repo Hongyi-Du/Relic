@@ -25,6 +25,8 @@ COPY benchmarks ./benchmarks
 COPY configs ./configs
 COPY environments ./environments
 COPY relic ./relic
+COPY tools/run_org_baselines.py ./tools/run_org_baselines.py
+COPY tools/__init__.py ./tools/__init__.py
 
 RUN uv sync --frozen --no-dev --no-editable \
     && mkdir -p /data/outputs /data/cache /data/traces \

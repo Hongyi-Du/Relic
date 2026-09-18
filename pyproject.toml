@@ -29,6 +29,8 @@ packages = ["relic", "environments"]
 "relic/inspector/static/index.html" = "relic/inspector/static/index.html"
 "relic/inspector/static/app.css" = "relic/inspector/static/app.css"
 "relic/inspector/static/app.js" = "relic/inspector/static/app.js"
+"tools/__init__.py" = "tools/__init__.py"
+"tools/run_org_baselines.py" = "tools/run_org_baselines.py"
 
 [tool.pytest.ini_options]
 addopts = "-ra"
