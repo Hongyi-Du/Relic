@@ -19,5 +19,7 @@ __pycache__
 /runs
 /scripts
 /tests
-/tools
+/tools/*
+!/tools/__init__.py
+!/tools/run_org_baselines.py
 /traces
