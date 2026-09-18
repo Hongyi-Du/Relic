@@ -21,6 +21,11 @@ uv run relic smoke --mode mock
 
 These commands install the release package, verify frozen benchmark bytes, and
 exercise the no-provider core path. They do not establish a formal paper run.
+The wheel alone is not a standalone experiment distribution: the canonical
+`configs/` and frozen `benchmarks/` tree must also be present. Use this checkout
+or the Docker image; installing only the wheel in an unrelated directory will
+fail the canonical-config gate. Native Windows is not a supported execution
+environment for the paper runner.
 Direct `uv run relic ...` commands do not load `.env` implicitly. After
 configuring a provider in `.env`, pass it explicitly with
 `uv run --env-file .env relic ...` for provider-backed commands, or use the thin
