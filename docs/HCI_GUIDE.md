@@ -1,7 +1,7 @@
 # HCI Human Seat（P2 / P3）使用指南
 
 **分支**：`hci`
-**最后更新**：2026-09-08
+**最后更新**：2026-09-17
 
 ## 1. 两个可独立体验的版本
 
@@ -23,6 +23,8 @@ cd relic
 python -m pip install -r requirements-hci.txt
 python tools/run_hci.py --paused
 ```
+
+这份轻量依赖已包括 OpenAI-compatible SDK；默认启动不请求模型。启用真实模型时，配置对应网关和密钥，再用 `--llm` 启动。一次页面可用或一次只读回复不等于委派全链路通过。
 
 打开两个版本：
 

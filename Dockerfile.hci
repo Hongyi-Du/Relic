@@ -1,7 +1,8 @@
 # The human member workspace, on its own.
 #
-# Not the experiment image: this installs four packages, not litellm + faiss +
-# datasets + pandas. Build context is trimmed hard by .dockerignore.hci -- the
+# Not the experiment image: this installs the HCI runtime and OpenAI-compatible
+# SDK, not litellm + faiss + datasets + pandas. Build context is trimmed by
+# Dockerfile.hci.dockerignore -- the
 # frozen OSS datasets under environments/org_env/data are hundreds of megabytes
 # and the workspace never reads them.
 #

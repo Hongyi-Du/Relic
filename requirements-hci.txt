@@ -1,8 +1,5 @@
-# Everything the human workspace needs, and nothing else.
-#
-# The full experiment stack (pyproject.toml) pulls litellm, faiss, datasets,
-# pandas and more. The HCI server touches none of it: its import graph is the
-# standard library plus this repository, and serving it needs only these.
+# The focused HCI install also includes the SDK used when --llm is enabled.
+# The default rule/template startup still does not make a provider request.
 #
 #     pip install -r requirements-hci.txt
 #     python tools/run_hci.py
@@ -17,9 +14,4 @@ python-multipart>=0.0.32
 # The frozen HCI demo pack is YAML-manifested.  The full research environment
 # already carries this dependency; the focused HCI image needs it as well.
 PyYAML>=6.0
-
-# Optional — only for --llm, which gives the members and the working agents a
-# real model instead of rules and templates. Needs an API key in config/llm.yaml
-# or the environment.
-#   openai>=1.0
-#   pyyaml>=6.0
+openai>=1.0,<3

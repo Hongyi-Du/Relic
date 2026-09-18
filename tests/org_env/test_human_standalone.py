@@ -2,8 +2,8 @@
 
 The claim this rests on is that the HCI server needs almost nothing: its import
 graph is the standard library plus this repository, and serving it takes only
-FastAPI and uvicorn. That is what lets `requirements-hci.txt` be four lines and
-the Docker image skip litellm, faiss, datasets and pandas entirely.
+FastAPI and uvicorn. The installed image also carries the OpenAI-compatible
+SDK needed by the opt-in real-model path, without the experiment stack.
 
 It is also easy to break by accident -- one convenience import of pandas
 somewhere in org_env and the light install stops working, silently, until
@@ -21,7 +21,7 @@ sys.path.insert(0, str(REPO))
 #: Heavy packages in pyproject.toml that the workspace must never pull in.
 FORBIDDEN = ("litellm", "faiss", "datasets", "pandas", "numpy", "scipy",
              "matplotlib", "seaborn", "torch", "gradio", "django", "sklearn",
-             "networkx", "openai", "together")
+             "networkx", "together")
 
 
 def test_the_server_imports_without_any_third_party_package():
@@ -72,8 +72,8 @@ def test_the_light_requirements_file_covers_what_is_actually_needed():
     assert "fastapi" in required and "uvicorn" in required, required
     # Anything heavy in here would defeat the point of a separate file.
     assert not [p for p in FORBIDDEN if p in required], required
-    # The LLM extras stay commented out: the default run needs no API key.
-    assert "openai" not in required
+    # The SDK is installed even though the default run needs no API key.
+    assert "openai" in required
 
 
 def test_the_entry_point_parses_its_arguments():
