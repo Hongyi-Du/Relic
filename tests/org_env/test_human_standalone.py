@@ -134,6 +134,10 @@ def test_the_docker_files_describe_the_same_light_install():
     assert "requirements-hci.txt" in dockerfile
     assert "pyproject.toml" not in dockerfile, "that would install the whole stack"
     assert "tools/run_hci.py" in dockerfile
+    # The legacy Docker builder uses the root ignore file instead of the
+    # Dockerfile-specific one, so the launcher must survive both contexts.
+    root_ignore = (REPO / ".dockerignore").read_text(encoding="utf-8").splitlines()
+    assert "!/tools/run_hci.py" in root_ignore
 
     # BuildKit looks for "<dockerfile>.dockerignore"; a plain ".dockerignore.hci"
     # is silently ignored and the frozen corpora end up in the build context.

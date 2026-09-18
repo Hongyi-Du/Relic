@@ -22,4 +22,5 @@ __pycache__
 /tools/*
 !/tools/__init__.py
 !/tools/run_org_baselines.py
+!/tools/run_hci.py
 /traces
