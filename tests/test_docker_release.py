@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import tomllib
 
 import pytest
 import yaml
@@ -30,6 +31,13 @@ def test_docker_release_files_define_a_non_root_canonical_cli_image() -> None:
     assert "/traces" in ignored
     assert "artifacts" not in dockerfile
     assert "reproduction" not in dockerfile
+    assert "COPY tools/run_org_baselines.py ./tools/run_org_baselines.py" in dockerfile
+    assert "COPY tools/__init__.py ./tools/__init__.py" in dockerfile
+    assert "!/tools/run_org_baselines.py" in ignored
+    assert "!/tools/__init__.py" in ignored
+    included = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))[
+        "tool"]["hatch"]["build"]["targets"]["wheel"]["force-include"]
+    assert included["tools/run_org_baselines.py"] == "tools/run_org_baselines.py"
 
 
 @pytest.mark.release
