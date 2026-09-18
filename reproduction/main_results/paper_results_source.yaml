@@ -2,7 +2,7 @@ schema_version: relic-paper-results-source-v1
 paper:
   title: "Relic: From Multi-Agent Collaboration to Organizational Capability"
   status: ICLR 2027 under review
-  snapshot_date: "2026-09-15"
+  snapshot_date: "2026-09-18"
   source_pdf_sha256: 3a7d4a6353d640a6e58508fc03125c99a5990992b60add04fa2ddbf56506ec2e
 
 main_study:
@@ -205,6 +205,7 @@ protocol_census:
 
 internal_transfer:
   model: GPT-5.6 Terra
+  revision_source: User-supplied corrected complete internal-transfer table, 2026-09-18
   target_runs: 60
   text_runs: 30
   exec_runs: 30
@@ -217,6 +218,76 @@ internal_transfer:
   contrasts:
     exec_minus_text: {value: 6.5, unit: percentage_points, ci95: [0.7, 15.6]}
     exec_minus_fresh: {value: 15.8, unit: percentage_points, ci95: [9.2, 31.8]}
+  secondary_endpoint_metrics:
+    - id: exposed_case_pass_rate
+      label: Exposed-case pass rate
+      unit: percent
+      display_decimals: {Fresh: 3, Text: 1, Exec: 1}
+      arms: {Fresh: 23.434, Text: 39.7, Exec: 44.4}
+    - id: held_out_case_pass_rate
+      label: Held-out-case pass rate
+      unit: percent
+      display_decimals: {Fresh: 3, Text: 1, Exec: 1}
+      arms: {Fresh: 11.111, Text: 11.1, Exec: 25.9}
+    - id: complete_contract_rate
+      label: Complete-contract rate
+      unit: percent
+      display_decimals: {Fresh: 3, Text: 1, Exec: 1}
+      arms: {Fresh: 18.574, Text: 31.5, Exec: 32.3}
+    - id: workspace_behavioral_case_rate
+      label: Workspace behavioral-case rate
+      unit: percent
+      display_decimals: {Text: 1, Exec: 1}
+      arms: {Fresh: null, Text: 44.4, Exec: 51.0}
+    - id: evaluator_confirmed_issue_rate
+      label: Evaluator-confirmed issue rate
+      unit: percent
+      display_decimals: {Fresh: 3, Text: 1, Exec: 1}
+      arms: {Fresh: 21.720, Text: 41.4, Exec: 45.1}
+  secondary_endpoint_scope: >-
+    Fresh complete-contract, exposed-case, held-out-case, and confirmed-issue
+    rates use the full GPT-5.6 Terra B2 stratum. Text/Exec rates retain the
+    transfer export. Fresh has no comparable workspace behavioral-case measure.
+    These secondary point estimates do not carry new confidence intervals.
+  process_metrics:
+    - id: pull_requests_opened
+      label: Pull requests opened, mean / run
+      arms: {Fresh: 47.1, Text: 52.1, Exec: 48.8}
+    - id: pull_requests_merged
+      label: Pull requests merged, mean / run
+      arms: {Fresh: 38.2, Text: 42.2, Exec: 39.7}
+    - id: releases
+      label: Releases, mean / run
+      arms: {Fresh: 24.1, Text: 26.7, Exec: 26.2}
+    - id: patches_generated_accepted
+      label: Patches generated / accepted, mean / run
+      arms:
+        Fresh: {generated: 141.8, accepted: 110.0}
+        Text: {generated: 124.7, accepted: 122.4}
+        Exec: {generated: 118.0, accepted: 116.7}
+    - id: file_edit_actions
+      label: File-edit actions, mean / run
+      arms: {Fresh: 141.9, Text: 121.0, Exec: 118.0}
+    - id: total_actions
+      label: Total actions, mean / run
+      arms: {Fresh: 1389.3, Text: 1377.8, Exec: 1385.9}
+    - id: imported_mechanisms
+      label: Imported mechanisms, mean / run
+      arms: {Fresh: 0, Text: 6.0, Exec: 6.0}
+      annotations: {Text: text, Exec: executable}
+    - id: new_target_mechanisms
+      label: New target mechanisms, mean / run
+      arms: {Fresh: 0, Text: 0, Exec: 0}
+    - id: recorded_uses
+      label: Recorded uses, mean / run
+      arms: {Fresh: 0, Text: 0, Exec: 588.0}
+    - id: recorded_binding_enforcements
+      label: Recorded binding enforcements, mean / run
+      arms: {Fresh: 0, Text: 0, Exec: 197.0}
+    - id: amendments
+      label: Amendments, mean / run
+      arms: {Fresh: 0, Text: 0, Exec: 0}
+  process_scope: All count-valued rows are means per complete run.
   cost_metrics:
     - id: average_tokens_per_run
       label: Average tokens per run

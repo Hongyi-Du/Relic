@@ -56,3 +56,27 @@ def test_main_study_counts_match_paper() -> None:
     }
     assert payload["protocol_census"]["weak_or_strong_formed_lineages"] == 280
     assert payload["binding_ablation"]["executable_minus_text"]["bootstrap_replicates"] == 200000
+
+
+@pytest.mark.unit
+def test_corrected_complete_transfer_summary_matches_reviewed_table() -> None:
+    transfer = public_payload(load_source())["internal_transfer"]
+    endpoints = {row["id"]: row["arms"] for row in transfer["secondary_endpoint_metrics"]}
+    assert transfer["target_runs"] == 60
+    assert transfer["fresh_reference_runs_reused"] == 30
+    assert endpoints["exposed_case_pass_rate"] == {"Fresh": 23.434, "Text": 39.7, "Exec": 44.4}
+    assert endpoints["held_out_case_pass_rate"] == {"Fresh": 11.111, "Text": 11.1, "Exec": 25.9}
+    assert endpoints["complete_contract_rate"] == {"Fresh": 18.574, "Text": 31.5, "Exec": 32.3}
+    assert endpoints["workspace_behavioral_case_rate"] == {"Fresh": None, "Text": 44.4, "Exec": 51.0}
+    assert endpoints["evaluator_confirmed_issue_rate"] == {"Fresh": 21.72, "Text": 41.4, "Exec": 45.1}
+
+    process = {row["id"]: row["arms"] for row in transfer["process_metrics"]}
+    assert len(process) == 11
+    assert process["patches_generated_accepted"]["Exec"] == {"generated": 118.0, "accepted": 116.7}
+    assert process["recorded_uses"]["Exec"] == 588.0
+    assert process["recorded_binding_enforcements"]["Exec"] == 197.0
+
+    markdown = render_markdown(public_payload(load_source()))
+    assert "| Complete-contract rate | 18.574% | 31.5% | 32.3% |" in markdown
+    assert "| Evaluator-confirmed issue rate | 21.720% | 41.4% | 45.1% |" in markdown
+    assert "| Workspace behavioral-case rate | NA | 44.4% | 51.0% |" in markdown

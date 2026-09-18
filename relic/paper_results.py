@@ -100,6 +100,24 @@ def _format_estimate(record: dict[str, Any], unit: str) -> str:
     return f"{value}<br>{_format_interval(interval, unit)}"
 
 
+def _format_transfer_rate(metric: dict[str, Any], arm: str) -> str:
+    value = metric["arms"][arm]
+    if value is None:
+        return "NA"
+    places = metric["display_decimals"].get(arm, 1)
+    return f"{value:.{places}f}%"
+
+
+def _format_process_mean(metric: dict[str, Any], arm: str) -> str:
+    value = metric["arms"][arm]
+    if isinstance(value, dict):
+        formatted = f"{value['generated']:,.1f} / {value['accepted']:,.1f}"
+    else:
+        formatted = "0" if value == 0 else f"{value:,.1f}"
+    annotation = metric.get("annotations", {}).get(arm)
+    return f"{formatted} ({annotation})" if annotation else formatted
+
+
 def render_markdown(payload: dict[str, Any]) -> str:
     paper = payload["paper"]
     main = payload["main_study"]
@@ -109,9 +127,10 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"Canonical aggregate snapshot for *{paper['title']}* ({paper['status']}).",
         "",
         (
-            "These values are transcribed from the paper, not recomputed from historical raw "
-            "runs. The JSON artifact and its reviewed YAML source are the complete canonical "
-            "snapshot; this page is a human-readable rendering of that same data."
+            "The main-study values are transcribed from the paper, not recomputed from "
+            "historical raw runs. Internal-transfer secondary outcomes follow the corrected "
+            "table supplied on 2026-09-18. The JSON artifact and its reviewed YAML source "
+            "are the canonical repository snapshot; this page renders the same data."
         ),
         "",
         "## Main study",
@@ -183,6 +202,33 @@ def render_markdown(payload: dict[str, Any]) -> str:
         )
     lines.extend(
         [
+            "",
+            "### Complete transfer endpoint summary",
+            "",
+            "| Endpoint | Fresh | Text | Exec |",
+            "|---|---:|---:|---:|",
+            (
+                "| Behavioral-case pass rate | "
+                f"{transfer['arms']['Fresh']['value']:.1f}% | "
+                f"{transfer['arms']['Text']['value']:.1f}% | "
+                f"{transfer['arms']['Exec']['value']:.1f}% |"
+            ),
+        ]
+    )
+    for metric in transfer["secondary_endpoint_metrics"]:
+        values = " | ".join(_format_transfer_rate(metric, arm) for arm in ("Fresh", "Text", "Exec"))
+        lines.append(f"| {metric['label']} | {values} |")
+    lines.extend(["", transfer["secondary_endpoint_scope"], "",
+                  "### Transfer process means", "",
+                  "| Process metric | Fresh | Text | Exec |",
+                  "|---|---:|---:|---:|"])
+    for metric in transfer["process_metrics"]:
+        values = " | ".join(_format_process_mean(metric, arm) for arm in ("Fresh", "Text", "Exec"))
+        lines.append(f"| {metric['label']} | {values} |")
+    lines.extend(
+        [
+            "",
+            transfer["process_scope"],
             "",
             transfer["cost_metrics"][0]["scope"],
             "",

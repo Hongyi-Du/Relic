@@ -2,7 +2,7 @@
 
 Canonical aggregate snapshot for *Relic: From Multi-Agent Collaboration to Organizational Capability* (ICLR 2027 under review).
 
-These values are transcribed from the paper, not recomputed from historical raw runs. The JSON artifact and its reviewed YAML source are the complete canonical snapshot; this page is a human-readable rendering of that same data.
+The main-study values are transcribed from the paper, not recomputed from historical raw runs. Internal-transfer secondary outcomes follow the corrected table supplied on 2026-09-18. The JSON artifact and its reviewed YAML source are the canonical repository snapshot; this page renders the same data.
 
 ## Main study
 
@@ -29,6 +29,37 @@ Across 60 B3 runs: 497 autonomous proposal lineages, 393 adopted at endpoint, 28
 | Average tokens per run | 2.381M<br>[1.747M, 3.189M] | 2.615M<br>[2.213M, 3.033M] | 2.448M<br>[2.199M, 2.72M] | 0.067M<br>[-0.569M, 0.532M] | -0.167M<br>[-0.467M, 0.073M] |
 | Tokens per evaluated case | 176k<br>[106k, 271k] | 154k<br>[96k, 265k] | 144k<br>[94k, 243k] | -32k<br>[-112k, 31k] | -10k<br>[-33k, 4k] |
 | Tokens per verified pass | 691k<br>[488k, 1419k] | 444k<br>[271k, 935k] | 350k<br>[196k, 958k] | -342k<br>[-818k, -14k] | -94k<br>[-152k, 54k] |
+
+### Complete transfer endpoint summary
+
+| Endpoint | Fresh | Text | Exec |
+|---|---:|---:|---:|
+| Behavioral-case pass rate | 25.4% | 34.6% | 41.2% |
+| Exposed-case pass rate | 23.434% | 39.7% | 44.4% |
+| Held-out-case pass rate | 11.111% | 11.1% | 25.9% |
+| Complete-contract rate | 18.574% | 31.5% | 32.3% |
+| Workspace behavioral-case rate | NA | 44.4% | 51.0% |
+| Evaluator-confirmed issue rate | 21.720% | 41.4% | 45.1% |
+
+Fresh complete-contract, exposed-case, held-out-case, and confirmed-issue rates use the full GPT-5.6 Terra B2 stratum. Text/Exec rates retain the transfer export. Fresh has no comparable workspace behavioral-case measure. These secondary point estimates do not carry new confidence intervals.
+
+### Transfer process means
+
+| Process metric | Fresh | Text | Exec |
+|---|---:|---:|---:|
+| Pull requests opened, mean / run | 47.1 | 52.1 | 48.8 |
+| Pull requests merged, mean / run | 38.2 | 42.2 | 39.7 |
+| Releases, mean / run | 24.1 | 26.7 | 26.2 |
+| Patches generated / accepted, mean / run | 141.8 / 110.0 | 124.7 / 122.4 | 118.0 / 116.7 |
+| File-edit actions, mean / run | 141.9 | 121.0 | 118.0 |
+| Total actions, mean / run | 1,389.3 | 1,377.8 | 1,385.9 |
+| Imported mechanisms, mean / run | 0 | 6.0 (text) | 6.0 (executable) |
+| New target mechanisms, mean / run | 0 | 0 | 0 |
+| Recorded uses, mean / run | 0 | 0 | 588.0 |
+| Recorded binding enforcements, mean / run | 0 | 0 | 197.0 |
+| Amendments, mean / run | 0 | 0 | 0 |
+
+All count-valued rows are means per complete run.
 
 Separate nine-workload comparison: Fresh seed 2711 and Text/Exec seed 1401, paired by workload; this is not a same-seed cost estimate.
 
