@@ -97,3 +97,13 @@ uv run relic inspect --trace /path/to/selected-trace.json
 Inspector 默认只绑定 `127.0.0.1:8765`。它读取经过校验的公开 `relic-trace-v1`，不读取 checkpoint、private memory、provider messages 或 evaluator workspace。
 
 可复制的正式入口、输出结构、transfer、CooperBench 边界以及当前不可补齐的外部资产，请从 [English README](README.md) 和 `docs/` 中的链接继续阅读。
+
+## 许可
+
+Relic 的原创源码以 [PolyForm Noncommercial License 1.0.0](LICENSE)
+进行源码公开：遵守协议时，可以免费用于非商业目的，也可以修改和分发。
+任何商业用途都需要事先取得 Hongyi Du 的单独书面授权；参见
+[商业授权说明](COMMERCIAL_LICENSE.md)。
+
+仓库中的第三方 benchmark 快照和其他第三方组件继续适用各自的许可证；
+仓库级许可证不会替代这些条款。

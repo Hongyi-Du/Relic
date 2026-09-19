@@ -153,3 +153,14 @@ digest-pinned image, `linux/amd64`, and qualification hashes. See
 [transfer.md](docs/transfer.md), and [inspector.md](docs/inspector.md) for
 container qualification, environment variables, transfer details, and trace
 inspection.
+
+## License
+
+Relic's original source is source-available under the
+[PolyForm Noncommercial License 1.0.0](LICENSE): noncommercial use,
+modification, and distribution are permitted under its terms. Commercial use
+requires a separate written license from Hongyi Du; see
+[Commercial licensing](COMMERCIAL_LICENSE.md).
+
+Third-party benchmark snapshots and other third-party components retain their
+own licenses. The repository-level license does not replace those terms.

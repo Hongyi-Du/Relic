@@ -3,6 +3,7 @@ name = "relic"
 version = "0.1.0.dev0"
 description = "Research code for Relic agent organizations"
 readme = "README.md"
+license = { file = "LICENSE" }
 requires-python = ">=3.12"
 dependencies = [
     "openai>=1.0",
