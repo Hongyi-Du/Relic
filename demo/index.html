@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LanternForge — Pixel Office Sim</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="cabinet">
+      <header class="marquee">
+        <div class="logo">
+          <span class="lantern">🏮</span>
+          <div>
+            <h1>LANTERNFORGE</h1>
+            <p id="sub">cattrs v25.1.0 → v26.1.0 · 12 open issues · 16 hidden tests</p>
+          </div>
+        </div>
+        <div class="head-right">
+          <button type="button" id="lang" class="vs-btn lang-btn">中文</button>
+          <button type="button" id="story" class="vs-btn story-btn">▶ STORY</button>
+          <button type="button" id="vs" class="vs-btn">VS B2</button>
+          <div class="clock-box">
+            <div class="clock" id="clock">01:00</div>
+            <div class="day" id="day">DAY 1 · night sleep</div>
+          </div>
+        </div>
+      </header>
+
+      <div class="act-bar" id="actBar" hidden>
+        <span class="act-chap" id="actChap">ACT 1 / 5</span>
+        <span class="act-name" id="actName"></span>
+        <div class="act-nav">
+          <button type="button" id="actPrev">◀ back</button>
+          <button type="button" id="actNext">next ▶</button>
+          <button type="button" id="actSkip">exit</button>
+        </div>
+      </div>
+
+      <div class="acts" id="acts" hidden></div>
+
+      <div class="workbench">
+        <aside class="panel work-panel">
+          <div class="panel-head">
+            <span id="workHead">THE WORK</span>
+            <span class="panel-sub" id="workCount"></span>
+          </div>
+          <div class="panel-body" id="workList"></div>
+        </aside>
+
+        <div class="stage-col">
+          <div class="screen">
+            <canvas id="stage" width="1000" height="500"></canvas>
+            <div class="toast-layer" id="toasts"></div>
+          </div>
+          <div class="panel feed-panel">
+            <div class="panel-head">
+              <span id="feedHead">CHANNELS</span>
+              <span class="panel-sub" id="feedCount"></span>
+            </div>
+            <div class="panel-body" id="feedList"></div>
+          </div>
+        </div>
+
+        <aside class="panel gov-panel">
+          <div class="panel-head">
+            <span id="govHead">GOVERNANCE</span>
+            <span class="panel-sub" id="govCount"></span>
+          </div>
+          <div class="panel-body" id="govList"></div>
+        </aside>
+      </div>
+
+      <div class="caption-bar" id="caption" hidden>
+        <div class="cap-left">
+          <span class="cap-chap" id="capChap">1 / 1</span>
+          <button type="button" class="cap-nav" id="capPrev" aria-label="Previous chapter">◀</button>
+          <button type="button" class="cap-nav" id="capNext" aria-label="Next chapter">▶</button>
+        </div>
+        <div class="cap-body">
+          <div class="cap-title" id="capTitle"></div>
+          <div class="cap-text" id="capText"></div>
+        </div>
+      </div>
+
+      <div class="gauges" id="gauges"></div>
+
+      <div class="deck">
+        <button class="big-btn" id="play">▶</button>
+        <div class="speed">
+          <button data-speed="900" class="spd">½×</button>
+          <button data-speed="450" class="spd on">1×</button>
+          <button data-speed="180" class="spd">3×</button>
+          <button data-speed="60" class="spd">8×</button>
+        </div>
+        <div class="scrub">
+          <canvas id="track" width="1200" height="52"></canvas>
+          <input type="range" id="tick" min="1" max="336" value="1" aria-label="Timeline" />
+        </div>
+        <div class="tickread">
+          <b id="tickOut">1</b><span>/336</span>
+        </div>
+      </div>
+
+      <footer class="verdict">
+        <div class="arms" id="arms"></div>
+        <p class="note" id="note"></p>
+      </footer>
+    </div>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

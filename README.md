@@ -1,6 +1,6 @@
 # Relic
 
-[中文说明](README.zh-CN.md) · [Documentation](docs/README.md) · [Paper results](artifacts/paper_results/paper_results.md)
+[中文说明](README.zh-CN.md) · [Documentation](docs/README.md) · [Paper results](artifacts/paper_results/paper_results.md) · [Run visualization](demo/README.md)
 
 Relic is the public code and configuration for the Relic agent-organization
 paper. This repository defines the paper experiment, frozen benchmark, OrgEnv
@@ -141,6 +141,22 @@ uv run relic aggregate-user-runs \
 The aggregate is explicitly labeled as a local user-run result. The checked-in
 paper-results snapshot remains the paper's reported aggregate and is not
 recomputed from local runs.
+
+## Visualize a run
+
+`demo/` is a self-contained static page that replays one archived B3 run
+(cattrs, seed 4013) hour by hour: agents move between rooms, the work board and
+governance panels update per tick, and a five-act story mode walks through one
+complete protocol lifecycle from proposal to enforcement. It also splits the
+screen against the matching B2 run on the same seed.
+
+```bash
+cd demo && python3 -m http.server        # then open http://localhost:8000/
+```
+
+It carries its own data and needs no install. See
+[demo/README.md](demo/README.md), including the caveat that this is a
+single parity run and not the paper's aggregate.
 
 ## Advanced workflows
 

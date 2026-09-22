@@ -1,6 +1,6 @@
 # Relic（中文说明）
 
-[English README](README.md) · [发布范围](docs/release-scope.md) · [论文结果](artifacts/paper_results/paper_results.md) · [已知缺口](docs/KNOWN_RELEASE_GAPS.md)
+[English README](README.md) · [发布范围](docs/release-scope.md) · [论文结果](artifacts/paper_results/paper_results.md) · [运行可视化](demo/README.md) · [已知缺口](docs/KNOWN_RELEASE_GAPS.md)
 
 `relic` 是论文的研究代码与复现实验仓库，包含 OrgEnv、B0--B3、十个 `relic-main-v1` workload、主实验与 transfer 入口、evaluator 和公开 Inspector。填写自己的 API key、gateway 和模型名后即可运行，默认使用仓库公开的本地 evaluator，无需 evaluator binding。
 
@@ -97,6 +97,20 @@ uv run relic inspect --trace /path/to/selected-trace.json
 Inspector 默认只绑定 `127.0.0.1:8765`。它读取经过校验的公开 `relic-trace-v1`，不读取 checkpoint、private memory、provider messages 或 evaluator workspace。
 
 可复制的正式入口、输出结构、transfer、CooperBench 边界以及当前不可补齐的外部资产，请从 [English README](README.md) 和 `docs/` 中的链接继续阅读。
+
+## 运行可视化
+
+`demo/` 是一个自带数据的静态页面，把已归档的一次 B3 run（cattrs，seed 4013）按小时重放：
+agent 在各个房间之间移动，工作看板和治理面板逐 tick 更新，五幕剧情模式会完整讲一遍某条
+protocol 从提出、否决、通过、生效、违规、强制到修订的全过程；也可以和同 seed 的 B2 run 分屏对比。
+界面和旁白支持中英切换。
+
+```bash
+cd demo && python3 -m http.server        # 然后打开 http://localhost:8000/
+```
+
+无需安装任何依赖。注意它需要通过 HTTP 访问，不能直接以 `file://` 打开。
+详见 [demo/README.md](demo/README.md)，其中说明了这只是单次 parity run，不是论文的聚合结果。
 
 ## 许可
 
