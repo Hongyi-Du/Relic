@@ -30,6 +30,10 @@ checkpoints/
 traces/
 *.log
 
+# Local working area: raw run logs and experiments. Anything here that is meant
+# to ship gets moved out first — see demo/ for one that did.
+scratch/
+
 # Local editor and operating-system files
 .DS_Store
 .idea/
