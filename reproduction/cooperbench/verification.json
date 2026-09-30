@@ -1,0 +1,21 @@
+{
+  "reference": "Relic CooperBench B3-2 final frozen implementation",
+  "checked_on": "2026-09-30",
+  "selection": {"pairs": 652, "task_instances": 30, "repositories": 12},
+  "frozen_regressions": {"passed": 182, "failed": 0},
+  "release_boundary_tests": {"passed": 10, "failed": 0},
+  "reference_worker_import_and_help": "passed",
+  "focused_release_lint": "passed",
+  "upstream_execution_patch": {
+    "pinned_commit": "4913c4ebb84d2606cdb5628936b88529f3e181df",
+    "clean_apply": "passed",
+    "unchanged_scoring_function_bodies": "passed",
+    "large_and_empty_patch_transfer": "passed",
+    "bounded_docker_timeout": "passed",
+    "terminated_sandbox_reuse_rejected": "passed"
+  },
+  "provider_calls": 0,
+  "official_benchmark_cases_rerun": 0,
+  "historical_results_modified": false,
+  "note": "Local harness/release tests, not new official benchmark results. Earlier historical runs used earlier fixes too."
+}

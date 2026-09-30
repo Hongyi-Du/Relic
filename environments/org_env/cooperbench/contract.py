@@ -7,7 +7,7 @@ from typing import Any, Mapping
 
 
 CONTRACT_SCHEMA_VERSION = "orgenv_cooperbench_b3_two_agent_v3"
-TREATMENT_ID = "b3_two_agent_cooperbench_v159_internal_method_rename_source"
+TREATMENT_ID = "relic_cooperbench_b3_two_agent_legacy"
 DELIVERY_MODE = "identical_joint_mainline"
 ADAPTER_NAME = "orgenv_b3_two_agent"
 

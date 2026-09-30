@@ -1,6 +1,6 @@
 {
-  "name": "b3_v128_expand32_b001",
-  "description": "Thirty-two CooperBench lite feature pairs selected without evaluator outcomes for v128 scale-up. Selection excludes exact pairs from b3_v108_new16_b001, takes the first remaining pair from each lite task in frozen file order, then round-robins later pairs until 32.",
+  "name": "paper32",
+  "description": "Historical thirty-two-pair CooperBench lite selection without evaluator outcomes. Excludes exact pairs from paper16, takes the first remaining pair from each lite task in frozen file order, then round-robins later pairs until 32.",
   "stats": {
     "tasks": 25,
     "pairs": 32,

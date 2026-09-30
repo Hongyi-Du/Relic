@@ -97,3 +97,10 @@ uv run relic inspect --trace /path/to/selected-trace.json
 Inspector 默认只绑定 `127.0.0.1:8765`。它读取经过校验的公开 `relic-trace-v1`，不读取 checkpoint、private memory、provider messages 或 evaluator workspace。
 
 可复制的正式入口、输出结构、transfer、CooperBench 边界以及当前不可补齐的外部资产，请从 [English README](README.md) 和 `docs/` 中的链接继续阅读。
+
+`cooper` 分支现已提供最终修复后的完整 652-pair 冻结参考实现，入口在
+[CooperBench 复现说明](reproduction/cooperbench/README.md)。内部修复批次号和私有
+模型路由签名不作为公开版本名；完整清单、官方 evaluator 固定提交和必要执行补丁
+保留。历史轨迹与排除原因 QA 位于
+[Hugging Face 数据集](https://huggingface.co/datasets/Horseback-Eridute/CooperBench-B3-2-Full-652)，
+并不声称所有历史轨迹都使用最终相同代码生成。

@@ -886,7 +886,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     cooper_check = subparsers.add_parser(
         "check-cooper",
-        help="check the source-retained paper-48 selection and external CooperBench inputs",
+        help="check the complete 652-pair selection and external CooperBench inputs",
     )
     cooper_check.add_argument("--cooperbench-root", type=Path, default=None)
     cooper_check.add_argument("--dataset-dir", type=Path, default=None)
@@ -924,7 +924,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     cooper_run = subparsers.add_parser(
         "run-cooper",
-        help="delegate the source-verified paper-48 subset to pinned upstream CooperBench",
+        help="run the frozen full-652 reference with pinned upstream CooperBench",
     )
     cooper_run.add_argument("--cooperbench-root", type=Path, required=True)
     cooper_run.add_argument("--cooperbench-bin", default="cooperbench")
@@ -953,7 +953,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     cooper_eval = subparsers.add_parser(
         "evaluate-cooper",
-        help="delegate official evaluation of the source-verified paper-48 subset to upstream",
+        help="delegate official evaluation of the complete 652-pair subset to upstream",
     )
     cooper_eval.add_argument("--cooperbench-root", type=Path, required=True)
     cooper_eval.add_argument("--cooperbench-bin", default="cooperbench")

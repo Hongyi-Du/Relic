@@ -10,6 +10,14 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+cooper = [
+    "python-dotenv>=1.0",
+    "jinja2>=3.1",
+    "pandas>=2.1",
+    "rank-bm25>=0.2.2",
+    "together>=1.0",
+    "tomli>=2.0",
+]
 dev = [
     "pytest>=8.0",
     "ruff>=0.6",

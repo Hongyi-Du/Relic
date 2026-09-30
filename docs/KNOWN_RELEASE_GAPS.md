@@ -15,10 +15,11 @@ ledger are not reconstructed by this stage. Their absence does not prevent
 normal runs or publication of the source. New local receipts describe new
 runs; they do not recreate historical measurements.
 
-The HCI extension remains part of this checkout. The Cooper extension keeps its
-own frozen benchmark selection and external runtime dependencies; this stage
-does not rebuild missing historical Cooper artifacts. ProgramBench reproduction
-assets remain outside this repository.
+The HCI extension remains part of this checkout. Cooper now has a final frozen
+full-652 reference and separately published historical trajectories/exclusion QA
+linked from `reproduction/cooperbench/README.md`. Upstream dataset, task images,
+Docker, Redis, and provider credentials remain external run prerequisites.
+ProgramBench reproduction assets remain outside this repository.
 
 Tests stay in the ordinary repository. A `full-tests` branch, signed release
 tag, registry publication, supply-chain certification, and cross-platform byte

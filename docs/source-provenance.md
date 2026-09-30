@@ -28,23 +28,32 @@ not add runtime or release prerequisites.
 
 ## CooperBench exception on the `cooper` branch
 
-Core and HCI modules use the frozen HCI revision above. The handoff permits a
-module-level exception when that revision lacks a required paper extension. The
-`cooper` branch therefore takes only the B3-2 CooperBench module and its tests
-from the verified dedicated source branch:
+Core and HCI modules keep the frozen HCI revision above. The current Cooper
+entrypoints instead select the independently preserved final bug-fixed source
+in `reproduction/cooperbench/reference/`, including its SDK/runtime import
+closure and regression tests. They do not overwrite the core-study runtime.
 
-```text
-codex/cooperbench-b3-two-agent@bbe7c0ad47ada83a710e90b5436f98745586bd83
-implementation baseline: b872386c6f9dc1c96895641cc3b303f6b2569ff2
-```
+The reference Python implementation is copied from the final frozen source.
+Its sole runtime naming adaptation is the public treatment label
+`relic_cooperbench_b3_two_agent`; schema and policy identifiers are unchanged.
+Git line endings and one trailing-whitespace-only source line are normalized.
+Packaging, source-selection checks, and documentation are release integration,
+not additional changes to the experimental mechanism. The public Git commit
+pins the exported source; internal operational batch labels are not release
+names. The original frozen evidence remains in the separately retained archive.
 
-This exception does not import the external CooperBench repository, dataset,
-task images, hidden tests, evaluator, ProgramBench assets, or historical raw
-runs. The paper's fixed selection is retained verbatim as the source branch's
-`b3_v108_new16_b001` and `b3_v128_expand32_b001` files; their verified 16 + 32
-union, rather than the source branch's separate 652-pair runbook, is used by
-the release entrypoints. The pinned external integration is documented in
-[`reproduction/cooperbench/README.md`](../reproduction/cooperbench/README.md).
+The manifest now contains all 652 pairs, not just the historical 16 + 32
+selection. Historical results remain separate from the final reference source:
+earlier trajectories and continuations used earlier fixes, and are not claimed
+to have all executed with the final code. The existing root-level Cooper module
+belongs to the older core-study source closure, not the current external run.
+
+No upstream dataset, task image, hidden tests, historical checkpoints, private
+credential, or unrelated benchmark input is imported. The execution-only patch
+is published separately against the pinned official upstream commit; it does
+not replace the official scoring contract. See the
+[runbook](../reproduction/cooperbench/README.md) for the complete new-run path
+and the separately published historical trajectory/QA collection.
 
 The controlled source closure for the official paired reproduction path is:
 

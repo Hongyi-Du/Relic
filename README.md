@@ -147,14 +147,16 @@ recomputed from local runs.
 
 ## CooperBench extension
 
-The extension preserves the fixed 48-pair selection and delegates scoring to
+The extension publishes the final frozen full-652 implementation and delegates scoring to
 the official CooperBench evaluator. Prepare the upstream dataset, task images,
 Docker, Redis, and your own OpenAI-compatible model as described in the
 [runbook](reproduction/cooperbench/README.md), then use `check-cooper`,
 `preflight-cooper`, `run-cooper`, `evaluate-cooper`, and `cooper-summary`.
-The upstream benchmark and dataset are external dependencies. Historical raw
-results and the authors' image ledger are optional provenance for a new run;
-the paper's reported 29/48 is not recomputed or substituted by local smoke tests.
+The upstream benchmark and dataset are external dependencies. The final source
+and [published historical trajectories and exclusion QA](https://huggingface.co/datasets/Horseback-Eridute/CooperBench-B3-2-Full-652)
+are separate: the final implementation does not relabel all earlier runs as
+having used identical code. The historical 29/48 paper snapshot remains in
+`artifacts/paper_results/`; new runs default to the complete 652-pair manifest.
 
 ## Advanced workflows
 

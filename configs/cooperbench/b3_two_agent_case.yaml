@@ -1,5 +1,5 @@
-# Full-horizon single-case engineering run.  A gateway which injects prompt
-# context still makes the result unsuitable for scientific benchmark claims.
+# Full-horizon CooperBench pair. The configured provider route and effective
+# runtime model are recorded in new runs; private routing aliases are not pinned.
 orgenv_ticks: 1000
 orgenv_seed: 6101
 orgenv_provider: openai

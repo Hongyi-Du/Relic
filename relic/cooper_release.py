@@ -1,9 +1,4 @@
-"""Small source-backed boundary for the external CooperBench B3-2 extension.
-
-The exact paper selection is the two immutable batch files copied from the
-dedicated Cooper source branch. This module verifies those bytes, matches an
-external upstream subset to their union, then delegates to upstream's CLI.
-"""
+"""Boundary for the final frozen CooperBench B3-2 full-652 implementation."""
 
 from __future__ import annotations
 
@@ -20,16 +15,14 @@ from typing import Any, Mapping, Sequence
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+REFERENCE_ROOT = REPOSITORY_ROOT / "reproduction/cooperbench/reference"
 COOPERBENCH_COMMIT = "4913c4ebb84d2606cdb5628936b88529f3e181df"
 COOPERBENCH_DATASET_REVISION = "b612b1a35af722751454813d9e5a7888f065fc9e"
-SOURCE_BRANCH = "codex/cooperbench-b3-two-agent"
-SOURCE_COMMIT = "bbe7c0ad47ada83a710e90b5436f98745586bd83"
-SOURCE_IMPLEMENTATION_BASELINE = "b872386c6f9dc1c96895641cc3b303f6b2569ff2"
-PAPER_SUBSET = "b3_v133_combined48_b001"
+PAPER_SUBSET = "relic_full652"
 REPORTED_MODEL = "Claude Opus 4.6"
 EXTERNAL_ADAPTER = "environments.org_env.cooperbench.adapter"
 EXTERNAL_AGENT = "orgenv_b3_two_agent"
-EXPECTED_PAIR_COUNT = 48
+EXPECTED_PAIR_COUNT = 652
 EXPECTED_TASK_COUNT = 30
 EXPECTED_REPOSITORY_COUNT = 12
 _SAFE_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]*\Z")
@@ -60,22 +53,14 @@ class CooperPair:
 class SourceBatch:
     path: Path
     source_path: str
-    source_blob: str
     sha256: str
 
 
 SOURCE_BATCHES = (
     SourceBatch(
-        REPOSITORY_ROOT / "configs/cooperbench/batches/b3_v108_new16_b001.json",
-        "config/cooperbench_batches/b3_v108_new16_b001.json",
-        "5249c727379fa28fad1ae95e3a5aa121e113b47b",
-        "41c82038b34a1e1548e7f401ccd89f7c4cb05effddb67a59bb58043936b7df2a",
-    ),
-    SourceBatch(
-        REPOSITORY_ROOT / "configs/cooperbench/batches/b3_v128_expand32_b001.json",
-        "config/cooperbench_batches/b3_v128_expand32_b001.json",
-        "060c1fd67b7382bd134fb17392c0b1fa4f8faeca",
-        "78da2c612b63aaf38a16839328d7c44f9f7d7ba471a97df23c8368a226a27fa8",
+        REPOSITORY_ROOT / "configs/cooperbench/full652.json",
+        "full652 pair manifest",
+        "655ca1f61a6d3e1ba83ffc4f5b8c96381f57daef0e35bb83be068ce3ce8a8e92",
     ),
 )
 
@@ -121,7 +106,7 @@ def _pairs(document: Any, code: str) -> tuple[CooperPair, ...]:
 
 
 def source_selection() -> CooperSelection:
-    """Return the verified 16 + 32 source union, never a PDF reconstruction."""
+    """Return the complete manifest, without filtering by observed results."""
 
     pairs: list[CooperPair] = []
     for batch in SOURCE_BATCHES:
@@ -222,7 +207,7 @@ def provider_environment_issues(model_name: str) -> list[str]:
 
 def external_environment(cooperbench_root: Path) -> dict[str, str]:
     environment = dict(os.environ)
-    paths = [str(REPOSITORY_ROOT), str(cooperbench_root / "src")]
+    paths = [str(REFERENCE_ROOT), str(cooperbench_root / "src"), str(REPOSITORY_ROOT)]
     if existing := environment.get("PYTHONPATH"):
         paths.append(existing)
     environment["PYTHONPATH"] = os.pathsep.join(paths)
@@ -293,7 +278,7 @@ def public_preflight_command(
     if _SAFE_IMAGE.fullmatch(image.strip()) is None:
         raise CooperReleaseError("cooperbench_task_image_reference_invalid")
     return [
-        sys.executable, str(REPOSITORY_ROOT / "tools/cooperbench_public_preflight.py"),
+        sys.executable, str(REFERENCE_ROOT / "tools/cooperbench_public_preflight.py"),
         "--dataset-dir", str(dataset_dir.resolve()), "--repo", pair.repo,
         "--task-id", str(pair.task_id), "--features", f"{pair.features[0]},{pair.features[1]}",
         "--image", image.strip(), "--config", str(config.resolve()),
@@ -350,20 +335,21 @@ def missing_input_report(
             missing.append(error.code)
     if check_provider:
         missing.extend(provider_environment_issues(model_name))
-    gaps = [
-        "paper_48_historical_raw_artifacts_missing",
-        "paper_48_historical_task_image_digest_ledger_missing",
-    ]
+    if not (REFERENCE_ROOT / "environments/org_env/cooperbench/worker.py").is_file():
+        missing.append("cooperbench_frozen_reference_checkout_missing")
+    gaps = []
     if not (REPOSITORY_ROOT / "LICENSE").is_file():
         gaps.insert(0, "relic_root_license_missing")
     return {
         "schema_version": "relic-cooperbench-missing-input-report-v2",
-        "paper_scope": {"subset": PAPER_SUBSET, "pairs": 48, "task_instances": 30,
-                        "repositories": 12, "reported_relic_successes": 29,
+        "paper_scope": {"subset": PAPER_SUBSET, "pairs": EXPECTED_PAIR_COUNT, "task_instances": 30,
+                        "repositories": 12,
                         "reported_model": REPORTED_MODEL},
+        "historical_artifacts": "https://huggingface.co/datasets/Horseback-Eridute/CooperBench-B3-2-Full-652",
+        "implementation": "final frozen reference; historical runs used earlier fixes too",
         "source_selection": None if selection is None else {"pairs": len(selection.pairs), "batches": [
             {"path": str(batch.path.relative_to(REPOSITORY_ROOT)), "source_path": batch.source_path,
-             "source_blob": batch.source_blob, "sha256": batch.sha256} for batch in selection.batches]},
+             "sha256": batch.sha256} for batch in selection.batches]},
         "runtime_ready": not missing,
         "runtime_missing": sorted(set(missing)),
         "release_complete": not missing and not gaps,

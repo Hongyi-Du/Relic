@@ -1,6 +1,6 @@
 {
-  "name": "b3_v108_new16_b001",
-  "description": "Sixteen previously unrecorded CooperBench feature pairs for the v108 two-member B3 scale batch. Seven task IDs are wholly unseen; selection covers all 12 repository families without using evaluator outcomes.",
+  "name": "paper16",
+  "description": "Historical sixteen-pair selection for the two-member B3 paper snapshot. Seven task IDs were previously unseen; selection covers all 12 repository families without using evaluator outcomes.",
   "stats": {
     "tasks": 16,
     "pairs": 16,

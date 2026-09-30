@@ -1,4 +1,4 @@
-"""Release boundary tests for the source-retained CooperBench paper subset."""
+"""Release boundaries for the complete frozen CooperBench reference."""
 
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ from relic.cooper_release import (
     EXPECTED_REPOSITORY_COUNT,
     EXPECTED_TASK_COUNT,
     PAPER_SUBSET,
+    REFERENCE_ROOT,
     SOURCE_BATCHES,
     CooperReleaseError,
     missing_input_report,
@@ -47,17 +48,16 @@ def _write_subset(tmp_path: Path, document: dict[str, object]) -> Path:
     return dataset
 
 
-def test_source_selection_is_the_verbatim_16_plus_32_union() -> None:
+def test_source_selection_is_the_complete_manifest() -> None:
     selection = source_selection()
 
-    assert len(selection.pairs) == EXPECTED_PAIR_COUNT == 48
+    assert len(selection.pairs) == EXPECTED_PAIR_COUNT == 652
     assert len({(pair.repo, pair.task_id) for pair in selection.pairs}) == EXPECTED_TASK_COUNT == 30
     assert len({pair.repo for pair in selection.pairs}) == EXPECTED_REPOSITORY_COUNT == 12
-    assert len(selection.keys) == 48
+    assert len(selection.keys) == 652
     assert "openai_tiktoken_task:0:1,5" in selection.keys
     assert [batch.path.name for batch in SOURCE_BATCHES] == [
-        "b3_v108_new16_b001.json",
-        "b3_v128_expand32_b001.json",
+        "full652.json",
     ]
     assert all(hashlib.sha256(batch.path.read_bytes()).hexdigest() == batch.sha256 for batch in SOURCE_BATCHES)
 
@@ -151,14 +151,14 @@ def test_summary_is_emitted_as_upstream_bytes_without_reaggregation(tmp_path: Pa
 def test_missing_report_recognizes_retained_source_selection() -> None:
     report = missing_input_report()
 
-    assert report["source_selection"]["pairs"] == 48
+    assert report["source_selection"]["pairs"] == 652
     assert "paper_48_manifest_missing" not in report["runtime_missing"]
     assert report["runtime_missing"] == [
         "cooperbench_checkout_required",
         "cooperbench_cli_required",
         "cooperbench_dataset_dir_required",
     ]
-    assert "paper_48_historical_raw_artifacts_missing" in report["release_gaps"]
+    assert report["release_gaps"] == []
 
 
 def test_cli_check_allows_new_runs_without_historical_artifacts(
@@ -176,9 +176,8 @@ def test_cli_check_allows_new_runs_without_historical_artifacts(
     report = json.loads(capsys.readouterr().out)
     assert report["runtime_ready"] is True
     assert report["runtime_missing"] == []
-    assert report["source_selection"]["pairs"] == 48
-    assert "paper_48_historical_raw_artifacts_missing" in report["release_gaps"]
-    assert "paper_48_historical_task_image_digest_ledger_missing" in report["release_gaps"]
+    assert report["source_selection"]["pairs"] == 652
+    assert report["release_gaps"] == []
 
 
 def test_cli_dry_run_uses_source_subset_and_absolute_default_config(
@@ -212,7 +211,19 @@ def test_cli_dry_run_uses_source_subset_and_absolute_default_config(
     payload = json.loads(capsys.readouterr().out)
     command = payload["command"]
     assert command[command.index("-s") + 1] == PAPER_SUBSET
-    assert command[command.index("--agent-config") + 1].endswith(
+    assert Path(command[command.index("--agent-config") + 1]).as_posix().endswith(
         "/configs/cooperbench/b3_two_agent_case.yaml"
     )
     assert "--force" not in command
+
+
+def test_external_process_loads_the_frozen_reference_first(tmp_path: Path) -> None:
+    import os
+    from relic.cooper_release import external_environment
+
+    environment = external_environment(tmp_path)
+    assert environment["PYTHONPATH"].split(os.pathsep)[0] == str(REFERENCE_ROOT)
+    assert (REFERENCE_ROOT / "environments/org_env/cooperbench/worker.py").is_file()
+    assert "relic_cooperbench_b3_two_agent" in (
+        REFERENCE_ROOT / "environments/org_env/cooperbench/contract.py"
+    ).read_text(encoding="utf-8")

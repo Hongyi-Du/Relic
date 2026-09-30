@@ -100,6 +100,10 @@ the runtime remained paused, a single tick completed, and no LLM was attached.
 
 ### Cooper boundary
 
+Historical check of the earlier 48-pair entrypoint. The current branch now
+publishes the final full-652 reference; use `reproduction/cooperbench/README.md`
+instead of these old setup commands.
+
     UV_CACHE_DIR=/tmp/relic-cooper-uv-cache uv run --frozen relic check-cooper
     UV_CACHE_DIR=/tmp/relic-cooper-uv-cache uv run --frozen relic preflight-cooper --pair-key dottxt_ai_outlines_task:1371:1,2 --image unavailable-task-image --dataset-dir /tmp/cooperbench-v0.0.29-inspect/dataset --output /tmp/relic-final-repro-20260917.Ql0mgu/cooper-preflight --dry-run
     UV_CACHE_DIR=/tmp/relic-cooper-uv-cache uv run --frozen relic run-cooper --cooperbench-root /tmp/cooperbench-v0.0.29-inspect --cooperbench-bin cooperbench --dataset-dir /tmp/cooperbench-v0.0.29-inspect/dataset --log-dir /tmp/relic-final-repro-20260917.Ql0mgu/cooper-runs --run-name relic-final-preflight --model unconfigured-gateway --concurrency 1 --eval-concurrency 1 --dry-run
@@ -107,7 +111,7 @@ the runtime remained paused, a single tick completed, and no LLM was attached.
 All three correctly stopped without a benchmark run. `check-cooper` verified
 the 48-pair local source selection but reported the absent external checkout,
 CLI, and dataset directory. The supplied inspected v0.0.29 checkout has the
-correct commit but lacks `b3_v133_combined48_b001.json`; both preflight and
+correct commit but lacks the historical combined-48 subset; both preflight and
 run dry-run therefore stopped with `cooperbench_paper_subset_missing`, before
 an unavailable task image or gateway could be used.
 
@@ -118,4 +122,3 @@ and intentional fail-closed gates. It does not reproduce a formal main/transfer
 cell, a Claude gateway run, a selected historical trace, or a CooperBench
 result. The remaining inputs and release-publication gaps are listed in
 [`KNOWN_RELEASE_GAPS.md`](KNOWN_RELEASE_GAPS.md).
-

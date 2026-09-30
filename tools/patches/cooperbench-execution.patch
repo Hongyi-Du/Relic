@@ -1,0 +1,125 @@
+diff --git a/src/cooperbench/eval/sandbox.py b/src/cooperbench/eval/sandbox.py
+--- a/src/cooperbench/eval/sandbox.py
++++ b/src/cooperbench/eval/sandbox.py
+@@ -1,13 +1,18 @@
+ """Sandbox execution for patch testing."""
+ 
+ import base64
++import os
+ import re
++import shlex
+ from pathlib import Path
+ 
+ from cooperbench.eval.backends import get_backend
+ from cooperbench.eval.backends.base import Sandbox
+ from cooperbench.runner.tasks import DEFAULT_DATASET_DIR
+ from cooperbench.utils import get_image_name
++
++
++DEFAULT_EVAL_TIMEOUT = int(os.environ.get("COOPERBENCH_EVAL_TIMEOUT_SECONDS", "600"))
+ 
+ 
+ def run_patch_test(
+@@ -15,7 +20,7 @@
+     task_id: int,
+     feature_id: int,
+     agent_patch: str | Path | None = None,
+-    timeout: int = 600,
++    timeout: int = DEFAULT_EVAL_TIMEOUT,
+     backend: str = "docker",
+     dataset_dir: Path | str | None = None,
+ ) -> dict:
+@@ -97,7 +102,7 @@
+     feature2_id: int,
+     patch1: str | Path | None = None,
+     patch2: str | Path | None = None,
+-    timeout: int = 600,
++    timeout: int = DEFAULT_EVAL_TIMEOUT,
+     backend: str = "docker",
+     dataset_dir: Path | str | None = None,
+ ) -> dict:
+@@ -308,7 +313,7 @@
+     feature1_id: int,
+     feature2_id: int,
+     patch: str | Path | None = None,
+-    timeout: int = 600,
++    timeout: int = DEFAULT_EVAL_TIMEOUT,
+     backend: str = "docker",
+     dataset_dir: Path | str | None = None,
+ ) -> dict:
+@@ -431,9 +436,24 @@
+ def _write_patch(sb: Sandbox, filename: str, content: str) -> None:
+     """Write a patch file to the sandbox."""
+     encoded = base64.b64encode(content.encode()).decode()
+-    result = sb.exec("bash", "-c", f"echo '{encoded}' | base64 -d > /patches/{filename}")
+-    if result.returncode != 0:
+-        raise RuntimeError(f"Failed to write {filename}: {result.stderr_read()}")
++    target = shlex.quote(f"/patches/{filename}")
++    if not encoded:
++        result = sb.exec("bash", "-c", f": > {target}")
++        if result.returncode != 0:
++            raise RuntimeError(f"Failed to write {filename}: {result.stderr_read()}")
++        return
++
++    # A single bash -c argument containing a large base64 patch can exceed
++    # Linux MAX_ARG_STRLEN even when the overall command-line limit is higher.
++    # Chunk on a base64 quantum boundary so each exec argument stays bounded.
++    for offset in range(0, len(encoded), 65536):
++        chunk = encoded[offset : offset + 65536]
++        redirect = ">" if offset == 0 else ">>"
++        result = sb.exec(
++            "bash", "-c", f"printf '%s' '{chunk}' | base64 -d {redirect} {target}"
++        )
++        if result.returncode != 0:
++            raise RuntimeError(f"Failed to write {filename}: {result.stderr_read()}")
+ 
+ 
+ def _setup_branches(sb: Sandbox) -> dict:
+diff --git a/src/cooperbench/eval/backends/docker.py b/src/cooperbench/eval/backends/docker.py
+--- a/src/cooperbench/eval/backends/docker.py
++++ b/src/cooperbench/eval/backends/docker.py
+@@ -35,9 +35,12 @@
+         self._container = container
+         self._workdir = workdir
+         self._timeout = timeout
++        self._terminal_error: str | None = None
+ 
+     def exec(self, *args: str) -> ExecResult:
+         """Execute a command in the container with timeout support."""
++        if self._terminal_error is not None:
++            raise RuntimeError(self._terminal_error)
+ 
+         def _run_exec():
+             return self._container.exec_run(
+@@ -46,13 +49,25 @@
+                 demux=False,
+             )
+ 
+-        # Use ThreadPoolExecutor to enforce timeout on exec_run
+-        with ThreadPoolExecutor(max_workers=1) as executor:
+-            future = executor.submit(_run_exec)
++        # ``ThreadPoolExecutor.__exit__`` waits for running work, so returning
++        # from a timeout inside a ``with`` block would still wait forever for
++        # the same hung Docker exec.  Stop that container and leave the blocked
++        # SDK call without waiting for its worker thread.
++        executor = ThreadPoolExecutor(max_workers=1)
++        future = executor.submit(_run_exec)
++        timed_out = False
++        try:
++            exit_code, output = future.result(timeout=self._timeout)
++        except FuturesTimeoutError:
++            timed_out = True
++            self._terminal_error = f"Command timed out after {self._timeout} seconds"
+             try:
+-                exit_code, output = future.result(timeout=self._timeout)
+-            except FuturesTimeoutError:
+-                return DockerExecResult(-1, f"Command timed out after {self._timeout} seconds".encode())
++                self._container.kill()
++            except docker.errors.APIError:
++                pass
++            return DockerExecResult(-1, self._terminal_error.encode())
++        finally:
++            executor.shutdown(wait=not timed_out, cancel_futures=timed_out)
+ 
+         return DockerExecResult(exit_code, output or b"")
+ 
