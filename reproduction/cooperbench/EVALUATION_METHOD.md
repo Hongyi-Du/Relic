@@ -48,19 +48,26 @@ byte-identical joint patches was already upstream behavior, not a RELIC override
 Agent-side runtime/probe fixes are separate from these evaluator changes;
 internal probe success is never substituted for an official verdict.
 
-## Reporting and incomplete cases
+## Reporting and internal method failures
 
 Raw evaluator outcomes are 392 PASS / 221 FAIL / 39 without an official verdict.
-The owner's analysis is 371 PASS / 98 FAIL / 181 **proposed** BROKEN exclusions /
-2 UNCERTAIN. The 181 exclusions have per-pair QA and are submitted
+The owner's analysis is 371 PASS / 100 FAIL / 181 **proposed** BROKEN exclusions.
+The 100 failures comprise 98 official evaluator FAIL and 2 internal method
+failures without an official verdict. The 181 exclusions have per-pair QA and are submitted
 for author review, not represented as official author-approved exclusions.
 
-The two DSPy cases are **UNCERTAIN (尚不确定)**: no official verdict is available;
-they are not counted as PASS, FAIL, or BROKEN.
+The two DSPy cases failed to complete an evaluable submission through our own
+peer-probe/review workflow. This workflow is part of our method, so both count
+as method failures, not benchmark defects. Their analysis status is `FAIL`,
+with `failure_type=INTERNAL_PROBE_WORKFLOW_FAILURE` and
+`failure_verdict_source=METHOD_ACCOUNTING`. Their raw evaluator status remains
+`NO_OFFICIAL_VERDICT`; an official FAIL is not manufactured. This accounting
+does not claim that the unsubmitted implementations would have failed official tests.
 
-The 79.1% figure is **371/469 evaluated, retained pairs under our current
-validity-filtered analysis**. It is not an official full-652 benchmark score.
-The two unscored cases remain explicitly visible outside that denominator.
+The primary retained-task method success rate is **371/471 (78.77%)**, including
+the two internal failures in its denominator. The evaluator-only subset,
+371/469 (79.10%), is supplementary and excludes those two failures. Neither is
+an official full-652 score or an author-endorsed exclusion-adjusted score.
 LLM-call failure percentages are diagnostic only; no 5% exclusion rule is used.
 This correction changes classification and documentation only: no rerun,
 synthetic trajectory, substituted patch, or rewritten raw official verdict.

@@ -33,9 +33,11 @@ earlier fixes. The older 48-pair paper snapshot remains historical material in
 Owner-labeled BROKEN exclusions are not claimed to have been endorsed by the
 benchmark maintainers.
 
-The historical release now records 371 retained PASS / 98 retained FAIL /
-181 proposed BROKEN / 2 UNCERTAIN. The two uncertain DSPy cases have no official
-verdict; internal probe certification is not an official metric. See
+The historical release now records 371 retained PASS / 100 analysis FAIL /
+181 proposed BROKEN, with a retained-task success rate of 371/471 (78.77%).
+The 100 failures comprise 98 official evaluator FAIL and 2 internal method
+failures with no official verdict. Internal probe/review delivery is part of
+our method, so those two failures remain in its denominator. See
 [evaluation methods and execution-layer deviations](EVALUATION_METHOD.md) for
 the benchmark pins, actual Docker/patch-transport changes, and score denominator.
 
