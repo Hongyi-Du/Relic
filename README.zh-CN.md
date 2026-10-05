@@ -1,60 +1,94 @@
-# Relic（中文说明）
+# Relic：从多智能体协作到持久组织能力
 
-[English README](README.md) · [发布范围](docs/release-scope.md) · [论文结果](artifacts/paper_results/paper_results.md) · [运行可视化](demo/README.md) · [已知缺口](docs/KNOWN_RELEASE_GAPS.md)
+[论文](https://arxiv.org/abs/2609.32965) · [项目主页](https://hongyidu.ai/relic/zh) · [观看组织回放](https://hongyidu.ai/relic/zh/experience) · [文档](docs/README.md) · [English](README.md)
 
-`relic` 是论文的研究代码与复现实验仓库，包含 OrgEnv、B0--B3、十个 `relic-main-v1` workload、主实验与 transfer 入口、evaluator 和公开 Inspector。填写自己的 API key、gateway 和模型名后即可运行，默认使用仓库公开的本地 evaluator，无需 evaluator binding。
+**当成员更替时，一个 AI 团队能留下什么？** Relic 把协作中反复出现的失败，
+转化为由组织持有、可执行的协议。成员提出规则并共同治理；采用后的协议把
+触发条件、责任分工、所需证据与执行后果接入后续工作。即使创建它的成员离开，
+组织仍能保留、使用和修订这些协议。
 
-## 分支与仓库导航
+![Relic 概览：协作摩擦形成经治理的协议；换了审核成员，同一规则仍然适用。](assets/readme/relic-overview.svg)
 
-| 分支 | 用途 |
-| --- | --- |
-| `main` | 干净、canonical 的论文复现分支 |
-| `hci` | `main` 加 P2/P3 human-seat HCI 扩展；切换后读 `docs/HCI_GUIDE.md` |
-| `cooper` | `main` 加 CooperBench B3-2 扩展；切换后读 `reproduction/cooperbench/README.md` |
+## 先看机制
 
-通用、可配置的组织 runtime 位于 [Relic-Agent](https://github.com/Hongyi-Du/Relic-Agent)。普通测试直接保留在仓库中，不需要额外的测试分支。
+共享接口发生变化，客户端因此报错，团队采用了一条接口审核协议。这条规则改变
+运行时对行动的优先级和执行检查。审核成员更替后，审核要求仍然属于组织。
 
-## B0--B3 条件
+[![Relic 完整机制：共享失败、提案、协议采用、运行时绑定与跨成员留存。](assets/readme/mechanism-main.png)](https://hongyidu.ai/relic/zh)
 
-| Arm | 成员 | 决策 | profile/capability conditioning | institutionalization |
-| --- | ---: | --- | --- | --- |
-| B0 | 1 | direct LLM | 关闭 | 关闭 |
-| B1 | 8 个持久成员 | direct LLM | 关闭 | 关闭 |
-| B2 | 8 个持久成员 | SDL/profile policy | 开启 | 关闭 |
-| B3 | 8 个持久成员 | SDL/profile policy | 开启 | 开启（包括 runtime protocol binding） |
+可以在[项目主页](https://hongyidu.ai/relic/zh)探索交互主图，也可以阅读
+[协议生命周期](docs/protocol_lifecycle.md)。实验依据见
+[论文](https://arxiv.org/abs/2609.32965)与
+[已报告的结果快照](artifacts/paper_results/paper_results.md)。
 
-YAML config 是权威定义：`configs/arms/`。主 benchmark 在 [`benchmarks/relic-main-v1/`](benchmarks/relic-main-v1/)，最终论文 aggregate summary 在 [`artifacts/paper_results/`](artifacts/paper_results/)。
+## 不安装，先看一局
 
-## Linux / WSL2 快速开始
+[在线 Experience](https://hongyidu.ai/relic/zh/experience) 把组织动画回放与
+Inspector 放在一起：先看协议如何影响工作，再查看对应的组织状态。
 
-正式 runtime 是 Linux；Windows 用户请在 WSL2 的 Linux filesystem（例如 `~/relic`）中 clone，不要在 `/mnt/c` 下运行。PowerShell 仅调用 WSL2 launcher，不直接运行 Relic core。
+仓库也附带一个自包含的存档可视化。用 Python 启动静态服务器，
+然后打开 `http://localhost:8000/`：
 
 ```bash
 git clone https://github.com/Hongyi-Du/Relic.git relic
 cd relic
-cp .env.example .env
+python3 -m http.server 8000 --directory demo
+```
+
+选 **Story / 故事** 看协议生命周期的引导讲解，或拖动时间轴阅读整局。
+仓库附带的 cattrs 回放是单局 parity run，并非论文汇总结果。
+数据来源与操作说明见 [demo/README.md](demo/README.md)。
+
+## 选择入口
+
+| 你想做什么 | 从这里开始 |
+| --- | --- |
+| 理解研究 | [论文](https://arxiv.org/abs/2609.32965) · [交互主页](https://hongyidu.ai/relic/zh) |
+| 复现实验 | **本仓库：** 冻结基准、B0–B3 配置、OrgEnv、评估器与[复现入口](reproduction/README.md) |
+| 构建自己的智能体组织 | [**Relic-Agent**](https://github.com/Hongyi-Du/Relic-Agent)：与具体基准无关的可配置组织运行框架及 Inspector |
+
+## 快速开始
+
+使用 **Python 3.12+**、**uv** 和 **Linux / WSL2**。Windows 用户请把仓库放在
+WSL 的 Linux 文件系统，例如 `~/relic`。如果已经按上面的命令克隆，
+从 `uv sync` 开始即可。
+
+```bash
+git clone https://github.com/Hongyi-Du/Relic.git relic
+cd relic
 uv sync --extra dev --frozen
+cp .env.example .env
 uv run relic verify-benchmark
 uv run relic check-env --scope core
 uv run relic smoke --mode mock
 ```
 
-以上命令不调用模型。输出默认写入 `outputs/`；可通过 `RELIC_OUTPUT_ROOT` 或显式 `--output-root` 设置。在 `.env` 填写自己的路由：
+这些检查不调用模型。Mock smoke 检查接口是否接通，不代表实验结果。
+`uv run pytest -q` 运行发布测试集。[安装说明](docs/installation.md)介绍完整步骤；
+[环境说明](docs/environment.md)包括 Docker、平台支持和输出目录。
 
-```dotenv
-OPENAI_API_KEY=your-key
-OPENAI_BASE_URL=https://your-gateway.example/v1
-RELIC_RUNTIME_MODEL=your-provider-deployment
-```
+## 运行论文实验
 
-直接运行 `uv run relic ...` 时，命令只继承当前进程环境，不会隐式加载
-`.env`。需要调用 provider 的命令请显式使用
-`uv run --env-file .env relic ...`（下方示例如此）；`scripts/bash/` 下的 Bash
-wrapper 会自动加载仓库根目录 `.env` 中允许的变量。
+[configs/](configs/) 中的 YAML 与冻结的
+[relic-main-v1 基准](benchmarks/relic-main-v1/)共同定义实验：
+10 个任务 × 3 个随机种子 × 4 组条件 = **每个模型 120 个实验单元**。
 
-CLI 的 `--runtime-model` 可以覆盖 runtime 模型名，`--model` 保留论文模型标识。Claude 分组也可以设置 `RELIC_CLAUDE_OPUS_4_6_MODEL`，不需要恢复作者的私人 alias。
+<details>
+<summary><strong>B0–B3 有什么区别</strong></summary>
 
-生成一个不调用 provider 的 120-cell GPT dry plan：
+| 条件 | 成员 | 决策方式 | 成员画像 / 能力条件化 | 协议生命周期 |
+| --- | ---: | --- | --- | --- |
+| B0 | 1 | 大模型直接选择行动 | 关闭 | 关闭 |
+| B1 | 8 个持久角色 | 大模型直接选择行动 | 关闭 | 关闭 |
+| B2 | 8 个持久角色 | SDL / 画像策略 | 开启 | 关闭 |
+| B3 | 8 个持久角色 | SDL / 画像策略 | 开启 | 开启，包含运行时协议绑定 |
+
+权威定义位于 [configs/arms/](configs/arms/)。
+B2 与 B3 使用同样的结构化团队；B3 增加可治理、可执行的组织协议。
+
+</details>
+
+先生成一个不调用模型的执行计划：
 
 ```bash
 uv run relic run-main \
@@ -65,57 +99,113 @@ uv run relic run-main \
   --dry-run
 ```
 
-配置好模型后，移除 `--dry-run` 执行主实验：
+在本地 `.env` 中填写兼容 OpenAI 的模型服务：
 
-```bash
-uv run --env-file .env relic run-main --model gpt-5.6-terra --output-root outputs/main-study --max-parallel 1
+```dotenv
+OPENAI_API_KEY=your-key
+OPENAI_BASE_URL=https://your-gateway.example/v1
+RELIC_RUNTIME_MODEL=your-provider-deployment
 ```
 
-主实验仍保留每模型 120 cells、每 cell 336 ticks 的论文设置。各 batch 的 `experiment_runs.json/jsonl` 汇总 B0–B3 的实验记录、评分证据与执行状态，顶层 `source_main_manifest.json` 链接这些结果。只有主动添加 `--strict-reproducibility` 时才要求完整 binding、digest、platform 和 hash；普通运行会记录本地实际观察到的 evaluator metadata。完整输出与 legacy cell aggregate 命令见 [English README](README.md)。
-
-## Docker 快速开始
-
-Docker 与本地路径调用同一个 `relic` CLI。它不写入 API key、历史结果、cache 或 selected trace。
+然后运行一个保留 B0–B3 配对的实验批次：
 
 ```bash
-cp .env.example .env
-mkdir -p outputs cache traces
-docker compose build relic
-docker compose run --rm relic check-env --scope core
-docker compose run --rm relic smoke --mode mock
+uv run --env-file .env relic run-main \
+  --manifest outputs/main-study/source_main_manifest.json \
+  --resume \
+  --max-parallel 1 \
+  --workload w01 \
+  --seed 1401
 ```
 
-详见[环境与平台支持](docs/environment.md)：其中包含所有环境变量、runtime model / base URL、Docker volume、WSL2/PowerShell 使用方式、并发与内存策略。
+去掉 `--workload` 与 `--seed` 选择参数，运行该模型的完整实验。
+各批次会写入 checkpoint、评估器元数据与 `experiment_runs.json/jsonl`，
+顶层 manifest 链接这些结果。这些是你本地运行的结果，与仓库内论文结果快照分开。
 
-## Inspector 与论文结果
+直接执行 `uv run relic ...` 不会隐式读取 `.env`。调用模型时请使用
+`uv run --env-file .env relic ...`。
+`--model` 保留论文的模型标识；`--runtime-model` 或
+`RELIC_RUNTIME_MODEL` 指定你的服务中的部署名称。
+
+<details>
+<summary>模型别名与断点续跑</summary>
+
+凭证保留在本地 `.env` 中，不写入公开 trace、计划或 manifest。
+`scripts/bash/` 中的轻量 Bash 包装器会自动加载允许的环境变量。
+
+运行时模型名称的优先级为 `--runtime-model`、`RELIC_RUNTIME_MODEL`、
+`ORG_LLM_RUNTIME_MODEL`、`OPENAI_MODEL`、`ORG_LLM_MODEL`。
+Claude 分组没有通用覆盖时，可用 `RELIC_CLAUDE_OPUS_4_6_MODEL` 指定网关别名。
+尚未执行的 dry plan 可在首次执行时补充部署名；执行开始后，resume 保留已记录的模型身份。
+可选请求头与完整模型服务配置见 [environment.md](docs/environment.md)。
+
+</details>
+
+## 继续深入
+
+| 主题 | 文档 |
+| --- | --- |
+| 主实验与输出 | [主结果复现](reproduction/main_results/README.md) · [配置](docs/configuration.md) |
+| 新成员迁移 | [Transfer](docs/transfer.md) · [迁移复现](reproduction/transfer/README.md) |
+| 公开 trace 与 Inspector | [Inspector](docs/inspector.md) |
+| 评估器来源与容器 | [Evaluator](docs/evaluator.md) · [环境](docs/environment.md) |
+| 人类席位扩展 | [`hci` 分支](https://github.com/Hongyi-Du/Relic/tree/hci) |
+| CooperBench 扩展 | [`cooper` 分支](https://github.com/Hongyi-Du/Relic/tree/cooper) |
+| 发布范围与可用资料 | [发布范围](docs/release-scope.md) · [范围与验证限制](docs/KNOWN_RELEASE_GAPS.md) |
+
+主实验和迁移路径默认使用公开的 host evaluator。
+可选 `--evaluator-bindings` 记录容器来源；
+`--strict-reproducibility` 要求 digest 固定的 `linux/amd64` 镜像及资格校验哈希。
+
+<details>
+<summary>迁移实验命令</summary>
+
+迁移实验增加新的 B2 Text 与 Exec 目标团队；Fresh 使用配对主实验中的 B2 结果。
 
 ```bash
-uv run relic replay --trace /path/to/selected-trace.json
-uv run relic inspect --trace /path/to/selected-trace.json
+uv run relic run-transfer --dry-run \
+  --output-root outputs/transfer-v2 \
+  --workload w01 \
+  --seed 1401
+uv run --env-file .env relic run-transfer \
+  --manifest outputs/transfer-v2/transfer_manifest.json \
+  --resume \
+  --max-parallel 1 \
+  --workload w01 \
+  --seed 1401
 ```
 
-Inspector 默认只绑定 `127.0.0.1:8765`。它读取经过校验的公开 `relic-trace-v1`，不读取 checkpoint、private memory、provider messages 或 evaluator workspace。
+</details>
 
-可复制的正式入口、输出结构、transfer、CooperBench 边界以及当前不可补齐的外部资产，请从 [English README](README.md) 和 `docs/` 中的链接继续阅读。
+<details>
+<summary>旧版单元调度器的结果汇总</summary>
 
-## 运行可视化
-
-`demo/` 是一个自带数据的静态页面，把已归档的一次 B3 run（cattrs，seed 4013）按小时重放：
-agent 在各个房间之间移动，工作看板和治理面板逐 tick 更新，五幕剧情模式会完整讲一遍某条
-protocol 从提出、否决、通过、生效、违规、强制到修订的全过程；也可以和同 seed 的 B2 run 分屏对比。
-界面和旁白支持中英切换。
+配对 `run-main` 已写入每批次的实验汇总。单独的旧版单元调度器使用
+`run_manifest.json`；以下命令接收此格式，不接收 `source_main_manifest.json`：
 
 ```bash
-cd demo && python3 -m http.server        # 然后打开 http://localhost:8000/
+uv run relic evaluate \
+  --manifest outputs/user-run/run_manifest.json \
+  --receipt-directory outputs/user-run/evaluation
+uv run relic aggregate-user-runs \
+  --evaluation-manifest outputs/user-run/evaluation/evaluation_manifest.json \
+  --output-directory outputs/user-run/aggregate \
+  --allow-partial
 ```
 
-无需安装任何依赖。注意它需要通过 HTTP 访问，不能直接以 `file://` 打开。
-详见 [demo/README.md](demo/README.md)，其中说明了这只是单次 parity run，不是论文的聚合结果。
+失败或降级的案例保留对应标签。本地汇总不会重新计算或替换论文报告的结果快照。
+
+</details>
+
+## 引用
+
+使用本研究时，请引用[论文](https://arxiv.org/abs/2609.32965)。
+BibTeX 见 [English README](README.md#citation)。
 
 ## 许可
 
 Relic 的原创源码以 [PolyForm Noncommercial License 1.0.0](LICENSE)
-进行源码公开：遵守协议时，可以免费用于非商业目的，也可以修改和分发。
+进行源码公开：遵守协议时，可以用于非商业目的，也可以修改和分发。
 任何商业用途都需要事先取得 Hongyi Du 的单独书面授权；参见
 [商业授权说明](COMMERCIAL_LICENSE.md)。
 

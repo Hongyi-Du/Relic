@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="438" viewBox="0 0 1200 438" role="img" aria-labelledby="title desc">
+  <title id="title">Members change. The protocol stays.</title>
+  <desc id="desc">Shared interface failures lead to a governed organization-owned protocol. Its trigger, roles, evidence, and response remain in force when a new reviewer joins. An explanatory schematic of the paper's interface-review example.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 8 4 0 8" fill="none" stroke="#86133b" stroke-width="1.6"/></marker>
+    <style>
+      text{font-family:Arial,Helvetica,sans-serif;fill:#252c3d}.small{font-size:18px}.body{font-size:22px}.heading{font-size:25px;font-weight:700}.accent{fill:#86133b}.muted{fill:#5f718c}.serif{font-family:Georgia,'Times New Roman',serif}
+    </style>
+  </defs>
+  <rect width="1200" height="438" rx="18" fill="#faf8f4"/>
+  <text x="38" y="49" class="small accent" font-weight="700" letter-spacing="2">RELIC</text>
+  <text x="38" y="98" class="serif" font-size="38" font-weight="700">Members change. The protocol stays.</text>
+  <g transform="translate(38 135)">
+    <rect width="300" height="233" rx="12" fill="#f0f4f9" stroke="#d6dfec"/>
+    <text x="23" y="37" class="small muted">01 / COLLABORATION</text>
+    <text x="23" y="78" class="heading">Shared work,</text>
+    <text x="23" y="108" class="heading">recurring friction.</text>
+    <rect x="23" y="131" width="254" height="72" rx="7" fill="#fff" stroke="#d6dfec"/>
+    <path d="M39 148h13l5 5v18H39zM52 148v7h5" fill="none" stroke="#5f718c" stroke-width="1.5"/>
+    <text x="69" y="160" class="small muted">An interface changes.</text>
+    <text x="38" y="188" class="small accent" font-weight="700">The client breaks.</text>
+  </g>
+  <path d="M350 250H384" stroke="#86133b" stroke-width="2.5" fill="none" marker-end="url(#arrow)"/>
+  <g transform="translate(398 135)">
+    <rect x="7" y="7" width="390" height="233" rx="12" fill="#e8edf4"/>
+    <rect width="390" height="233" rx="12" fill="#fff" stroke="#b6c4d8" stroke-width="1.6"/>
+    <text x="23" y="37" class="small accent" font-weight="700">02 / ORGANIZATION-OWNED PROTOCOL</text>
+    <rect x="23" y="57" width="43" height="48" rx="6" fill="#86133b"/>
+    <text x="33" y="94" class="serif" font-size="36" font-weight="700" fill="#fff" style="fill:#fff">P</text>
+    <text x="81" y="90" class="heading accent">Interface review</text>
+    <line x1="23" y1="123" x2="367" y2="123" stroke="#d6dfec"/>
+    <text x="23" y="155" class="body" font-weight="700">Trigger · Roles</text>
+    <text x="23" y="185" class="body" font-weight="700">Evidence · Response</text>
+    <text x="23" y="215" class="small muted">Proposed, approved, bound to execution.</text>
+  </g>
+  <path d="M804 250H837" stroke="#86133b" stroke-width="2.5" fill="none" marker-end="url(#arrow)"/>
+  <g transform="translate(851 135)">
+    <rect width="311" height="233" rx="12" fill="#f4edf1" stroke="#e1cfd7"/>
+    <text x="23" y="37" class="small accent">03 / PERSISTENCE</text>
+    <text x="23" y="78" class="heading">New member.</text>
+    <text x="23" y="108" class="heading">Same review rule.</text>
+    <circle cx="42" cy="150" r="10" fill="none" stroke="#a5aec0" stroke-width="2"/>
+    <path d="M28 177v-6c0-16 28-16 28 0v6" fill="none" stroke="#a5aec0" stroke-width="2"/>
+    <text x="65" y="158" class="small muted">B leaves</text>
+    <path d="M142 159h24" stroke="#86133b" stroke-width="2" marker-end="url(#arrow)"/>
+    <circle cx="194" cy="150" r="10" fill="none" stroke="#86133b" stroke-width="2"/>
+    <path d="M180 177v-6c0-16 28-16 28 0v6" fill="none" stroke="#86133b" stroke-width="2"/>
+    <text x="218" y="158" class="small accent">C joins</text>
+    <text x="23" y="212" class="small accent" font-weight="700">Review still required before merge.</text>
+  </g>
+  <text x="38" y="409" class="small muted">Collaboration experience becomes governed, executable organizational state.</text>
+</svg>
