@@ -1,5 +1,13 @@
 # Relic：从多智能体协作到持久组织能力
 
+[![arXiv: 2609.32965](https://img.shields.io/badge/arXiv-2609.32965-b31b1b)](https://arxiv.org/abs/2609.32965)
+[![项目主页](https://img.shields.io/badge/Website-Relic-24354b)](https://hongyidu.ai/relic/zh)
+[![交互体验](https://img.shields.io/badge/Experience-Interactive-8b2942)](https://hongyidu.ai/relic/zh/experience)
+[![文档](https://img.shields.io/badge/Docs-Guide-526c88)](docs/README.md)
+[![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776ab?logo=python&logoColor=white)](docs/installation.md)
+[![CI 状态](https://img.shields.io/github/actions/workflow/status/Hongyi-Du/Relic/release-ci.yml?branch=main&event=push&label=CI)](https://github.com/Hongyi-Du/Relic/actions/workflows/release-ci.yml)
+[![许可证：PolyForm Noncommercial 1.0.0](https://img.shields.io/badge/License-PolyForm_Noncommercial_1.0.0-6c5a7b)](LICENSE)
+
 [论文](https://arxiv.org/abs/2609.32965) · [项目主页](https://hongyidu.ai/relic/zh) · [观看组织回放](https://hongyidu.ai/relic/zh/experience) · [文档](docs/README.md) · [English](README.md)
 
 **当成员更替时，一个 AI 团队能留下什么？** Relic 把协作中反复出现的失败，

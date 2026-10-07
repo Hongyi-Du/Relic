@@ -1,5 +1,13 @@
 # Relic: From Multi-Agent Collaboration to Persistent Organizational Capability
 
+[![arXiv: 2609.32965](https://img.shields.io/badge/arXiv-2609.32965-b31b1b)](https://arxiv.org/abs/2609.32965)
+[![Project website](https://img.shields.io/badge/Website-Relic-24354b)](https://hongyidu.ai/relic/en)
+[![Interactive experience](https://img.shields.io/badge/Experience-Interactive-8b2942)](https://hongyidu.ai/relic/en/experience)
+[![Documentation](https://img.shields.io/badge/Docs-Guide-526c88)](docs/README.md)
+[![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776ab?logo=python&logoColor=white)](docs/installation.md)
+[![CI status](https://img.shields.io/github/actions/workflow/status/Hongyi-Du/Relic/release-ci.yml?branch=main&event=push&label=CI)](https://github.com/Hongyi-Du/Relic/actions/workflows/release-ci.yml)
+[![License: PolyForm Noncommercial 1.0.0](https://img.shields.io/badge/License-PolyForm_Noncommercial_1.0.0-6c5a7b)](LICENSE)
+
 [Paper](https://arxiv.org/abs/2609.32965) · [Project website](https://hongyidu.ai/relic/en) · [Watch a run](https://hongyidu.ai/relic/en/experience) · [Documentation](docs/README.md) · [中文](README.zh-CN.md)
 
 **What does an AI team keep when its members change?** Relic turns recurring
