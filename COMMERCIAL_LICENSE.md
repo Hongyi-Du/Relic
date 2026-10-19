@@ -1,16 +1,10 @@
-# Commercial licensing
+# Commercial use under the MIT License
 
-Relic is available for noncommercial use under the
-[PolyForm Noncommercial License 1.0.0](LICENSE).
-
-Commercial use is not granted by that license. To use Relic for a commercial
-purpose, obtain a separate written commercial license from Hongyi Du before the
-commercial use begins. Commercial terms are agreed case by case; permission is
-effective only when granted in writing by the copyright holder.
-
-Contact the repository owner through
-[github.com/Hongyi-Du](https://github.com/Hongyi-Du) for commercial licensing.
+Relic's original source is available under the [MIT License](LICENSE).
+Commercial use is permitted without a separate license, fee, or written
+authorization from the copyright holder. The MIT License also permits
+modification, distribution, sublicensing, and sale, provided its copyright and
+permission notice is retained in copies or substantial portions of the software.
 
 Third-party and benchmark components remain subject to their own license terms.
-A commercial license for Relic does not replace or expand those third-party
-licenses.
+The MIT License for Relic does not replace or expand those third-party licenses.

@@ -6,7 +6,7 @@
 [![文档](https://img.shields.io/badge/Docs-Guide-526c88)](docs/README.md)
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776ab?logo=python&logoColor=white)](docs/installation.md)
 [![CI 状态](https://img.shields.io/github/actions/workflow/status/Hongyi-Du/Relic/release-ci.yml?branch=main&event=push&label=CI)](https://github.com/Hongyi-Du/Relic/actions/workflows/release-ci.yml)
-[![许可证：PolyForm Noncommercial 1.0.0](https://img.shields.io/badge/License-PolyForm_Noncommercial_1.0.0-6c5a7b)](LICENSE)
+[![许可证：MIT](https://img.shields.io/badge/License-MIT-6c5a7b)](LICENSE)
 
 [论文](https://arxiv.org/abs/2609.32965) · [项目主页](https://hongyidu.ai/relic/zh) · [观看组织回放](https://hongyidu.ai/relic/zh/experience) · [文档](docs/README.md) · [English](README.md)
 
@@ -212,10 +212,8 @@ BibTeX 见 [English README](README.md#citation)。
 
 ## 许可
 
-Relic 的原创源码以 [PolyForm Noncommercial License 1.0.0](LICENSE)
-进行源码公开：遵守协议时，可以用于非商业目的，也可以修改和分发。
-任何商业用途都需要事先取得 Hongyi Du 的单独书面授权；参见
-[商业授权说明](COMMERCIAL_LICENSE.md)。
+Relic 的原创源码以 [MIT License](LICENSE) 开源，允许免费商用、修改、分发和再许可，
+无需另行取得授权。在软件副本或实质性部分中保留版权声明和许可证声明即可。
 
 仓库中的第三方 benchmark 快照和其他第三方组件继续适用各自的许可证；
 仓库级许可证不会替代这些条款。

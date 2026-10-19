@@ -6,7 +6,7 @@
 [![Documentation](https://img.shields.io/badge/Docs-Guide-526c88)](docs/README.md)
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776ab?logo=python&logoColor=white)](docs/installation.md)
 [![CI status](https://img.shields.io/github/actions/workflow/status/Hongyi-Du/Relic/release-ci.yml?branch=main&event=push&label=CI)](https://github.com/Hongyi-Du/Relic/actions/workflows/release-ci.yml)
-[![License: PolyForm Noncommercial 1.0.0](https://img.shields.io/badge/License-PolyForm_Noncommercial_1.0.0-6c5a7b)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-6c5a7b)](LICENSE)
 
 [Paper](https://arxiv.org/abs/2609.32965) · [Project website](https://hongyidu.ai/relic/en) · [Watch a run](https://hongyidu.ai/relic/en/experience) · [Documentation](docs/README.md) · [中文](README.zh-CN.md)
 
@@ -235,11 +235,10 @@ If you use the research, please cite the [paper](https://arxiv.org/abs/2609.3296
 
 ## License
 
-Relic's original source is source-available under the
-[PolyForm Noncommercial License 1.0.0](LICENSE): noncommercial use,
-modification, and distribution are permitted under its terms. Commercial use
-requires a separate written license from Hongyi Du; see
-[Commercial licensing](COMMERCIAL_LICENSE.md).
+Relic's original source is open source under the [MIT License](LICENSE).
+Commercial use, modification, distribution, and sublicensing are permitted
+without separate authorization. Retain the copyright and license notice in
+copies or substantial portions of the software.
 
 Third-party benchmark snapshots and other third-party components retain their
 own licenses. The repository-level license does not replace those terms.
